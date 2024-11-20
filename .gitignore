@@ -1,3 +1,11 @@
+# Onyx
+.vscode/
+*build*/
+build*.ini
+.venv/
+.DS_Store
+imgui.ini
+
 # Prerequisites
 *.d
 
@@ -5,7 +13,6 @@
 *.slo
 *.lo
 *.o
-*.obj
 
 # Precompiled Headers
 *.gch
