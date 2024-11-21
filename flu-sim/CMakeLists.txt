@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 project(flu-sim)
 
-set(SOURCES flu/main.cpp)
+set(SOURCES
+    flu/main.cpp
+    flu/layer.cpp
+)
 
 add_executable(flu-sim ${SOURCES})
 
