@@ -3,7 +3,9 @@ project(flu-sim)
 
 set(SOURCES
     flu/main.cpp
-    flu/layer.cpp
+    flu/app/layer.cpp
+    flu/solver/particle.cpp
+    flu/solver/solver.cpp
 )
 
 add_executable(flu-sim ${SOURCES})

@@ -1,4 +1,4 @@
-#include "flu/layer.hpp"
+#include "flu/app/layer.hpp"
 #include "onyx/app/app.hpp"
 #include "kit/memory/stack_allocator.hpp"
 #include "kit/multiprocessing/thread_pool.hpp"
@@ -17,7 +17,7 @@ int main()
     specs.Name = "Fluid simulator";
 
     ONYX::Application app{specs};
-    app.Layers.Push<FLU::Layer>(&app);
+    app.Layers.Push<FLU::Layer<KIT::D2>>(&app);
     app.Run();
 
     ONYX::Core::Terminate();
