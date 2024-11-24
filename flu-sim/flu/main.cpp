@@ -17,7 +17,7 @@ int main()
     specs.Name = "Fluid simulator";
 
     ONYX::Application app{specs};
-    app.Layers.Push<FLU::Layer>();
+    app.Layers.Push<FLU::Layer>(&app);
     app.Run();
 
     ONYX::Core::Terminate();
