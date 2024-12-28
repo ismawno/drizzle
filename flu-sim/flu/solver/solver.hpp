@@ -9,7 +9,7 @@ template <Dimension D> struct Solver
     void Step(f32 p_DeltaTime) noexcept;
     void Encase() noexcept;
 
-    void DrawBoundingBox(ONYX::RenderContext<D> *p_Context) const noexcept;
+    void DrawBoundingBox(Onyx::RenderContext<D> *p_Context) const noexcept;
 
     DynamicArray<Particle<D>> Particles;
     struct

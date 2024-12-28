@@ -15,6 +15,6 @@ template <Dimension D> struct Particle
     static inline f32 Radius = 0.3f;
     static inline f32 FastSpeed = 35.f;
 
-    void Draw(ONYX::RenderContext<D> *p_Context) const noexcept;
+    void Draw(Onyx::RenderContext<D> *p_Context) const noexcept;
 };
 } // namespace FLU

@@ -7,21 +7,21 @@
 
 namespace FLU
 {
-template <Dimension D> class Layer final : public ONYX::Layer
+template <Dimension D> class Layer final : public Onyx::Layer
 {
   public:
-    Layer(ONYX::Application *p_Application) noexcept;
+    Layer(Onyx::Application *p_Application) noexcept;
 
     void OnStart() noexcept override;
     void OnUpdate() noexcept override;
     void OnRender(VkCommandBuffer) noexcept override;
-    bool OnEvent(const ONYX::Event &p_Event) noexcept override;
+    bool OnEvent(const Onyx::Event &p_Event) noexcept override;
 
   private:
-    ONYX::Application *m_Application;
-    ONYX::Window *m_Window;
+    Onyx::Application *m_Application;
+    Onyx::Window *m_Window;
 
     Solver<D> m_Solver;
-    ONYX::RenderContext<D> *m_Context;
+    Onyx::RenderContext<D> *m_Context;
 };
 } // namespace FLU

@@ -31,12 +31,12 @@ template <Dimension D> void Solver<D>::Encase() noexcept
     }
 }
 
-template <Dimension D> void Solver<D>::DrawBoundingBox(ONYX::RenderContext<D> *p_Context) const noexcept
+template <Dimension D> void Solver<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context) const noexcept
 {
     p_Context->Push();
 
     p_Context->Fill(false);
-    p_Context->Outline(ONYX::Color::WHITE);
+    p_Context->Outline(Onyx::Color::WHITE);
     p_Context->OutlineWidth(0.02f);
 
     const vec<D> center = 0.5f * (BoundingBox.Min + BoundingBox.Max);

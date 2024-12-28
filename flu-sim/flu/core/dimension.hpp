@@ -1,10 +1,10 @@
 #pragma once
 
-#include "kit/utilities/dimension.hpp"
+#include "tkit/utilities/dimension.hpp"
 
 namespace FLU
 {
-using KIT::D2;
-using KIT::D3;
-using KIT::Dimension;
+using TKit::D2;
+using TKit::D3;
+using TKit::Dimension;
 } // namespace FLU

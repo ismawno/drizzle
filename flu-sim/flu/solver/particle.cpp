@@ -2,14 +2,14 @@
 
 namespace FLU
 {
-template <Dimension D> void Particle<D>::Draw(ONYX::RenderContext<D> *p_Context) const noexcept
+template <Dimension D> void Particle<D>::Draw(Onyx::RenderContext<D> *p_Context) const noexcept
 {
     p_Context->Push();
 
     const f32 speed = glm::min(FastSpeed, glm::length(Velocity));
-    static const std::array<ONYX::Color, 3> Gradient = {ONYX::Color::CYAN, ONYX::Color::YELLOW, ONYX::Color::RED};
-    const ONYX::Gradient gradient{Gradient};
-    const ONYX::Color color = gradient.Evaluate(speed / FastSpeed);
+    static const std::array<Onyx::Color, 3> Gradient = {Onyx::Color::CYAN, Onyx::Color::YELLOW, Onyx::Color::RED};
+    const Onyx::Gradient gradient{Gradient};
+    const Onyx::Color color = gradient.Evaluate(speed / FastSpeed);
 
     p_Context->Fill(color);
     p_Context->Scale(2.f * Radius);

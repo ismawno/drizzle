@@ -1,8 +1,8 @@
 #pragma once
 
-#include "kit/core/alias.hpp"
+#include "tkit/core/alias.hpp"
 
 namespace FLU
 {
-using namespace KIT::Alias;
+using namespace TKit::Alias;
 } // namespace FLU

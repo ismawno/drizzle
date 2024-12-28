@@ -4,7 +4,7 @@
 namespace FLU
 {
 template <Dimension D>
-Layer<D>::Layer(ONYX::Application *p_Application) noexcept : ONYX::Layer("FLU Layer"), m_Application(p_Application)
+Layer<D>::Layer(Onyx::Application *p_Application) noexcept : Onyx::Layer("FLU Layer"), m_Application(p_Application)
 {
 }
 
@@ -21,11 +21,10 @@ template <Dimension D> void Layer<D>::OnUpdate() noexcept
 
 template <Dimension D> void Layer<D>::OnRender(const VkCommandBuffer) noexcept
 {
-    m_Context->Flush(ONYX::Color::BLACK);
+    m_Context->Flush(Onyx::Color::BLACK);
     m_Context->ScaleAxes(0.05f);
 
-    const f32 step = 1.5f * m_Application->GetDeltaTime().AsSeconds();
-    m_Context->ApplyCameraLikeMovementControls(step, step);
+    m_Context->ApplyCameraMovementControls(1.5f * m_Application->GetDeltaTime());
 
     for (const Particle<D> &particle : m_Solver.Particles)
         particle.Draw(m_Context);
@@ -42,17 +41,17 @@ template <Dimension D> void Layer<D>::OnRender(const VkCommandBuffer) noexcept
     ImGui::End();
 }
 
-template <Dimension D> bool Layer<D>::OnEvent(const ONYX::Event &p_Event) noexcept
+template <Dimension D> bool Layer<D>::OnEvent(const Onyx::Event &p_Event) noexcept
 {
     if constexpr (D == D2)
     {
-        if (p_Event.Type == ONYX::Event::Scrolled && ONYX::Input::IsKeyPressed(m_Window, ONYX::Input::Key::LeftShift))
+        if (p_Event.Type == Onyx::Event::Scrolled && Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::LeftShift))
         {
-            m_Context->ApplyCameraLikeScalingControls(0.005f * p_Event.ScrollOffset.y);
+            m_Context->ApplyCameraScalingControls(0.005f * p_Event.ScrollOffset.y);
             return true;
         }
     }
-    if (p_Event.Type == ONYX::Event::MousePressed && ONYX::Input::IsKeyPressed(m_Window, ONYX::Input::Key::Space))
+    if (p_Event.Type == Onyx::Event::MousePressed && Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::Space))
     {
         Particle<D> particle{};
         if constexpr (D == D2)

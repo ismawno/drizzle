@@ -1,8 +1,8 @@
 #pragma once
 
-#include "kit/utilities/glm.hpp"
+#include "tkit/utilities/glm.hpp"
 
 namespace FLU
 {
-using namespace KIT::GLM;
+using namespace TKit::GLM;
 } // namespace FLU
