@@ -4,7 +4,6 @@ project(flu-sim)
 set(SOURCES
     flu/main.cpp
     flu/app/layer.cpp
-    flu/solver/particle.cpp
     flu/solver/solver.cpp
 )
 

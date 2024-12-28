@@ -16,6 +16,8 @@ template <Dimension D> void Layer<D>::OnStart() noexcept
 
 template <Dimension D> void Layer<D>::OnUpdate() noexcept
 {
+    if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::Space))
+        addParticle();
     m_Solver.Step(m_Application->GetDeltaTime().AsSeconds());
 }
 
@@ -26,11 +28,12 @@ template <Dimension D> void Layer<D>::OnRender(const VkCommandBuffer) noexcept
 
     m_Context->ApplyCameraMovementControls(1.5f * m_Application->GetDeltaTime());
 
-    for (const Particle<D> &particle : m_Solver.Particles)
-        particle.Draw(m_Context);
+    m_Solver.DrawParticles(m_Context);
     m_Solver.DrawBoundingBox(m_Context);
 
     ImGui::Begin("Editor");
+    EditPresentMode(*m_Window);
+    ImGui::Text("Frame time: %.2f ms", m_Application->GetDeltaTime().AsMilliseconds());
     if constexpr (D == D2)
     {
         const vec2 mpos = m_Context->GetMouseCoordinates();
@@ -51,16 +54,16 @@ template <Dimension D> bool Layer<D>::OnEvent(const Onyx::Event &p_Event) noexce
             return true;
         }
     }
-    if (p_Event.Type == Onyx::Event::MousePressed && Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::Space))
-    {
-        Particle<D> particle{};
-        if constexpr (D == D2)
-            particle.Position = m_Context->GetMouseCoordinates();
-        m_Solver.Particles.push_back(particle);
-        return true;
-    }
 
     return false;
+}
+
+template <Dimension D> void Layer<D>::addParticle() noexcept
+{
+    Particle<D> particle{};
+    if constexpr (D == D2)
+        particle.Position = m_Context->GetMouseCoordinates();
+    m_Solver.Particles.push_back(particle);
 }
 
 template class Layer<D2>;
