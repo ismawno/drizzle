@@ -2,9 +2,9 @@
 
 #include "tkit/utilities/dimension.hpp"
 
-namespace FLU
+namespace Flu
 {
 using TKit::D2;
 using TKit::D3;
 using TKit::Dimension;
-} // namespace FLU
+} // namespace Flu

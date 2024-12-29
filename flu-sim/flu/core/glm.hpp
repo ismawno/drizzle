@@ -2,7 +2,7 @@
 
 #include "tkit/utilities/glm.hpp"
 
-namespace FLU
+namespace Flu
 {
 using namespace TKit::GLM;
-} // namespace FLU
+} // namespace Flu

@@ -2,7 +2,7 @@
 
 #include "tkit/core/alias.hpp"
 
-namespace FLU
+namespace Flu
 {
 using namespace TKit::Alias;
-} // namespace FLU
+} // namespace Flu

@@ -5,7 +5,7 @@
 #include "onyx/rendering/render_context.hpp"
 #include "flu/solver/solver.hpp"
 
-namespace FLU
+namespace Flu
 {
 template <Dimension D> class Layer final : public Onyx::Layer
 {
@@ -26,4 +26,4 @@ template <Dimension D> class Layer final : public Onyx::Layer
     Solver<D> m_Solver;
     Onyx::RenderContext<D> *m_Context;
 };
-} // namespace FLU
+} // namespace Flu

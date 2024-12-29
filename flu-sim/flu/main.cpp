@@ -15,7 +15,7 @@ int main()
     specs.Name = "Fluid simulator";
 
     Onyx::Application app{specs};
-    app.Layers.Push<FLU::Layer<TKit::D2>>(&app);
+    app.Layers.Push<Flu::Layer<TKit::D2>>(&app);
     app.Run();
 
     Onyx::Core::Terminate();
