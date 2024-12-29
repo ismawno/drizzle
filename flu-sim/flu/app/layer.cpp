@@ -40,7 +40,7 @@ template <Dimension D> void Layer<D>::OnRender(const VkCommandBuffer) noexcept
         ImGui::Text("Mouse: (%.2f, %.2f)", mpos.x, mpos.y);
     }
 
-    ImGui::Text("Particles: %zu", m_Solver.GetParticles().size());
+    ImGui::Text("Particles: %zu", m_Solver.GetParticleCount());
     if constexpr (D == D2)
     {
         const fvec2 mpos = m_Context->GetMouseCoordinates();
