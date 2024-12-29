@@ -36,13 +36,14 @@ template <Dimension D> void Layer<D>::OnRender(const VkCommandBuffer) noexcept
     ImGui::Text("Frame time: %.2f ms", m_Application->GetDeltaTime().AsMilliseconds());
     if constexpr (D == D2)
     {
-        const vec2 mpos = m_Context->GetMouseCoordinates();
+        const fvec2 mpos = m_Context->GetMouseCoordinates();
         ImGui::Text("Mouse: (%.2f, %.2f)", mpos.x, mpos.y);
     }
 
+    ImGui::Text("Particles: %zu", m_Solver.GetParticles().size());
     if constexpr (D == D2)
     {
-        const vec2 mpos = m_Context->GetMouseCoordinates();
+        const fvec2 mpos = m_Context->GetMouseCoordinates();
         const f32 density = m_Solver.ComputeDensityAtPoint(mpos);
         const f32 pressure = m_Solver.GetPressureFromDensity(density);
 
@@ -60,7 +61,6 @@ template <Dimension D> void Layer<D>::OnRender(const VkCommandBuffer) noexcept
     ImGui::DragFloat("Gravity", &m_Solver.Gravity, speed);
     ImGui::DragFloat("Encase Friction", &m_Solver.EncaseFriction, speed);
 
-    ImGui::Text("Particles: %zu", m_Solver.Particles.size());
     ImGui::End();
 }
 
@@ -83,7 +83,7 @@ template <Dimension D> void Layer<D>::addParticle() noexcept
     if constexpr (D == D2)
         m_Solver.AddParticle(m_Context->GetMouseCoordinates());
     else
-        m_Solver.AddParticle(vec3{0.f});
+        m_Solver.AddParticle(fvec3{0.f});
 }
 
 template class Layer<D2>;
