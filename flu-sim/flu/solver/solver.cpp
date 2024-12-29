@@ -75,6 +75,14 @@ template <Dimension D> u32 Solver<D>::getCellIndex(const ivec<D> &p_CellPosition
 
 template <Dimension D> void Solver<D>::Step(const f32 p_DeltaTime) noexcept
 {
+    m_PredictedPositions.resize(m_Positions.size());
+    for (usize i = 0; i < m_Positions.size(); ++i)
+    {
+        m_Velocities[i].y += Gravity * p_DeltaTime / ParticleMass;
+        m_PredictedPositions[i] = m_Positions[i] + m_Velocities[i] * p_DeltaTime;
+    }
+    std::swap(m_Positions, m_PredictedPositions);
+
     UpdateGrid();
     for (usize i = 0; i < m_Positions.size(); ++i)
         m_Densities[i] = ComputeDensityAtPoint(m_Positions[i]);
@@ -83,10 +91,13 @@ template <Dimension D> void Solver<D>::Step(const f32 p_DeltaTime) noexcept
     {
         const fvec<D> pressureGradient = ComputePressureGradient(i);
         m_Velocities[i] -= pressureGradient * p_DeltaTime / m_Densities[i];
-        m_Velocities[i].y += Gravity * p_DeltaTime / ParticleMass;
-        m_Positions[i] += m_Velocities[i] * p_DeltaTime;
     }
-    encase();
+    std::swap(m_Positions, m_PredictedPositions);
+    for (usize i = 0; i < m_Positions.size(); ++i)
+    {
+        m_Positions[i] += m_Velocities[i] * p_DeltaTime;
+        encase(i);
+    }
 }
 
 template <Dimension D> void Solver<D>::UpdateGrid() noexcept
@@ -160,22 +171,21 @@ template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position) no
     m_Densities.resize(m_Positions.size(), 0.f);
 }
 
-template <Dimension D> void Solver<D>::encase() noexcept
+template <Dimension D> void Solver<D>::encase(const usize p_Index) noexcept
 {
-    for (usize i = 0; i < m_Positions.size(); ++i)
-        for (u32 j = 0; j < D; ++j)
+    for (u32 j = 0; j < D; ++j)
+    {
+        if (m_Positions[p_Index][j] - ParticleRadius < BoundingBox.Min[j])
         {
-            if (m_Positions[i][j] - ParticleRadius < m_BoundingBox.Min[j])
-            {
-                m_Positions[i][j] = m_BoundingBox.Min[j] + ParticleRadius;
-                m_Velocities[i][j] = -EncaseFriction * m_Velocities[i][j];
-            }
-            else if (m_Positions[i][j] + ParticleRadius > m_BoundingBox.Max[j])
-            {
-                m_Positions[i][j] = m_BoundingBox.Max[j] - ParticleRadius;
-                m_Velocities[i][j] = -EncaseFriction * m_Velocities[i][j];
-            }
+            m_Positions[p_Index][j] = BoundingBox.Min[j] + ParticleRadius;
+            m_Velocities[p_Index][j] = -EncaseFriction * m_Velocities[p_Index][j];
         }
+        else if (m_Positions[p_Index][j] + ParticleRadius > BoundingBox.Max[j])
+        {
+            m_Positions[p_Index][j] = BoundingBox.Max[j] - ParticleRadius;
+            m_Velocities[p_Index][j] = -EncaseFriction * m_Velocities[p_Index][j];
+        }
+    }
 }
 
 template <Dimension D> void Solver<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context) const noexcept
@@ -186,8 +196,8 @@ template <Dimension D> void Solver<D>::DrawBoundingBox(Onyx::RenderContext<D> *p
     p_Context->Outline(Onyx::Color::WHITE);
     p_Context->OutlineWidth(0.02f);
 
-    const fvec<D> center = 0.5f * (m_BoundingBox.Min + m_BoundingBox.Max);
-    const fvec<D> size = m_BoundingBox.Max - m_BoundingBox.Min;
+    const fvec<D> center = 0.5f * (BoundingBox.Min + BoundingBox.Max);
+    const fvec<D> size = BoundingBox.Max - BoundingBox.Min;
 
     p_Context->Scale(size);
     p_Context->Translate(center);

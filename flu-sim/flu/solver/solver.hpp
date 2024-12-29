@@ -52,7 +52,7 @@ template <Dimension D> class Solver
 
     usize GetParticleCount() const noexcept;
 
-    f32 ParticleRadius = 0.3f;
+    f32 ParticleRadius = 0.1f;
     f32 ParticleMass = 1.f;
     f32 TargetDensity = 1.f;
     f32 PressureStiffness = 100.f;
@@ -61,30 +61,31 @@ template <Dimension D> class Solver
     f32 Gravity = 0.f;
     f32 EncaseFriction = 0.2f;
 
+    struct
+    {
+        fvec<D> Min{-15.f};
+        fvec<D> Max{15.f};
+    } BoundingBox;
+
   private:
     struct IndexPair
     {
         u32 ParticleIndex;
         u32 CellIndex;
     };
-    void encase() noexcept;
+    void encase(usize p_Index) noexcept;
     f32 getInfluence(f32 p_Distance) const noexcept;
     f32 getInfluenceSlope(f32 p_Distance) const noexcept;
 
     ivec<D> getCellPosition(const fvec<D> &p_Position) const noexcept;
     u32 getCellIndex(const ivec<D> &p_CellPosition) const noexcept;
 
+    DynamicArray<fvec<D>> m_PredictedPositions;
     DynamicArray<fvec<D>> m_Positions;
     DynamicArray<fvec<D>> m_Velocities;
 
     DynamicArray<f32> m_Densities;
     DynamicArray<IndexPair> m_SpatialLookup;
     DynamicArray<u32> m_StartIndices;
-
-    struct
-    {
-        fvec<D> Min{-15.f};
-        fvec<D> Max{15.f};
-    } m_BoundingBox;
 };
 } // namespace Flu

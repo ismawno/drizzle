@@ -18,7 +18,7 @@ template <Dimension D> void Layer<D>::OnUpdate() noexcept
 {
     if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::Space))
         addParticle();
-    m_Solver.Step(m_Application->GetDeltaTime().AsSeconds());
+    m_Solver.Step(m_Timestep);
 }
 
 template <Dimension D> void Layer<D>::OnRender(const VkCommandBuffer) noexcept
@@ -39,8 +39,26 @@ template <Dimension D> void Layer<D>::OnRender(const VkCommandBuffer) noexcept
         const fvec2 mpos = m_Context->GetMouseCoordinates();
         ImGui::Text("Mouse: (%.2f, %.2f)", mpos.x, mpos.y);
     }
+    static bool syncTimestep = false;
+    ImGui::Checkbox("Sync Timestep", &syncTimestep);
+    if (syncTimestep)
+    {
+        m_Timestep = m_Application->GetDeltaTime().AsSeconds();
+        ImGui::Text("Timestep: %.2f", m_Timestep);
+    }
+    else
+        ImGui::SliderFloat("Timestep", &m_Timestep, 0.001f, 0.1f, "%.3f", ImGuiSliderFlags_Logarithmic);
 
     ImGui::Text("Particles: %zu", m_Solver.GetParticleCount());
+    if (ImGui::TreeNode("Bounding box"))
+    {
+        if (ImGui::DragFloat("Width", &m_Solver.BoundingBox.Max.x, 0.05f))
+            m_Solver.BoundingBox.Min.x = -m_Solver.BoundingBox.Max.x;
+        if (ImGui::DragFloat("Height", &m_Solver.BoundingBox.Max.y, 0.05f))
+            m_Solver.BoundingBox.Min.y = -m_Solver.BoundingBox.Max.y;
+        ImGui::TreePop();
+    }
+
     if constexpr (D == D2)
     {
         const fvec2 mpos = m_Context->GetMouseCoordinates();

@@ -25,5 +25,7 @@ template <Dimension D> class Layer final : public Onyx::Layer
 
     Solver<D> m_Solver;
     Onyx::RenderContext<D> *m_Context;
+
+    f32 m_Timestep = 1.f / 60.f;
 };
 } // namespace Flu
