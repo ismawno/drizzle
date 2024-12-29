@@ -1,4 +1,5 @@
 #include "flu/solver/solver.hpp"
+#include "onyx/app/input.hpp"
 #include "tkit/container/hashable_tuple.hpp"
 #include "tkit/utilities/math.hpp"
 
@@ -60,7 +61,7 @@ template <Dimension D> ivec<D> Solver<D>::getCellPosition(const fvec<D> &p_Posit
 }
 template <Dimension D> u32 Solver<D>::getCellIndex(const ivec<D> &p_CellPosition) const noexcept
 {
-    const u32 particles = static_cast<u32>(m_Positions.size());
+    const u32 particles = static_cast<u32>(Positions.size());
     if constexpr (D == D2)
     {
         TKit::HashableTuple<u32, u32> key{p_CellPosition.x, p_CellPosition.y};
@@ -73,39 +74,55 @@ template <Dimension D> u32 Solver<D>::getCellIndex(const ivec<D> &p_CellPosition
     }
 }
 
-template <Dimension D> void Solver<D>::Step(const f32 p_DeltaTime) noexcept
+template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
 {
-    m_PredictedPositions.resize(m_Positions.size());
-    for (usize i = 0; i < m_Positions.size(); ++i)
+    m_PredictedPositions.resize(Positions.size());
+    for (usize i = 0; i < Positions.size(); ++i)
     {
-        m_Velocities[i].y += Gravity * p_DeltaTime / ParticleMass;
-        m_PredictedPositions[i] = m_Positions[i] + m_Velocities[i] * p_DeltaTime;
+        Velocities[i].y += Gravity * p_DeltaTime / ParticleMass;
+        m_PredictedPositions[i] = Positions[i] + Velocities[i] * p_DeltaTime;
     }
-    std::swap(m_Positions, m_PredictedPositions);
+    std::swap(Positions, m_PredictedPositions);
 
     UpdateGrid();
-    for (usize i = 0; i < m_Positions.size(); ++i)
-        m_Densities[i] = ComputeDensityAtPoint(m_Positions[i]);
+    for (usize i = 0; i < Positions.size(); ++i)
+        m_Densities[i] = ComputeDensityAtPoint(Positions[i]);
 
-    for (u32 i = 0; i < m_Positions.size(); ++i)
+    for (u32 i = 0; i < Positions.size(); ++i)
     {
         const fvec<D> pressureGradient = ComputePressureGradient(i);
-        m_Velocities[i] -= pressureGradient * p_DeltaTime / m_Densities[i];
+        Velocities[i] -= pressureGradient * p_DeltaTime / m_Densities[i];
     }
-    std::swap(m_Positions, m_PredictedPositions);
-    for (usize i = 0; i < m_Positions.size(); ++i)
+}
+template <Dimension D> void Solver<D>::EndStep(const f32 p_DeltaTime) noexcept
+{
+    std::swap(Positions, m_PredictedPositions);
+    for (usize i = 0; i < Positions.size(); ++i)
     {
-        m_Positions[i] += m_Velocities[i] * p_DeltaTime;
+        Positions[i] += Velocities[i] * p_DeltaTime;
         encase(i);
+    }
+}
+template <Dimension D> void Solver<D>::ApplyMouseForce(const fvec<D> &p_MousePos, const f32 p_Timestep) noexcept
+{
+    for (u32 i = 0; i < Positions.size(); ++i)
+    {
+        const fvec<D> diff = Positions[i] - p_MousePos;
+        const f32 distance = glm::length(diff);
+        if (distance < MouseRadius)
+        {
+            const f32 factor = 1.f - distance / MouseRadius;
+            Velocities[i] += (factor * MouseForce * p_Timestep / distance) * diff;
+        }
     }
 }
 
 template <Dimension D> void Solver<D>::UpdateGrid() noexcept
 {
     m_SpatialLookup.clear();
-    for (u32 i = 0; i < m_Positions.size(); ++i)
+    for (u32 i = 0; i < Positions.size(); ++i)
     {
-        const ivec<D> cellPosition = getCellPosition(m_Positions[i]);
+        const ivec<D> cellPosition = getCellPosition(Positions[i]);
         const u32 index = getCellIndex(cellPosition);
         m_SpatialLookup.push_back({i, index});
     }
@@ -113,7 +130,7 @@ template <Dimension D> void Solver<D>::UpdateGrid() noexcept
               [](const IndexPair &a, const IndexPair &b) { return a.CellIndex < b.CellIndex; });
 
     u32 prevIndex = 0;
-    m_StartIndices.resize(m_Positions.size(), UINT32_MAX);
+    m_StartIndices.resize(Positions.size(), UINT32_MAX);
     for (u32 i = 0; i < m_SpatialLookup.size(); ++i)
     {
         if (i == 0 || m_SpatialLookup[i].CellIndex != prevIndex)
@@ -126,7 +143,7 @@ template <Dimension D> void Solver<D>::UpdateGrid() noexcept
 template <Dimension D> f32 Solver<D>::ComputeDensityAtPoint(const fvec<D> &p_Point) const noexcept
 {
     f32 density = 0.f;
-    ForEachPointWithinSmoothingRadius(p_Point, [this, &density](const u32, const f32 p_Distance) {
+    ForEachParticleWithinSmoothingRadius(p_Point, [this, &density](const u32, const f32 p_Distance) {
         density += ParticleMass * getInfluence(p_Distance);
     });
     return density;
@@ -143,18 +160,18 @@ static fvec<D> getDirection(const fvec<D> &p_P1, const fvec<D> &p_P2, const f32 
         return dir;
     return (p_P1 - p_P2) / p_Distance;
 }
-template <Dimension D> fvec<D> Solver<D>::ComputePressureGradient(const u32 p_Index) const noexcept
+template <Dimension D> fvec<D> Solver<D>::ComputePressureGradient(const u32 p_Index1) const noexcept
 {
     fvec<D> gradient{0.f};
-    ForEachPointWithinSmoothingRadius(
-        m_Positions[p_Index], [this, &gradient, p_Index](const u32 i, const f32 distance) {
-            if (i == p_Index)
+    ForEachParticleWithinSmoothingRadius(
+        Positions[p_Index1], [this, &gradient, p_Index1](const u32 p_Index2, const f32 distance) {
+            if (p_Index2 == p_Index1)
                 return;
-            const fvec<D> dir = getDirection<D>(m_Positions[p_Index], m_Positions[i], distance);
+            const fvec<D> dir = getDirection<D>(Positions[p_Index1], Positions[p_Index2], distance);
             const f32 kernelGradient = getInfluenceSlope(distance);
-            const f32 p1 = GetPressureFromDensity(m_Densities[p_Index]);
-            const f32 p2 = GetPressureFromDensity(m_Densities[i]);
-            gradient += (0.5f * (p1 + p2) * ParticleMass * kernelGradient / m_Densities[i]) * dir;
+            const f32 p1 = GetPressureFromDensity(m_Densities[p_Index1]);
+            const f32 p2 = GetPressureFromDensity(m_Densities[p_Index2]);
+            gradient += (0.5f * (p1 + p2) * ParticleMass * kernelGradient / m_Densities[p_Index2]) * dir;
         });
     return gradient;
 }
@@ -166,24 +183,24 @@ template <Dimension D> f32 Solver<D>::GetPressureFromDensity(const f32 p_Density
 
 template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position) noexcept
 {
-    m_Positions.push_back(p_Position);
-    m_Velocities.push_back(fvec<D>{0.f});
-    m_Densities.resize(m_Positions.size(), 0.f);
+    Positions.push_back(p_Position);
+    Velocities.push_back(fvec<D>{0.f});
+    m_Densities.resize(Positions.size(), 0.f);
 }
 
 template <Dimension D> void Solver<D>::encase(const usize p_Index) noexcept
 {
     for (u32 j = 0; j < D; ++j)
     {
-        if (m_Positions[p_Index][j] - ParticleRadius < BoundingBox.Min[j])
+        if (Positions[p_Index][j] - ParticleRadius < BoundingBox.Min[j])
         {
-            m_Positions[p_Index][j] = BoundingBox.Min[j] + ParticleRadius;
-            m_Velocities[p_Index][j] = -EncaseFriction * m_Velocities[p_Index][j];
+            Positions[p_Index][j] = BoundingBox.Min[j] + ParticleRadius;
+            Velocities[p_Index][j] = -EncaseFriction * Velocities[p_Index][j];
         }
-        else if (m_Positions[p_Index][j] + ParticleRadius > BoundingBox.Max[j])
+        else if (Positions[p_Index][j] + ParticleRadius > BoundingBox.Max[j])
         {
-            m_Positions[p_Index][j] = BoundingBox.Max[j] - ParticleRadius;
-            m_Velocities[p_Index][j] = -EncaseFriction * m_Velocities[p_Index][j];
+            Positions[p_Index][j] = BoundingBox.Max[j] - ParticleRadius;
+            Velocities[p_Index][j] = -EncaseFriction * Velocities[p_Index][j];
         }
     }
 }
@@ -210,10 +227,10 @@ template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_C
     const f32 particleSize = 2.f * ParticleRadius;
     const std::array<Onyx::Color, 3> Gradient = {Onyx::Color::CYAN, Onyx::Color::YELLOW, Onyx::Color::RED};
     const Onyx::Gradient gradient{Gradient};
-    for (usize i = 0; i < m_Positions.size(); ++i)
+    for (usize i = 0; i < Positions.size(); ++i)
     {
-        const fvec<D> &pos = m_Positions[i];
-        const fvec<D> &vel = m_Velocities[i];
+        const fvec<D> &pos = Positions[i];
+        const fvec<D> &vel = Velocities[i];
 
         const f32 speed = glm::min(FastSpeed, glm::length(vel));
         const Onyx::Color color = gradient.Evaluate(speed / FastSpeed);
@@ -235,11 +252,6 @@ template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_C
 
         p_Context->Pop();
     }
-}
-
-template <Dimension D> usize Solver<D>::GetParticleCount() const noexcept
-{
-    return m_Positions.size();
 }
 
 template class Solver<Dimension::D2>;

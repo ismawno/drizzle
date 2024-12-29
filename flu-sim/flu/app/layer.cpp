@@ -18,7 +18,14 @@ template <Dimension D> void Layer<D>::OnUpdate() noexcept
 {
     if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::Space))
         addParticle();
-    m_Solver.Step(m_Timestep);
+    m_Solver.BeginStep(m_Timestep);
+    if constexpr (D == D2)
+        if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
+        {
+            const fvec2 p_MousePos = m_Context->GetMouseCoordinates();
+            m_Solver.ApplyMouseForce(p_MousePos, m_Timestep);
+        }
+    m_Solver.EndStep(m_Timestep);
 }
 
 template <Dimension D> void Layer<D>::OnRender(const VkCommandBuffer) noexcept
@@ -31,14 +38,22 @@ template <Dimension D> void Layer<D>::OnRender(const VkCommandBuffer) noexcept
     m_Solver.DrawParticles(m_Context);
     m_Solver.DrawBoundingBox(m_Context);
 
+    if constexpr (D == D2)
+        if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
+        {
+            const fvec2 mpos = m_Context->GetMouseCoordinates();
+            m_Context->Push();
+            m_Context->Fill(Onyx::Color::ORANGE);
+            m_Context->Scale(2.f * m_Solver.MouseRadius);
+            m_Context->Translate(mpos);
+            m_Context->Circle(0.f, 0.f, 0.99f);
+            m_Context->Pop();
+        }
+
     ImGui::Begin("Editor");
     EditPresentMode(*m_Window);
     ImGui::Text("Frame time: %.2f ms", m_Application->GetDeltaTime().AsMilliseconds());
-    if constexpr (D == D2)
-    {
-        const fvec2 mpos = m_Context->GetMouseCoordinates();
-        ImGui::Text("Mouse: (%.2f, %.2f)", mpos.x, mpos.y);
-    }
+
     static bool syncTimestep = false;
     ImGui::Checkbox("Sync Timestep", &syncTimestep);
     if (syncTimestep)
@@ -49,7 +64,7 @@ template <Dimension D> void Layer<D>::OnRender(const VkCommandBuffer) noexcept
     else
         ImGui::SliderFloat("Timestep", &m_Timestep, 0.001f, 0.1f, "%.3f", ImGuiSliderFlags_Logarithmic);
 
-    ImGui::Text("Particles: %zu", m_Solver.GetParticleCount());
+    ImGui::Text("Particles: %zu", m_Solver.Positions.size());
     if (ImGui::TreeNode("Bounding box"))
     {
         if (ImGui::DragFloat("Width", &m_Solver.BoundingBox.Max.x, 0.05f))
@@ -70,6 +85,8 @@ template <Dimension D> void Layer<D>::OnRender(const VkCommandBuffer) noexcept
     }
 
     const f32 speed = 0.2f;
+    ImGui::DragFloat("Mouse Radius", &m_Solver.MouseRadius, speed);
+    ImGui::DragFloat("Mouse Force", &m_Solver.MouseForce, speed);
     ImGui::DragFloat("Particle Radius", &m_Solver.ParticleRadius, speed);
     ImGui::DragFloat("Particle Mass", &m_Solver.ParticleMass, speed);
     ImGui::DragFloat("Target Density", &m_Solver.TargetDensity, 0.1f * speed);

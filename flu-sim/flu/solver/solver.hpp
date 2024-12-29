@@ -8,7 +8,10 @@ namespace Flu
 template <Dimension D> class Solver
 {
   public:
-    void Step(f32 p_DeltaTime) noexcept;
+    void BeginStep(f32 p_DeltaTime) noexcept;
+    void EndStep(f32 p_DeltaTime) noexcept;
+    void ApplyMouseForce(const fvec<D> &p_MousePos, f32 p_Timestep) noexcept;
+
     void UpdateGrid() noexcept;
 
     f32 ComputeDensityAtPoint(const fvec<D> &p_Point) const noexcept;
@@ -16,7 +19,8 @@ template <Dimension D> class Solver
 
     f32 GetPressureFromDensity(f32 p_Density) const noexcept;
 
-    template <typename F> void ForEachPointWithinSmoothingRadius(const fvec<D> &p_Point, F &&p_Function) const noexcept
+    template <typename F>
+    void ForEachParticleWithinSmoothingRadius(const fvec<D> &p_Point, F &&p_Function) const noexcept
     {
         // for (u32 i = 0; i < m_Particles.size(); ++i)
         // {
@@ -24,7 +28,7 @@ template <Dimension D> class Solver
         //     if (distance < SmoothingRadius)
         //         std::forward<F>(p_Function)(i, distance);
         // }
-        if (m_Positions.empty())
+        if (Positions.empty())
             return;
         if constexpr (D == D2)
             for (i32 offsetX = -1; offsetX <= 1; ++offsetX)
@@ -38,7 +42,7 @@ template <Dimension D> class Solver
                          ++i)
                     {
                         const u32 particleIndex = m_SpatialLookup[i].ParticleIndex;
-                        const f32 distance = glm::distance(p_Point, m_Positions[particleIndex]);
+                        const f32 distance = glm::distance(p_Point, Positions[particleIndex]);
                         if (distance < SmoothingRadius)
                             std::forward<F>(p_Function)(particleIndex, distance);
                     }
@@ -50,16 +54,22 @@ template <Dimension D> class Solver
     void DrawBoundingBox(Onyx::RenderContext<D> *p_Context) const noexcept;
     void DrawParticles(Onyx::RenderContext<D> *p_Context) const noexcept;
 
-    usize GetParticleCount() const noexcept;
-
     f32 ParticleRadius = 0.1f;
     f32 ParticleMass = 1.f;
+
     f32 TargetDensity = 1.f;
     f32 PressureStiffness = 100.f;
     f32 SmoothingRadius = 2.f;
+
     f32 FastSpeed = 35.f;
     f32 Gravity = 0.f;
     f32 EncaseFriction = 0.2f;
+
+    f32 MouseRadius = 3.f;
+    f32 MouseForce = 100.f;
+
+    DynamicArray<fvec<D>> Positions;
+    DynamicArray<fvec<D>> Velocities;
 
     struct
     {
@@ -81,8 +91,6 @@ template <Dimension D> class Solver
     u32 getCellIndex(const ivec<D> &p_CellPosition) const noexcept;
 
     DynamicArray<fvec<D>> m_PredictedPositions;
-    DynamicArray<fvec<D>> m_Positions;
-    DynamicArray<fvec<D>> m_Velocities;
 
     DynamicArray<f32> m_Densities;
     DynamicArray<IndexPair> m_SpatialLookup;
