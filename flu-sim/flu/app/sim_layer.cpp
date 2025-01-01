@@ -104,13 +104,6 @@ template <Dimension D> void SimLayer<D>::renderSimulationSettings() noexcept
         ImGui::TreePop();
     }
 
-    const fvec<D> mpos = m_Context->GetMouseCoordinates();
-    const f32 density = m_Solver.ComputeDensityAtPoint(mpos);
-    const f32 pressure = m_Solver.GetPressureFromDensity(density);
-
-    ImGui::Text("Density: %.2f", density);
-    ImGui::Text("Pressure: %.2f", pressure);
-
     Visualization<D>::RenderSettings(m_Solver.Settings);
 
     ImGui::End();

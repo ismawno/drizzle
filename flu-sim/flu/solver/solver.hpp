@@ -19,6 +19,7 @@ struct SimulationSettings
 
     f32 TargetDensity = 10.f;
     f32 PressureStiffness = 100.f;
+    f32 NearPressureStiffness = 2.f;
     f32 SmoothingRadius = 1.f;
 
     f32 FastSpeed = 35.f;
@@ -31,7 +32,8 @@ struct SimulationSettings
     std::array<Onyx::Color, 3> Gradient = {Onyx::Color::CYAN, Onyx::Color::YELLOW, Onyx::Color::RED};
 
     NeighborSearch SearchMethod = NeighborSearch::Grid;
-    KernelType KernelType = KernelType::Spiky;
+    KernelType KType = KernelType::Spiky2;
+    KernelType NearKType = KernelType::Spiky3;
 };
 
 template <Dimension D> class Solver
@@ -43,10 +45,11 @@ template <Dimension D> class Solver
 
     void UpdateGrid() noexcept;
 
-    f32 ComputeDensityAtPoint(const fvec<D> &p_Point) const noexcept;
+    std::pair<f32, f32> ComputeDensitiesAtPoint(const fvec<D> &p_Point) const noexcept;
+
     fvec<D> ComputePressureGradient(u32 p_Index) const noexcept;
 
-    f32 GetPressureFromDensity(f32 p_Density) const noexcept;
+    std::pair<f32, f32> GetPressureFromDensity(f32 p_Density, f32 p_NearDensity) const noexcept;
 
     template <typename F>
     void ForEachParticleWithinSmoothingRadius(const fvec<D> &p_Point, F &&p_Function) const noexcept
@@ -121,8 +124,12 @@ template <Dimension D> class Solver
     }
 
     void encase(usize p_Index) noexcept;
+
     f32 getInfluence(f32 p_Distance) const noexcept;
     f32 getInfluenceSlope(f32 p_Distance) const noexcept;
+
+    f32 getNearInfluence(f32 p_Distance) const noexcept;
+    f32 getNearInfluenceSlope(f32 p_Distance) const noexcept;
 
     ivec<D> getCellPosition(const fvec<D> &p_Position) const noexcept;
     u32 getCellIndex(const ivec<D> &p_CellPosition) const noexcept;
@@ -130,6 +137,8 @@ template <Dimension D> class Solver
     DynamicArray<fvec<D>> m_PredictedPositions;
 
     DynamicArray<f32> m_Densities;
+    DynamicArray<f32> m_NearDensities;
+
     DynamicArray<IndexPair> m_SpatialLookup;
     DynamicArray<u32> m_StartIndices;
 };

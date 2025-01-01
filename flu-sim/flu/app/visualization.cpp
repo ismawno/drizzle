@@ -113,6 +113,7 @@ template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings 
         ImGui::Text("Fluid settings:");
         ImGui::DragFloat("Target Density", &p_Settings.TargetDensity, 0.1f * speed);
         ImGui::DragFloat("Pressure Stiffness", &p_Settings.PressureStiffness, speed);
+        ImGui::DragFloat("Near Pressure Stiffness", &p_Settings.NearPressureStiffness, speed);
         ImGui::Spacing();
 
         ImGui::Text("Environment settings:");
@@ -121,7 +122,10 @@ template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings 
 
         ImGui::Text("Simulation settings:");
         ImGui::Combo("Neighbor Search", reinterpret_cast<i32 *>(&p_Settings.SearchMethod), "Brute Force\0Grid\0\0");
-        ImGui::Combo("Kernel Type", reinterpret_cast<i32 *>(&p_Settings.KernelType), "Spiky\0Cubic Spline \0\0");
+        ImGui::Combo("Kernel Type", reinterpret_cast<i32 *>(&p_Settings.KType),
+                     "Spiky2\0Spiky3\0Spiky5\0Cubic Spline\0WendlandC2\0WendlandC4\0\0");
+        ImGui::Combo("Near Kernel Type", reinterpret_cast<i32 *>(&p_Settings.NearKType),
+                     "Spiky2\0Spiky3\0Spiky5\0Cubic Spline\0WendlandC2\0WendlandC4\0\0");
     }
 }
 
