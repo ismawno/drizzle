@@ -5,6 +5,7 @@ set(SOURCES
     flu/main.cpp
     flu/app/layer.cpp
     flu/solver/solver.cpp
+    flu/solver/kernel.cpp
 )
 
 add_executable(flu-sim ${SOURCES})

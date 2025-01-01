@@ -19,12 +19,11 @@ template <Dimension D> void Layer<D>::OnUpdate() noexcept
     if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::Space))
         addParticle();
     m_Solver.BeginStep(m_Timestep);
-    if constexpr (D == D2)
-        if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
-        {
-            const fvec2 p_MousePos = m_Context->GetMouseCoordinates();
-            m_Solver.ApplyMouseForce(p_MousePos, m_Timestep);
-        }
+    if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
+    {
+        const fvec<D> p_MousePos = m_Context->GetMouseCoordinates();
+        m_Solver.ApplyMouseForce(p_MousePos, m_Timestep);
+    }
     m_Solver.EndStep(m_Timestep);
 }
 
@@ -38,31 +37,56 @@ template <Dimension D> void Layer<D>::OnRender(const VkCommandBuffer) noexcept
     m_Solver.DrawParticles(m_Context);
     m_Solver.DrawBoundingBox(m_Context);
 
+    if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
+    {
+        const fvec<D> mpos = m_Context->GetMouseCoordinates();
+        m_Context->Push();
+        m_Context->Fill(Onyx::Color::ORANGE);
+        m_Context->Scale(2.f * m_Solver.MouseRadius);
+        m_Context->Translate(mpos);
+        m_Context->Circle(0.f, 0.f, 0.99f);
+        m_Context->Pop();
+    }
+
+    renderSimulationSettings();
+}
+
+template <Dimension D> bool Layer<D>::OnEvent(const Onyx::Event &p_Event) noexcept
+{
     if constexpr (D == D2)
-        if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
+        if (p_Event.Type == Onyx::Event::Scrolled && Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::LeftShift))
         {
-            const fvec2 mpos = m_Context->GetMouseCoordinates();
-            m_Context->Push();
-            m_Context->Fill(Onyx::Color::ORANGE);
-            m_Context->Scale(2.f * m_Solver.MouseRadius);
-            m_Context->Translate(mpos);
-            m_Context->Circle(0.f, 0.f, 0.99f);
-            m_Context->Pop();
+            m_Context->ApplyCameraScalingControls(0.005f * p_Event.ScrollOffset.y);
+            return true;
         }
 
-    ImGui::Begin("Editor");
-    EditPresentMode(*m_Window);
+    return false;
+}
+
+template <Dimension D> void Layer<D>::renderSimulationSettings() noexcept
+{
+    ImGui::Begin("Simulation settings");
+
+    EditPresentMode(m_Window);
     ImGui::Text("Frame time: %.2f ms", m_Application->GetDeltaTime().AsMilliseconds());
 
     static bool syncTimestep = false;
     ImGui::Checkbox("Sync Timestep", &syncTimestep);
+
     if (syncTimestep)
     {
         m_Timestep = m_Application->GetDeltaTime().AsSeconds();
-        ImGui::Text("Timestep: %.2f", m_Timestep);
+        const u32 hertz = static_cast<u32>(1.f / m_Timestep);
+        ImGui::Text("Hertz: %u (%.4f)", hertz, m_Timestep);
     }
     else
-        ImGui::SliderFloat("Timestep", &m_Timestep, 0.001f, 0.1f, "%.3f", ImGuiSliderFlags_Logarithmic);
+    {
+        i32 hertz = static_cast<i32>(1.f / m_Timestep);
+        if (ImGui::SliderInt("Hertz", &hertz, 30, 180))
+            m_Timestep = 1.f / static_cast<f32>(hertz);
+        ImGui::SameLine();
+        ImGui::Text("(%.4f)", m_Timestep);
+    }
 
     ImGui::Text("Particles: %zu", m_Solver.Positions.size());
     if (ImGui::TreeNode("Bounding box"))
@@ -74,43 +98,29 @@ template <Dimension D> void Layer<D>::OnRender(const VkCommandBuffer) noexcept
         ImGui::TreePop();
     }
 
-    if constexpr (D == D2)
-    {
-        const fvec2 mpos = m_Context->GetMouseCoordinates();
-        const f32 density = m_Solver.ComputeDensityAtPoint(mpos);
-        const f32 pressure = m_Solver.GetPressureFromDensity(density);
+    const fvec<D> mpos = m_Context->GetMouseCoordinates();
+    const f32 density = m_Solver.ComputeDensityAtPoint(mpos);
+    const f32 pressure = m_Solver.GetPressureFromDensity(density);
 
-        ImGui::Text("Density: %.2f", density);
-        ImGui::Text("Pressure: %.2f", pressure);
-    }
+    ImGui::Text("Density: %.2f", density);
+    ImGui::Text("Pressure: %.2f", pressure);
 
     const f32 speed = 0.2f;
-    ImGui::DragFloat("Mouse Radius", &m_Solver.MouseRadius, speed);
-    ImGui::DragFloat("Mouse Force", &m_Solver.MouseForce, speed);
-    ImGui::DragFloat("Particle Radius", &m_Solver.ParticleRadius, speed);
-    ImGui::DragFloat("Particle Mass", &m_Solver.ParticleMass, speed);
-    ImGui::DragFloat("Target Density", &m_Solver.TargetDensity, 0.1f * speed);
-    ImGui::DragFloat("Pressure Stiffness", &m_Solver.PressureStiffness, speed);
-    ImGui::DragFloat("Smoothing Radius", &m_Solver.SmoothingRadius, speed);
-    ImGui::DragFloat("Fast Speed", &m_Solver.FastSpeed, speed);
-    ImGui::DragFloat("Gravity", &m_Solver.Gravity, speed);
-    ImGui::DragFloat("Encase Friction", &m_Solver.EncaseFriction, speed);
-
-    ImGui::End();
-}
-
-template <Dimension D> bool Layer<D>::OnEvent(const Onyx::Event &p_Event) noexcept
-{
-    if constexpr (D == D2)
+    if (ImGui::CollapsingHeader("Simulation parameters"))
     {
-        if (p_Event.Type == Onyx::Event::Scrolled && Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::LeftShift))
-        {
-            m_Context->ApplyCameraScalingControls(0.005f * p_Event.ScrollOffset.y);
-            return true;
-        }
+        ImGui::DragFloat("Mouse Radius", &m_Solver.MouseRadius, speed);
+        ImGui::DragFloat("Mouse Force", &m_Solver.MouseForce, speed);
+        ImGui::DragFloat("Particle Radius", &m_Solver.ParticleRadius, speed);
+        ImGui::DragFloat("Particle Mass", &m_Solver.ParticleMass, speed);
+        ImGui::DragFloat("Target Density", &m_Solver.TargetDensity, 0.1f * speed);
+        ImGui::DragFloat("Pressure Stiffness", &m_Solver.PressureStiffness, speed);
+        ImGui::DragFloat("Smoothing Radius", &m_Solver.SmoothingRadius, speed);
+        ImGui::DragFloat("Fast Speed", &m_Solver.FastSpeed, speed);
+        ImGui::DragFloat("Gravity", &m_Solver.Gravity, speed);
+        ImGui::DragFloat("Encase Friction", &m_Solver.EncaseFriction, speed);
     }
 
-    return false;
+    ImGui::End();
 }
 
 template <Dimension D> void Layer<D>::addParticle() noexcept

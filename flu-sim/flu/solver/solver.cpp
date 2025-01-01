@@ -5,51 +5,17 @@
 
 namespace Flu
 {
-template <Dimension D> static f32 paperKernel(const f32 p_Radius, const f32 p_Distance) noexcept
-{
-    const f32 q = 2.f * p_Distance / p_Radius;
-    if (q >= 1.f)
-    {
-        const f32 a = 2.f - q;
-        const f32 value = 0.25f * glm::one_over_pi<f32>() * a * a * a;
-        if constexpr (D == D2)
-            return value / (p_Radius * p_Radius);
-        else
-            return value / (p_Radius * p_Radius * p_Radius);
-    }
-    const f32 value = glm::one_over_pi<f32>() * (1.f - 1.5f * q * q + 0.75f * q * q * q);
-    if constexpr (D == D2)
-        return value / (p_Radius * p_Radius);
-    else
-        return value / (p_Radius * p_Radius * p_Radius);
-}
-
-template <Dimension D> static f32 p3Kernel(const f32 p_Radius, const f32 p_Distance) noexcept
-{
-    const f32 val = p_Radius - p_Distance;
-    const f32 bigR = p_Radius * p_Radius * p_Radius * p_Radius * p_Radius;
-    if constexpr (D == D2)
-        return 10.f * val * val * val / (glm::pi<f32>() * bigR);
-    else
-        return 15.f * val * val * val / (glm::pi<f32>() * bigR * p_Radius);
-}
-template <Dimension D> static f32 p3KernelSlope(const f32 p_Radius, const f32 p_Distance) noexcept
-{
-    const f32 val = p_Radius - p_Distance;
-    const f32 bigR = p_Radius * p_Radius * p_Radius * p_Radius * p_Radius;
-    if constexpr (D == D2)
-        return -30.f * val * val / (glm::pi<f32>() * bigR);
-    else
-        return -45.f * val * val / (glm::pi<f32>() * bigR * p_Radius);
-}
-
 template <Dimension D> f32 Solver<D>::getInfluence(const f32 p_Distance) const noexcept
 {
-    return p3Kernel<D>(SmoothingRadius, p_Distance);
+    if (KernelType == KernelType::Spiky)
+        return Kernel<D>::Spiky(SmoothingRadius, p_Distance);
+    return Kernel<D>::CubicSpline(SmoothingRadius, p_Distance);
 }
 template <Dimension D> f32 Solver<D>::getInfluenceSlope(const f32 p_Distance) const noexcept
 {
-    return p3KernelSlope<D>(SmoothingRadius, p_Distance);
+    if (KernelType == KernelType::Spiky)
+        return Kernel<D>::SpikySlope(SmoothingRadius, p_Distance);
+    return Kernel<D>::CubicSplineSlope(SmoothingRadius, p_Distance);
 }
 
 template <Dimension D> ivec<D> Solver<D>::getCellPosition(const fvec<D> &p_Position) const noexcept

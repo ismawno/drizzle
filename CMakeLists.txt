@@ -5,15 +5,15 @@ project(flu-sim-root)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Dist" CACHE STRING "Available build types" FORCE)
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Dist")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build" FORCE)
-endif()
+function(define_option varname default)
+    if (NOT DEFINED ${varname})
+        set(${varname} ${default} PARENT_SCOPE)
+    endif()
+endfunction()
 
-set(TOOLKIT_BUILD_TESTS OFF CACHE BOOL "Build toolkit tests" FORCE)
-set(TOOLKIT_BUILD_PERFORMANCE OFF CACHE BOOL "Build toolkit performance tests" FORCE)
-set(ONYX_BUILD_DEMOS OFF CACHE BOOL "Build Onyx demos" FORCE)
+define_option(CMAKE_BUILD_TYPE "Debug")
 
 add_subdirectory(flu-sim)

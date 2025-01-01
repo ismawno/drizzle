@@ -18,6 +18,7 @@ template <Dimension D> class Layer final : public Onyx::Layer
     bool OnEvent(const Onyx::Event &p_Event) noexcept override;
 
   private:
+    void renderSimulationSettings() noexcept;
     void addParticle() noexcept;
 
     Onyx::Application *m_Application;
