@@ -130,7 +130,8 @@ def main() -> None:
         elif cnd_logs and (
             "log" in ogvarname.lower() or "enable_asserts" in ogvarname.lower()
         ):
-            btype = arguments["cmake_build_type"][1]
+            btype = arguments["cmake_build_type"][0]
+            btype = arg_dict[btype.replace("-", "_")]
             cmake_args[f"-D{ogvarname.upper()}"] = "ON" if btype != "Dist" else "OFF"
         else:
             cmake_args[f"-D{ogvarname.upper()}"] = "ON" if default else "OFF"
