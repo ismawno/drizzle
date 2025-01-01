@@ -12,6 +12,28 @@ enum class NeighborSearch
     Grid
 };
 
+struct SimulationSettings
+{
+    f32 ParticleRadius = 0.1f;
+    f32 ParticleMass = 1.f;
+
+    f32 TargetDensity = 1.f;
+    f32 PressureStiffness = 100.f;
+    f32 SmoothingRadius = 2.f;
+
+    f32 FastSpeed = 35.f;
+    f32 Gravity = 0.f;
+    f32 EncaseFriction = 0.2f;
+
+    f32 MouseRadius = 3.f;
+    f32 MouseForce = 100.f;
+
+    std::array<Onyx::Color, 3> Gradient = {Onyx::Color::CYAN, Onyx::Color::YELLOW, Onyx::Color::RED};
+
+    NeighborSearch SearchMethod = NeighborSearch::Grid;
+    KernelType KernelType = KernelType::Spiky;
+};
+
 template <Dimension D> class Solver
 {
   public:
@@ -29,7 +51,7 @@ template <Dimension D> class Solver
     template <typename F>
     void ForEachParticleWithinSmoothingRadius(const fvec<D> &p_Point, F &&p_Function) const noexcept
     {
-        if (SearchMethod == NeighborSearch::BruteForce)
+        if (Settings.SearchMethod == NeighborSearch::BruteForce)
             forEachBruteForce(p_Point, std::forward<F>(p_Function));
         else
             forEachGrid(p_Point, std::forward<F>(p_Function));
@@ -40,22 +62,7 @@ template <Dimension D> class Solver
     void DrawBoundingBox(Onyx::RenderContext<D> *p_Context) const noexcept;
     void DrawParticles(Onyx::RenderContext<D> *p_Context) const noexcept;
 
-    f32 ParticleRadius = 0.1f;
-    f32 ParticleMass = 1.f;
-
-    f32 TargetDensity = 1.f;
-    f32 PressureStiffness = 100.f;
-    f32 SmoothingRadius = 2.f;
-
-    f32 FastSpeed = 35.f;
-    f32 Gravity = 0.f;
-    f32 EncaseFriction = 0.2f;
-
-    f32 MouseRadius = 3.f;
-    f32 MouseForce = 100.f;
-
-    NeighborSearch SearchMethod = NeighborSearch::Grid;
-    KernelType KernelType = KernelType::Spiky;
+    SimulationSettings Settings{};
 
     DynamicArray<fvec<D>> Positions;
     DynamicArray<fvec<D>> Velocities;
@@ -77,7 +84,7 @@ template <Dimension D> class Solver
         for (u32 i = 0; i < Positions.size(); ++i)
         {
             const f32 distance = glm::distance(p_Point, Positions[i]);
-            if (distance < SmoothingRadius)
+            if (distance < Settings.SmoothingRadius)
                 std::forward<F>(p_Function)(i, distance);
         }
     }
@@ -93,7 +100,7 @@ template <Dimension D> class Solver
             {
                 const u32 particleIndex = m_SpatialLookup[i].ParticleIndex;
                 const f32 distance = glm::distance(p_Point, Positions[particleIndex]);
-                if (distance < SmoothingRadius)
+                if (distance < Settings.SmoothingRadius)
                     std::forward<F>(p_Function)(particleIndex, distance);
             }
         };

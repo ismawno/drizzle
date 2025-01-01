@@ -1,4 +1,4 @@
-#include "flu/app/layer.hpp"
+#include "flu/app/intro_layer.hpp"
 #include "onyx/app/app.hpp"
 #include "tkit/multiprocessing/thread_pool.hpp"
 #include "tkit/core/literals.hpp"
@@ -15,7 +15,7 @@ int main()
     specs.Name = "Fluid simulator";
 
     Onyx::Application app{specs};
-    app.Layers.Push<Flu::Layer<TKit::D2>>(&app);
+    app.Layers.Push<Flu::IntroLayer>(&app);
     app.Run();
 
     Onyx::Core::Terminate();

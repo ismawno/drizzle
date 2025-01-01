@@ -7,17 +7,17 @@
 
 namespace Flu
 {
-template <Dimension D> class Layer final : public Onyx::Layer
+template <Dimension D> class SimLayer final : public Onyx::Layer
 {
   public:
-    Layer(Onyx::Application *p_Application) noexcept;
+    SimLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
+             const ivec<D> &p_StartingLayout) noexcept;
 
-    void OnStart() noexcept override;
+  private:
     void OnUpdate() noexcept override;
     void OnRender(VkCommandBuffer) noexcept override;
     bool OnEvent(const Onyx::Event &p_Event) noexcept override;
 
-  private:
     void renderSimulationSettings() noexcept;
     void addParticle() noexcept;
 
