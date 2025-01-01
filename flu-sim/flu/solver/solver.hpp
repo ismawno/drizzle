@@ -17,13 +17,13 @@ struct SimulationSettings
     f32 ParticleRadius = 0.1f;
     f32 ParticleMass = 1.f;
 
-    f32 TargetDensity = 1.f;
+    f32 TargetDensity = 10.f;
     f32 PressureStiffness = 100.f;
-    f32 SmoothingRadius = 2.f;
+    f32 SmoothingRadius = 1.f;
 
     f32 FastSpeed = 35.f;
-    f32 Gravity = 0.f;
-    f32 EncaseFriction = 0.2f;
+    f32 Gravity = -4.f;
+    f32 EncaseFriction = 0.8f;
 
     f32 MouseRadius = 3.f;
     f32 MouseForce = 100.f;

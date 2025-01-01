@@ -157,17 +157,18 @@ template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position) no
 
 template <Dimension D> void Solver<D>::encase(const usize p_Index) noexcept
 {
+    const f32 factor = 1.f - Settings.EncaseFriction;
     for (u32 j = 0; j < D; ++j)
     {
         if (Positions[p_Index][j] - Settings.ParticleRadius < BoundingBox.Min[j])
         {
             Positions[p_Index][j] = BoundingBox.Min[j] + Settings.ParticleRadius;
-            Velocities[p_Index][j] = -Settings.EncaseFriction * Velocities[p_Index][j];
+            Velocities[p_Index][j] = -factor * Velocities[p_Index][j];
         }
         else if (Positions[p_Index][j] + Settings.ParticleRadius > BoundingBox.Max[j])
         {
             Positions[p_Index][j] = BoundingBox.Max[j] - Settings.ParticleRadius;
-            Velocities[p_Index][j] = -Settings.EncaseFriction * Velocities[p_Index][j];
+            Velocities[p_Index][j] = -factor * Velocities[p_Index][j];
         }
     }
 }
