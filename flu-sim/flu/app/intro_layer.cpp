@@ -39,6 +39,7 @@ void IntroLayer::OnRemoval() noexcept
 
 void IntroLayer::renderIntroSettings() noexcept
 {
+    ImGui::SetWindowSize({400, 400});
     ImGui::Begin("Welcome to my fluid simulator!");
     ImGui::Text("This is a small project I wanted to make because\nI have always been fascinated by fluid dynamics");
     ImGui::Spacing();
