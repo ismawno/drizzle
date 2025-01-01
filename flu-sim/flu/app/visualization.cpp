@@ -97,16 +97,31 @@ template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings 
     const f32 speed = 0.2f;
     if (ImGui::CollapsingHeader("Simulation parameters"))
     {
+
+        ImGui::Text("Mouse controls:");
         ImGui::DragFloat("Mouse Radius", &p_Settings.MouseRadius, speed);
         ImGui::DragFloat("Mouse Force", &p_Settings.MouseForce, speed);
+        ImGui::Spacing();
+
+        ImGui::Text("Particle settings:");
         ImGui::DragFloat("Particle Radius", &p_Settings.ParticleRadius, speed);
         ImGui::DragFloat("Particle Mass", &p_Settings.ParticleMass, speed);
+        ImGui::DragFloat("Particle Fast Speed", &p_Settings.FastSpeed, speed);
+        ImGui::DragFloat("Smoothing Radius", &p_Settings.SmoothingRadius, speed);
+        ImGui::Spacing();
+
+        ImGui::Text("Fluid settings:");
         ImGui::DragFloat("Target Density", &p_Settings.TargetDensity, 0.1f * speed);
         ImGui::DragFloat("Pressure Stiffness", &p_Settings.PressureStiffness, speed);
-        ImGui::DragFloat("Smoothing Radius", &p_Settings.SmoothingRadius, speed);
-        ImGui::DragFloat("Fast Speed", &p_Settings.FastSpeed, speed);
+        ImGui::Spacing();
+
+        ImGui::Text("Environment settings:");
         ImGui::DragFloat("Gravity", &p_Settings.Gravity, speed);
         ImGui::DragFloat("Encase Friction", &p_Settings.EncaseFriction, speed);
+
+        ImGui::Text("Simulation settings:");
+        ImGui::Combo("Neighbor Search", reinterpret_cast<i32 *>(&p_Settings.SearchMethod), "Brute Force\0Grid\0\0");
+        ImGui::Combo("Kernel Type", reinterpret_cast<i32 *>(&p_Settings.KernelType), "Spiky\0Cubic Spline \0\0");
     }
 }
 

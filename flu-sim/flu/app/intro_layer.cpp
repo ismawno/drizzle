@@ -57,9 +57,15 @@ void IntroLayer::renderIntroSettings() noexcept
         "you may add more particles during the simulation by pressing the space bar");
 
     if (m_Dim == 0)
+    {
+        ImGui::Text("Current amount: %d", m_Dimensions.x * m_Dimensions.y);
         ImGui::DragInt2("Particles", glm::value_ptr(m_Dimensions), 1, 1, 100);
+    }
     else
+    {
+        ImGui::Text("Current amount: %d", m_Dimensions.x * m_Dimensions.y * m_Dimensions.z);
         ImGui::DragInt3("Particles", glm::value_ptr(m_Dimensions), 1, 1, 100);
+    }
 
     if (m_Dim == 0)
         Visualization<D2>::RenderSettings(m_Settings);

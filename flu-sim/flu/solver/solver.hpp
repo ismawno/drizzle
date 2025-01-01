@@ -8,7 +8,7 @@ namespace Flu
 {
 enum class NeighborSearch
 {
-    BruteForce,
+    BruteForce = 0,
     Grid
 };
 

@@ -7,7 +7,7 @@ namespace Flu
 {
 enum class KernelType
 {
-    Spiky,
+    Spiky = 0,
     CubicSpline
 };
 // Kernels expect the distance to be inferior to the radius
