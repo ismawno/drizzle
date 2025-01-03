@@ -41,6 +41,8 @@ void IntroLayer::renderIntroSettings() noexcept
 {
     ImGui::SetWindowSize({400, 400});
     ImGui::Begin("Welcome to my fluid simulator!");
+    const f32 deltaTime = m_Application->GetDeltaTime().AsMilliseconds();
+    ImGui::Text("Frame time: %.2f ms", deltaTime);
     ImGui::Text("This is a small project I wanted to make because\nI have always been fascinated by fluid dynamics");
     ImGui::Spacing();
 
@@ -59,12 +61,12 @@ void IntroLayer::renderIntroSettings() noexcept
     if (m_Dim == 0)
     {
         ImGui::Text("Current amount: %d", m_Dimensions.x * m_Dimensions.y);
-        ImGui::DragInt2("Particles", glm::value_ptr(m_Dimensions), 1, 1, 100);
+        ImGui::DragInt2("Particles", glm::value_ptr(m_Dimensions), 1, 1, INT32_MAX);
     }
     else
     {
         ImGui::Text("Current amount: %d", m_Dimensions.x * m_Dimensions.y * m_Dimensions.z);
-        ImGui::DragInt3("Particles", glm::value_ptr(m_Dimensions), 1, 1, 100);
+        ImGui::DragInt3("Particles", glm::value_ptr(m_Dimensions), 1, 1, INT32_MAX);
     }
 
     if (m_Dim == 0)

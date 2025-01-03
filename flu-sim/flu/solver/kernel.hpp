@@ -10,6 +10,7 @@ enum class KernelType
     Spiky2 = 0,
     Spiky3,
     Spiky5,
+    Poly6,
     CubicSpline,
     WendlandC2,
     WendlandC4
@@ -25,6 +26,9 @@ template <Dimension D> struct Kernel
 
     static f32 Spiky5(f32 p_Radius, f32 p_Distance) noexcept;
     static f32 Spiky5Slope(f32 p_Radius, f32 p_Distance) noexcept;
+
+    static f32 Poly6(f32 p_Radius, f32 p_Distance) noexcept;
+    static f32 Poly6Slope(f32 p_Radius, f32 p_Distance) noexcept;
 
     static f32 CubicSpline(f32 p_Radius, f32 p_Distance) noexcept;
     static f32 CubicSplineSlope(f32 p_Radius, f32 p_Distance) noexcept;

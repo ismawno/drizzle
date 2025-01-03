@@ -92,12 +92,17 @@ void Visualization<D>::DrawParticleLattice(Onyx::RenderContext<D> *p_Context, co
                 }
 }
 
+template <Dimension D> static void comboKenel(KernelType &p_Type) noexcept
+{
+    ImGui::Combo("Kernel Type", reinterpret_cast<i32 *>(&p_Type),
+                 "Spiky2\0Spiky3\0Spiky5\0Cubic Spline\0WendlandC2\0WendlandC4\0\0");
+}
+
 template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings &p_Settings) noexcept
 {
     const f32 speed = 0.2f;
     if (ImGui::CollapsingHeader("Simulation parameters"))
     {
-
         ImGui::Text("Mouse controls:");
         ImGui::DragFloat("Mouse Radius", &p_Settings.MouseRadius, speed);
         ImGui::DragFloat("Mouse Force", &p_Settings.MouseForce, speed);
@@ -111,10 +116,15 @@ template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings 
         ImGui::Spacing();
 
         ImGui::Text("Fluid settings:");
-        ImGui::DragFloat("Target Density", &p_Settings.TargetDensity, 0.1f * speed);
+        ImGui::DragFloat("Target Density", &p_Settings.TargetDensity, speed * 0.1f);
         ImGui::DragFloat("Pressure Stiffness", &p_Settings.PressureStiffness, speed);
         ImGui::DragFloat("Near Pressure Stiffness", &p_Settings.NearPressureStiffness, speed);
         ImGui::Spacing();
+
+        ImGui::Text("Viscosity settings:");
+        ImGui::DragFloat("Linear Term", &p_Settings.ViscLinearTerm, speed * 0.01f, 0.f, FLT_MAX);
+        ImGui::DragFloat("Quadratic Term", &p_Settings.ViscQuadraticTerm, speed * 0.01f, 0.f, FLT_MAX);
+        comboKenel<D>(p_Settings.ViscosityKType);
 
         ImGui::Text("Environment settings:");
         ImGui::DragFloat("Gravity", &p_Settings.Gravity, speed);
@@ -122,10 +132,8 @@ template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings 
 
         ImGui::Text("Simulation settings:");
         ImGui::Combo("Neighbor Search", reinterpret_cast<i32 *>(&p_Settings.SearchMethod), "Brute Force\0Grid\0\0");
-        ImGui::Combo("Kernel Type", reinterpret_cast<i32 *>(&p_Settings.KType),
-                     "Spiky2\0Spiky3\0Spiky5\0Cubic Spline\0WendlandC2\0WendlandC4\0\0");
-        ImGui::Combo("Near Kernel Type", reinterpret_cast<i32 *>(&p_Settings.NearKType),
-                     "Spiky2\0Spiky3\0Spiky5\0Cubic Spline\0WendlandC2\0WendlandC4\0\0");
+        comboKenel<D>(p_Settings.KType);
+        comboKenel<D>(p_Settings.NearKType);
     }
 }
 

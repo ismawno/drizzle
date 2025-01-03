@@ -35,7 +35,8 @@ SimLayer<D>::SimLayer(Onyx::Application *p_Application, const SimulationSettings
 template <Dimension D> void SimLayer<D>::OnUpdate() noexcept
 {
     if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::Space))
-        addParticle();
+        m_Solver.AddParticle(m_Context->GetMouseCoordinates());
+
     m_Solver.BeginStep(m_Timestep);
     if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
     {
@@ -107,14 +108,6 @@ template <Dimension D> void SimLayer<D>::renderSimulationSettings() noexcept
     Visualization<D>::RenderSettings(m_Solver.Settings);
 
     ImGui::End();
-}
-
-template <Dimension D> void SimLayer<D>::addParticle() noexcept
-{
-    if constexpr (D == D2)
-        m_Solver.AddParticle(m_Context->GetMouseCoordinates());
-    else
-        m_Solver.AddParticle(fvec3{0.f});
 }
 
 template class SimLayer<D2>;

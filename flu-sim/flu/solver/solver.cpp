@@ -17,6 +17,8 @@ static f32 computeKernel(const KernelType p_Kernel, const f32 p_Radius, const f3
         return Kernel<D>::Spiky3(p_Radius, p_Distance);
     case KernelType::Spiky5:
         return Kernel<D>::Spiky5(p_Radius, p_Distance);
+    case KernelType::Poly6:
+        return Kernel<D>::Poly6(p_Radius, p_Distance);
     case KernelType::CubicSpline:
         return Kernel<D>::CubicSpline(p_Radius, p_Distance);
     case KernelType::WendlandC2:
@@ -36,6 +38,8 @@ static f32 computeKernelSlope(const KernelType p_Kernel, const f32 p_Radius, con
         return Kernel<D>::Spiky3Slope(p_Radius, p_Distance);
     case KernelType::Spiky5:
         return Kernel<D>::Spiky5Slope(p_Radius, p_Distance);
+    case KernelType::Poly6:
+        return Kernel<D>::Poly6Slope(p_Radius, p_Distance);
     case KernelType::CubicSpline:
         return Kernel<D>::CubicSplineSlope(p_Radius, p_Distance);
     case KernelType::WendlandC2:
@@ -61,6 +65,11 @@ template <Dimension D> f32 Solver<D>::getNearInfluence(const f32 p_Distance) con
 template <Dimension D> f32 Solver<D>::getNearInfluenceSlope(const f32 p_Distance) const noexcept
 {
     return computeKernelSlope<D>(Settings.NearKType, Settings.SmoothingRadius, p_Distance);
+}
+
+template <Dimension D> f32 Solver<D>::getViscosityInfluence(const f32 p_Distance) const noexcept
+{
+    return computeKernel<D>(Settings.ViscosityKType, Settings.SmoothingRadius, p_Distance);
 }
 
 template <Dimension D> ivec<D> Solver<D>::getCellPosition(const fvec<D> &p_Position) const noexcept
@@ -93,6 +102,7 @@ template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
         Velocities[i].y += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
         m_PredictedPositions[i] = Positions[i] + Velocities[i] * p_DeltaTime;
     }
+
     std::swap(Positions, m_PredictedPositions);
 
     UpdateGrid();
@@ -103,10 +113,16 @@ template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
         m_NearDensities[i] = nearDensity;
     }
 
+    // Merge these two
     for (u32 i = 0; i < Positions.size(); ++i)
     {
         const fvec<D> pressureGradient = ComputePressureGradient(i);
         Velocities[i] -= pressureGradient * p_DeltaTime / m_Densities[i];
+    }
+    for (u32 i = 0; i < Positions.size(); ++i)
+    {
+        const fvec<D> viscosityTerm = ComputeViscosityTerm(i);
+        Velocities[i] += viscosityTerm * p_DeltaTime;
     }
 }
 template <Dimension D> void Solver<D>::EndStep(const f32 p_DeltaTime) noexcept
@@ -166,6 +182,22 @@ template <Dimension D> std::pair<f32, f32> Solver<D>::ComputeDensitiesAtPoint(co
     return {density, nearDensity};
 }
 
+template <Dimension D> fvec<D> Solver<D>::ComputeViscosityTerm(const u32 p_Index1) const noexcept
+{
+    fvec<D> dv{0.f};
+    ForEachParticleWithinSmoothingRadius(
+        Positions[p_Index1], [this, &dv, p_Index1](const u32 p_Index2, const f32 p_Distance) {
+            if (p_Index2 == p_Index1)
+                return;
+            const fvec<D> diff = Velocities[p_Index2] - Velocities[p_Index1];
+            const f32 kernel = getInfluence(p_Distance);
+
+            const f32 u = glm::length(diff);
+            dv += ((Settings.ViscLinearTerm + Settings.ViscQuadraticTerm * u) * kernel) * diff;
+        });
+    return dv;
+}
+
 template <Dimension D>
 static fvec<D> getDirection(const fvec<D> &p_P1, const fvec<D> &p_P2, const f32 p_Distance) noexcept
 {
@@ -181,19 +213,20 @@ static fvec<D> getDirection(const fvec<D> &p_P1, const fvec<D> &p_P2, const f32 
 template <Dimension D> fvec<D> Solver<D>::ComputePressureGradient(const u32 p_Index1) const noexcept
 {
     fvec<D> gradient{0.f};
-    ForEachParticleWithinSmoothingRadius(Positions[p_Index1], [this, &gradient, p_Index1](const u32 p_Index2,
-                                                                                          const f32 distance) {
-        if (p_Index2 == p_Index1)
-            return;
-        const fvec<D> dir = getDirection<D>(Positions[p_Index1], Positions[p_Index2], distance);
-        const f32 kernelGradient = getInfluenceSlope(distance);
-        const f32 nearKernelGradient = getNearInfluenceSlope(distance);
-        const auto [p1, np1] = GetPressureFromDensity(m_Densities[p_Index1], m_NearDensities[p_Index1]);
-        const auto [p2, np2] = GetPressureFromDensity(m_Densities[p_Index2], m_NearDensities[p_Index2]);
+    ForEachParticleWithinSmoothingRadius(
+        Positions[p_Index1], [this, &gradient, p_Index1](const u32 p_Index2, const f32 distance) {
+            if (p_Index2 == p_Index1)
+                return;
+            const fvec<D> dir = getDirection<D>(Positions[p_Index1], Positions[p_Index2], distance);
+            const f32 kernelGradient = getInfluenceSlope(distance);
+            const f32 nearKernelGradient = getNearInfluenceSlope(distance);
+            const auto [p1, np1] = GetPressureFromDensity(m_Densities[p_Index1], m_NearDensities[p_Index1]);
+            const auto [p2, np2] = GetPressureFromDensity(m_Densities[p_Index2], m_NearDensities[p_Index2]);
 
-        gradient += (0.5f * (p1 + p2) * Settings.ParticleMass * kernelGradient / m_Densities[p_Index2]) * dir;
-        gradient += (0.5f * (np1 + np2) * Settings.ParticleMass * nearKernelGradient / m_NearDensities[p_Index2]) * dir;
-    });
+            const f32 dg1 = 0.5f * (p1 + p2) * kernelGradient / m_Densities[p_Index2];
+            const f32 dg2 = 0.5f * (np1 + np2) * nearKernelGradient / m_NearDensities[p_Index2];
+            gradient += (Settings.ParticleMass * (dg1 + dg2)) * dir;
+        });
     return gradient;
 }
 
