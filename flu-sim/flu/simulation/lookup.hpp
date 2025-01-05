@@ -42,24 +42,28 @@ template <Dimension D> class Lookup
         if (m_Positions->empty())
             return;
         const f32 r2 = m_Radius * m_Radius;
-        static DynamicArray<u8> visited;
-        visited.resize(m_Positions->size(), 0);
-        visited.assign(m_Positions->size(), 0);
 
-        const auto processParticle = [this, p_Index, r2](const ivec<D> &p_Offset, F &&p_Function) {
+        std::array<u32, 9> visited{};
+        u32 visitedIndex = 0;
+        const auto processParticle = [this, p_Index, r2, &visited, &visitedIndex](const ivec<D> &p_Offset,
+                                                                                  F &&p_Function) {
             auto &keys = m_ImplicitGrid.CellKeys;
             auto &indices = m_ImplicitGrid.StartIndices;
 
             const fvec<D> &point = m_Positions->at(p_Index);
             const ivec<D> cellPosition = getCellPosition(point) + p_Offset;
             const u32 cellKey = getCellIndex(cellPosition);
+            for (u32 i = 0; i < visitedIndex; ++i)
+                if (visited[i] == cellKey)
+                    return;
+            visited[visitedIndex++] = cellKey;
+
             const u32 startIndex = indices[cellKey];
             for (u32 i = startIndex; i < keys.size() && keys[i].CellKey == cellKey; ++i)
             {
                 const u32 particleIndex = keys[i].ParticleIndex;
-                if (particleIndex == p_Index || visited[particleIndex])
+                if (particleIndex == p_Index)
                     continue;
-                visited[particleIndex] = 1;
                 const f32 distance = glm::distance2(point, m_Positions->at(particleIndex));
                 if (distance < r2)
                     std::forward<F>(p_Function)(particleIndex, glm::sqrt(distance));
