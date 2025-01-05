@@ -26,7 +26,7 @@ struct SimulationSettings
     f32 Gravity = -4.f;
     f32 EncaseFriction = 0.8f;
 
-    f32 ViscLinearTerm = 0.0f;
+    f32 ViscLinearTerm = 0.06f;
     f32 ViscQuadraticTerm = 0.0f;
     KernelType ViscosityKType = KernelType::Poly6;
 
