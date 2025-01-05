@@ -1,7 +1,7 @@
 #pragma once
 
 #include "flu/simulation/kernel.hpp"
-#include "flu/core/glm.hpp"
+#include "flu/simulation/lookup.hpp"
 #include "onyx/rendering/render_context.hpp"
 
 namespace Flu
@@ -42,27 +42,33 @@ struct SimulationSettings
 
 template <Dimension D> class Solver
 {
+    TKIT_NON_COPYABLE(Solver)
   public:
+    Solver() noexcept = default;
+
     void BeginStep(f32 p_DeltaTime) noexcept;
     void EndStep(f32 p_DeltaTime) noexcept;
     void ApplyMouseForce(const fvec<D> &p_MousePos, f32 p_Timestep) noexcept;
 
-    void UpdateGrid() noexcept;
-
-    std::pair<f32, f32> ComputeDensitiesAtPoint(const fvec<D> &p_Point) const noexcept;
+    std::pair<f32, f32> ComputeParticleDensity(const u32 p_Index) const noexcept;
 
     fvec<D> ComputeViscosityTerm(u32 p_Index) const noexcept;
     fvec<D> ComputePressureGradient(u32 p_Index) const noexcept;
 
     std::pair<f32, f32> GetPressureFromDensity(f32 p_Density, f32 p_NearDensity) const noexcept;
 
-    template <typename F>
-    void ForEachParticleWithinSmoothingRadius(const fvec<D> &p_Point, F &&p_Function) const noexcept
+    void UpdateLookup() noexcept;
+    template <typename F> void ForEachParticleWithinSmoothingRadius(const u32 p_Index, F &&p_Function) const noexcept
     {
-        if (Settings.SearchMethod == NeighborSearch::BruteForce)
-            forEachBruteForce(p_Point, std::forward<F>(p_Function));
-        else
-            forEachGrid(p_Point, std::forward<F>(p_Function));
+        switch (Settings.SearchMethod)
+        {
+        case NeighborSearch::BruteForce:
+            m_Lookup.ForEachParticleBruteForce(p_Index, std::forward<F>(p_Function));
+            break;
+        case NeighborSearch::Grid:
+            m_Lookup.ForEachParticleImplicitGrid(p_Index, std::forward<F>(p_Function));
+            break;
+        }
     }
 
     void AddParticle(const fvec<D> &p_Position) noexcept;
@@ -82,54 +88,6 @@ template <Dimension D> class Solver
     } BoundingBox;
 
   private:
-    struct IndexPair
-    {
-        u32 ParticleIndex;
-        u32 CellIndex;
-    };
-    template <typename F> void forEachBruteForce(const fvec<D> &p_Point, F &&p_Function) const noexcept
-    {
-        const f32 r2 = Settings.SmoothingRadius * Settings.SmoothingRadius;
-        for (u32 i = 0; i < Positions.size(); ++i)
-        {
-            const f32 distance = glm::distance2(p_Point, Positions[i]);
-            if (distance < r2)
-                std::forward<F>(p_Function)(i, glm::sqrt(distance));
-        }
-    }
-    template <typename F> void forEachGrid(const fvec<D> &p_Point, F &&p_Function) const noexcept
-    {
-        if (Positions.empty())
-            return;
-        const f32 r2 = Settings.SmoothingRadius * Settings.SmoothingRadius;
-        const auto processParticle = [this, &p_Point, r2](const ivec<D> &p_Offset, F &&p_Function) {
-            const ivec<D> cellPosition = getCellPosition(p_Point) + p_Offset;
-            const u32 cellIndex = getCellIndex(cellPosition);
-            const u32 startIndex = m_StartIndices[cellIndex];
-            for (u32 i = startIndex; i < m_SpatialLookup.size() && m_SpatialLookup[i].CellIndex == cellIndex; ++i)
-            {
-                const u32 particleIndex = m_SpatialLookup[i].ParticleIndex;
-                const f32 distance = glm::distance2(p_Point, Positions[particleIndex]);
-                if (distance < r2)
-                    std::forward<F>(p_Function)(particleIndex, glm::sqrt(distance));
-            }
-        };
-
-        for (i32 offsetX = -1; offsetX <= 1; ++offsetX)
-            for (i32 offsetY = -1; offsetY <= 1; ++offsetY)
-                if constexpr (D == D2)
-                {
-                    const ivec<D> offset = {offsetX, offsetY};
-                    processParticle(offset, std::forward<F>(p_Function));
-                }
-                else
-                    for (i32 offsetZ = -1; offsetZ <= 1; ++offsetZ)
-                    {
-                        const ivec<D> offset = {offsetX, offsetY, offsetZ};
-                        processParticle(offset, std::forward<F>(p_Function));
-                    }
-    }
-
     void encase(usize p_Index) noexcept;
 
     f32 getInfluence(f32 p_Distance) const noexcept;
@@ -140,15 +98,10 @@ template <Dimension D> class Solver
 
     f32 getViscosityInfluence(f32 p_Distance) const noexcept;
 
-    ivec<D> getCellPosition(const fvec<D> &p_Position) const noexcept;
-    u32 getCellIndex(const ivec<D> &p_CellPosition) const noexcept;
-
+    Lookup<D> m_Lookup{&Positions};
     DynamicArray<fvec<D>> m_PredictedPositions;
 
     DynamicArray<f32> m_Densities;
     DynamicArray<f32> m_NearDensities;
-
-    DynamicArray<IndexPair> m_SpatialLookup;
-    DynamicArray<u32> m_StartIndices;
 };
 } // namespace Flu

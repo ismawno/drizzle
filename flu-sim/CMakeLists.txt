@@ -8,6 +8,7 @@ set(SOURCES
     flu/app/visualization.cpp
     flu/simulation/solver.cpp
     flu/simulation/kernel.cpp
+    flu/simulation/lookup.cpp
 )
 
 add_executable(flu-sim ${SOURCES})
