@@ -1,4 +1,4 @@
-#include "flu/solver/kernel.hpp"
+#include "flu/simulation/kernel.hpp"
 #include "flu/core/glm.hpp"
 
 namespace Flu

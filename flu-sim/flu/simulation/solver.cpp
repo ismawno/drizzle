@@ -1,8 +1,9 @@
-#include "flu/solver/solver.hpp"
+#include "flu/simulation/solver.hpp"
 #include "flu/app/visualization.hpp"
 #include "onyx/app/input.hpp"
 #include "tkit/container/hashable_tuple.hpp"
 #include "tkit/utilities/math.hpp"
+#include "tkit/profiling/macros.hpp"
 
 namespace Flu
 {
@@ -96,37 +97,49 @@ template <Dimension D> u32 Solver<D>::getCellIndex(const ivec<D> &p_CellPosition
 
 template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
 {
+    TKIT_PROFILE_NSCOPE("Flu::Solver::BeginStep");
     m_PredictedPositions.resize(Positions.size());
-    for (usize i = 0; i < Positions.size(); ++i)
     {
-        Velocities[i].y += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
-        m_PredictedPositions[i] = Positions[i] + Velocities[i] * p_DeltaTime;
+        TKIT_PROFILE_NSCOPE("Flu::Solver::ApplyGravity");
+        for (usize i = 0; i < Positions.size(); ++i)
+        {
+            Velocities[i].y += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
+            m_PredictedPositions[i] = Positions[i] + Velocities[i] * p_DeltaTime;
+        }
     }
 
     std::swap(Positions, m_PredictedPositions);
 
     UpdateGrid();
-    for (usize i = 0; i < Positions.size(); ++i)
+
     {
-        const auto [density, nearDensity] = ComputeDensitiesAtPoint(Positions[i]);
-        m_Densities[i] = density;
-        m_NearDensities[i] = nearDensity;
+        TKIT_PROFILE_NSCOPE("Flu::Solver::ComputeDensities");
+        for (usize i = 0; i < Positions.size(); ++i)
+        {
+            const auto [density, nearDensity] = ComputeDensitiesAtPoint(Positions[i]);
+            m_Densities[i] = density;
+            m_NearDensities[i] = nearDensity;
+        }
     }
 
     // Merge these two
-    for (u32 i = 0; i < Positions.size(); ++i)
     {
-        const fvec<D> pressureGradient = ComputePressureGradient(i);
-        Velocities[i] -= pressureGradient * p_DeltaTime / m_Densities[i];
-    }
-    for (u32 i = 0; i < Positions.size(); ++i)
-    {
-        const fvec<D> viscosityTerm = ComputeViscosityTerm(i);
-        Velocities[i] += viscosityTerm * p_DeltaTime;
+        TKIT_PROFILE_NSCOPE("Flu::Solver::PressureAndViscosity");
+        for (u32 i = 0; i < Positions.size(); ++i)
+        {
+            const fvec<D> pressureGradient = ComputePressureGradient(i);
+            Velocities[i] -= pressureGradient * p_DeltaTime / m_Densities[i];
+        }
+        for (u32 i = 0; i < Positions.size(); ++i)
+        {
+            const fvec<D> viscosityTerm = ComputeViscosityTerm(i);
+            Velocities[i] += viscosityTerm * p_DeltaTime;
+        }
     }
 }
 template <Dimension D> void Solver<D>::EndStep(const f32 p_DeltaTime) noexcept
 {
+    TKIT_PROFILE_NSCOPE("Flu::Solver::EndStep");
     std::swap(Positions, m_PredictedPositions);
     for (usize i = 0; i < Positions.size(); ++i)
     {
@@ -150,6 +163,7 @@ template <Dimension D> void Solver<D>::ApplyMouseForce(const fvec<D> &p_MousePos
 
 template <Dimension D> void Solver<D>::UpdateGrid() noexcept
 {
+    TKIT_PROFILE_NSCOPE("Flu::Solver::UpdateGrid");
     m_SpatialLookup.clear();
     for (u32 i = 0; i < Positions.size(); ++i)
     {

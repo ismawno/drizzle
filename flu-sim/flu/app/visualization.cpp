@@ -1,5 +1,5 @@
 #include "flu/app/visualization.hpp"
-#include "flu/solver/solver.hpp"
+#include "flu/simulation/solver.hpp"
 #include <imgui.h>
 
 namespace Flu

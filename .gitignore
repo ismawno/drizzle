@@ -5,6 +5,7 @@ build*.ini
 .venv/
 .DS_Store
 imgui.ini
+traces/
 
 # Prerequisites
 *.d

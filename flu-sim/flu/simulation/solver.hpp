@@ -1,6 +1,6 @@
 #pragma once
 
-#include "flu/solver/kernel.hpp"
+#include "flu/simulation/kernel.hpp"
 #include "flu/core/glm.hpp"
 #include "onyx/rendering/render_context.hpp"
 

@@ -3,7 +3,7 @@
 #include "onyx/app/layer.hpp"
 #include "onyx/app/app.hpp"
 #include "onyx/rendering/render_context.hpp"
-#include "flu/solver/solver.hpp"
+#include "flu/simulation/solver.hpp"
 
 namespace Flu
 {
