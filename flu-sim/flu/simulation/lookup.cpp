@@ -13,12 +13,14 @@ template <Dimension D> void Lookup<D>::UpdateBruteForceLookup(const f32 p_Radius
     m_Radius = p_Radius;
 }
 
-template <Dimension D> void Lookup<D>::UpdateImplicitGridLookup(const f32 p_Radius) noexcept
+template <Dimension D> void Lookup<D>::UpdateGridLookup(const f32 p_Radius) noexcept
 {
     TKIT_PROFILE_NSCOPE("Flu::Lookup::UpdateGrid");
-    auto &keys = m_ImplicitGrid.CellKeys;
+    if (m_Positions->empty())
+        return;
     m_Radius = p_Radius;
 
+    auto &keys = m_Grid.CellKeys;
     keys.clear();
     for (u32 i = 0; i < m_Positions->size(); ++i)
     {
@@ -26,14 +28,20 @@ template <Dimension D> void Lookup<D>::UpdateImplicitGridLookup(const f32 p_Radi
         const u32 index = getCellIndex(cellPosition);
         keys.push_back({i, index});
     }
-    std::sort(keys.begin(), keys.end(), [](const IndexPair &a, const IndexPair &b) { return a.CellKey < b.CellKey; });
+    std::sort(keys.begin(), keys.end(), [](const IndexPair &a, const IndexPair &b) {
+        // if (a.CellKey == b.CellKey)
+        //     return a.ParticleIndex < b.ParticleIndex;
+        return a.CellKey < b.CellKey;
+    });
 
-    u32 prevIndex = 0;
-    auto &indices = m_ImplicitGrid.StartIndices;
+    auto &indices = m_Grid.StartIndices;
     indices.resize(keys.size(), UINT32_MAX);
-    for (u32 i = 0; i < keys.size(); ++i)
+
+    u32 prevIndex = keys[0].CellKey;
+    indices[prevIndex] = 0;
+    for (u32 i = 1; i < keys.size(); ++i)
     {
-        if (i == 0 || keys[i].CellKey != prevIndex)
+        if (keys[i].CellKey != prevIndex)
             indices[keys[i].CellKey] = i;
 
         prevIndex = keys[i].CellKey;
@@ -60,6 +68,20 @@ template <Dimension D> u32 Lookup<D>::getCellIndex(const ivec<D> &p_CellPosition
         TKit::HashableTuple<u32, u32, u32> key{p_CellPosition.x, p_CellPosition.y, p_CellPosition.z};
         return static_cast<u32>(key() % particles);
     }
+}
+
+template <Dimension D> std::array<ivec<D>, D * D * D + 2 - D> Lookup<D>::getGridOffsets() const noexcept
+{
+    if constexpr (D == D2)
+        return {ivec<D>{-1, -1}, ivec<D>{-1, 0}, ivec<D>{-1, 1}, ivec<D>{0, -1},
+                ivec<D>{0, 1},   ivec<D>{1, -1}, ivec<D>{1, 0},  ivec<D>{1, 1}};
+    else
+        return {ivec<D>{-1, -1, -1}, ivec<D>{-1, -1, 0}, ivec<D>{-1, -1, 1}, ivec<D>{-1, 0, -1}, ivec<D>{-1, 0, 0},
+                ivec<D>{-1, 0, 1},   ivec<D>{-1, 1, -1}, ivec<D>{-1, 1, 0},  ivec<D>{-1, 1, 1},  ivec<D>{0, -1, -1},
+                ivec<D>{0, -1, 0},   ivec<D>{0, -1, 1},  ivec<D>{0, 0, -1},  ivec<D>{0, 0, 1},   ivec<D>{0, 1, -1},
+                ivec<D>{0, 1, 0},    ivec<D>{0, 1, 1},   ivec<D>{1, -1, -1}, ivec<D>{1, -1, 0},  ivec<D>{1, -1, 1},
+                ivec<D>{1, 0, -1},   ivec<D>{1, 0, 0},   ivec<D>{1, 0, 1},   ivec<D>{1, 1, -1},  ivec<D>{1, 1, 0},
+                ivec<D>{1, 1, 1}};
 }
 
 template class Lookup<D2>;

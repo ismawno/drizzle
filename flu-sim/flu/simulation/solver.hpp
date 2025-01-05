@@ -48,6 +48,7 @@ template <Dimension D> class Solver
 
     void BeginStep(f32 p_DeltaTime) noexcept;
     void EndStep(f32 p_DeltaTime) noexcept;
+
     void ApplyMouseForce(const fvec<D> &p_MousePos, f32 p_Timestep) noexcept;
 
     std::pair<f32, f32> ComputeParticleDensity(const u32 p_Index) const noexcept;
@@ -66,7 +67,7 @@ template <Dimension D> class Solver
             m_Lookup.ForEachParticleBruteForce(p_Index, std::forward<F>(p_Function));
             break;
         case NeighborSearch::Grid:
-            m_Lookup.ForEachParticleImplicitGrid(p_Index, std::forward<F>(p_Function));
+            m_Lookup.ForEachParticleGrid(p_Index, std::forward<F>(p_Function));
             break;
         }
     }

@@ -207,7 +207,7 @@ template <Dimension D> void Solver<D>::UpdateLookup() noexcept
         m_Lookup.UpdateBruteForceLookup(Settings.SmoothingRadius);
         break;
     case NeighborSearch::Grid:
-        m_Lookup.UpdateImplicitGridLookup(Settings.SmoothingRadius);
+        m_Lookup.UpdateGridLookup(Settings.SmoothingRadius);
         break;
     }
 }
