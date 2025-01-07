@@ -29,8 +29,8 @@ template <Dimension D> void Lookup<D>::UpdateGridLookup(const f32 p_Radius) noex
         keys.push_back({i, index});
     }
     std::sort(keys.begin(), keys.end(), [](const IndexPair &a, const IndexPair &b) {
-        // if (a.CellKey == b.CellKey)
-        //     return a.ParticleIndex < b.ParticleIndex;
+        if (a.CellKey == b.CellKey)
+            return a.ParticleIndex < b.ParticleIndex;
         return a.CellKey < b.CellKey;
     });
 

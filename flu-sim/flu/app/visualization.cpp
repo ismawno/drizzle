@@ -92,9 +92,9 @@ void Visualization<D>::DrawParticleLattice(Onyx::RenderContext<D> *p_Context, co
                 }
 }
 
-template <Dimension D> static void comboKenel(KernelType &p_Type) noexcept
+template <Dimension D> static void comboKenel(const char *name, KernelType &p_Type) noexcept
 {
-    ImGui::Combo("Kernel Type", reinterpret_cast<i32 *>(&p_Type),
+    ImGui::Combo(name, reinterpret_cast<i32 *>(&p_Type),
                  "Spiky2\0Spiky3\0Spiky5\0Cubic Spline\0WendlandC2\0WendlandC4\0\0");
 }
 
@@ -124,16 +124,19 @@ template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings 
         ImGui::Text("Viscosity settings:");
         ImGui::DragFloat("Linear Term", &p_Settings.ViscLinearTerm, speed * 0.01f, 0.f, FLT_MAX);
         ImGui::DragFloat("Quadratic Term", &p_Settings.ViscQuadraticTerm, speed * 0.01f, 0.f, FLT_MAX);
-        comboKenel<D>(p_Settings.ViscosityKType);
+        comboKenel<D>("Viscosity kernel", p_Settings.ViscosityKType);
 
         ImGui::Text("Environment settings:");
         ImGui::DragFloat("Gravity", &p_Settings.Gravity, speed);
         ImGui::DragFloat("Encase Friction", &p_Settings.EncaseFriction, speed);
 
-        ImGui::Text("Simulation settings:");
+        ImGui::Text("Kernel settings:");
+        comboKenel<D>("Smooth radius kernel", p_Settings.KType);
+        comboKenel<D>("Near pressure/density kernel", p_Settings.NearKType);
+
+        ImGui::Text("Optimizations:");
         ImGui::Combo("Neighbor Search", reinterpret_cast<i32 *>(&p_Settings.SearchMethod), "Brute Force\0Grid\0\0");
-        comboKenel<D>(p_Settings.KType);
-        comboKenel<D>(p_Settings.NearKType);
+        ImGui::Checkbox("Iterate over pairs", &p_Settings.IterateOverPairs);
     }
 }
 

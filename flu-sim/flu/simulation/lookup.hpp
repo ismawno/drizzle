@@ -58,7 +58,7 @@ template <Dimension D> class Lookup
         auto &keys = m_Grid.CellKeys;
         auto &indices = m_Grid.StartIndices;
 
-        for (u32 i = 0; i < keys.size();)
+        for (u32 i = 0; i < keys.size(); ++i)
         {
             const u32 cellKey1 = keys[i].CellKey;
             const u32 index1 = keys[i].ParticleIndex;
@@ -71,7 +71,7 @@ template <Dimension D> class Lookup
             for (const ivec<D> &offset : offsets)
             {
                 const u32 cellKey2 = getCellIndex(center + offset);
-                if (isVisited(visited.begin(), visited.begin() + visitedIndex, cellKey2))
+                if (cellKey2 <= cellKey1 || isVisited(visited.begin(), visited.begin() + visitedIndex, cellKey2))
                     continue;
                 visited[visitedIndex++] = cellKey2;
 

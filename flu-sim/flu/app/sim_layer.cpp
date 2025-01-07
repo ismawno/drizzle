@@ -41,7 +41,7 @@ template <Dimension D> void SimLayer<D>::OnUpdate() noexcept
     if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
     {
         const fvec<D> p_MousePos = m_Context->GetMouseCoordinates();
-        m_Solver.ApplyMouseForce(p_MousePos, m_Timestep);
+        m_Solver.ApplyMouseForce(p_MousePos);
     }
     m_Solver.EndStep(m_Timestep);
 }
@@ -95,7 +95,7 @@ template <Dimension D> void SimLayer<D>::renderSimulationSettings() noexcept
         ImGui::Text("(%.4f)", m_Timestep);
     }
 
-    ImGui::Text("Particles: %zu", m_Solver.Positions.size());
+    ImGui::Text("Particles: %zu", m_Solver.GetParticleCount());
     if (ImGui::TreeNode("Bounding box"))
     {
         if (ImGui::DragFloat("Width", &m_Solver.BoundingBox.Max.x, 0.05f))

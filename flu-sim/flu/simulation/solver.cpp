@@ -1,7 +1,6 @@
 #include "flu/simulation/solver.hpp"
 #include "flu/app/visualization.hpp"
 #include "onyx/app/input.hpp"
-#include "tkit/utilities/math.hpp"
 #include "tkit/profiling/macros.hpp"
 
 namespace Flu
@@ -75,120 +74,109 @@ template <Dimension D> f32 Solver<D>::getViscosityInfluence(const f32 p_Distance
 template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
 {
     TKIT_PROFILE_NSCOPE("Flu::Solver::BeginStep");
-    m_PredictedPositions.resize(Positions.size());
-    {
-        TKIT_PROFILE_NSCOPE("Flu::Solver::ApplyGravity");
-        for (usize i = 0; i < Positions.size(); ++i)
-        {
-            Velocities[i].y += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
-            m_PredictedPositions[i] = Positions[i] + Velocities[i] * p_DeltaTime;
-        }
-    }
-
-    std::swap(Positions, m_PredictedPositions);
+    m_PredictedPositions.resize(m_Positions.size());
+    ApplyExternal(p_DeltaTime);
+    std::swap(m_Positions, m_PredictedPositions);
 
     UpdateLookup();
+    ComputeDensities();
 
-    {
-        TKIT_PROFILE_NSCOPE("Flu::Solver::ComputeDensities");
-        for (usize i = 0; i < Positions.size(); ++i)
-        {
-            const auto [density, nearDensity] = ComputeParticleDensity(i);
-            m_Densities[i] = density;
-            m_NearDensities[i] = nearDensity;
-        }
-    }
-
-    // Merge these two
-    {
-        TKIT_PROFILE_NSCOPE("Flu::Solver::PressureAndViscosity");
-        for (u32 i = 0; i < Positions.size(); ++i)
-        {
-            const fvec<D> pressureGradient = ComputePressureGradient(i);
-            Velocities[i] -= pressureGradient * p_DeltaTime / m_Densities[i];
-        }
-        for (u32 i = 0; i < Positions.size(); ++i)
-        {
-            const fvec<D> viscosityTerm = ComputeViscosityTerm(i);
-            Velocities[i] += viscosityTerm * p_DeltaTime;
-        }
-    }
+    ApplyPressureAndViscosity();
 }
 template <Dimension D> void Solver<D>::EndStep(const f32 p_DeltaTime) noexcept
 {
     TKIT_PROFILE_NSCOPE("Flu::Solver::EndStep");
-    std::swap(Positions, m_PredictedPositions);
-    for (usize i = 0; i < Positions.size(); ++i)
+    std::swap(m_Positions, m_PredictedPositions);
+    for (usize i = 0; i < m_Positions.size(); ++i)
     {
-        Positions[i] += Velocities[i] * p_DeltaTime;
+        m_Velocities[i] += m_Accelerations[i] * p_DeltaTime;
+        m_Positions[i] += m_Velocities[i] * p_DeltaTime;
         encase(i);
     }
 }
-template <Dimension D> void Solver<D>::ApplyMouseForce(const fvec<D> &p_MousePos, const f32 p_Timestep) noexcept
+template <Dimension D> void Solver<D>::ApplyMouseForce(const fvec<D> &p_MousePos) noexcept
 {
-    for (u32 i = 0; i < Positions.size(); ++i)
+    for (u32 i = 0; i < m_Positions.size(); ++i)
     {
-        const fvec<D> diff = Positions[i] - p_MousePos;
+        const fvec<D> diff = m_Positions[i] - p_MousePos;
         const f32 distance = glm::length(diff);
         if (distance < Settings.MouseRadius)
         {
             const f32 factor = 1.f - distance / Settings.MouseRadius;
-            Velocities[i] += (factor * Settings.MouseForce * p_Timestep / distance) * diff;
+            m_Accelerations[i] += (factor * Settings.MouseForce / distance) * diff;
         }
     }
 }
-
-template <Dimension D> std::pair<f32, f32> Solver<D>::ComputeParticleDensity(const u32 p_Index) const noexcept
+template <Dimension D> void Solver<D>::ApplyExternal(const f32 p_DeltaTime) noexcept
 {
-    f32 density = 0.f;
-    f32 nearDensity = 0.f;
-    ForEachParticleWithinSmoothingRadius(p_Index, [this, &density, &nearDensity](const u32, const f32 p_Distance) {
-        density += Settings.ParticleMass * getInfluence(p_Distance);
-        nearDensity += Settings.ParticleMass * getNearInfluence(p_Distance);
-    });
-    return {density, nearDensity};
+    TKIT_PROFILE_NSCOPE("Flu::Solver::ApplyExternal");
+    for (usize i = 0; i < m_Positions.size(); ++i)
+    {
+        m_Velocities[i].y += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
+        m_PredictedPositions[i] = m_Positions[i] + m_Velocities[i] * p_DeltaTime;
+        m_Densities[i] = Settings.ParticleMass;
+        m_NearDensities[i] = Settings.ParticleMass;
+        m_Accelerations[i] = fvec<D>{0.f};
+    }
 }
-
-template <Dimension D> fvec<D> Solver<D>::ComputeViscosityTerm(const u32 p_Index1) const noexcept
+template <Dimension D> void Solver<D>::ComputeDensities() noexcept
 {
-    fvec<D> dv{0.f};
-    ForEachParticleWithinSmoothingRadius(p_Index1, [this, &dv, p_Index1](const u32 p_Index2, const f32 p_Distance) {
-        const fvec<D> diff = Velocities[p_Index2] - Velocities[p_Index1];
-        const f32 kernel = getInfluence(p_Distance);
+    TKIT_PROFILE_NSCOPE("Flu::Solver::ComputeDensities");
+    if (Settings.IterateOverPairs)
+        ForEachPairWithinSmoothingRadius([this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
+            const f32 density = Settings.ParticleMass * getInfluence(p_Distance);
+            const f32 nearDensity = Settings.ParticleMass * getNearInfluence(p_Distance);
 
-        const f32 u = glm::length(diff);
-        dv += ((Settings.ViscLinearTerm + Settings.ViscQuadraticTerm * u) * kernel) * diff;
-    });
-    return dv;
-}
+            m_Densities[p_Index1] += density;
+            m_NearDensities[p_Index1] += nearDensity;
 
-template <Dimension D>
-static fvec<D> getDirection(const fvec<D> &p_P1, const fvec<D> &p_P2, const f32 p_Distance) noexcept
-{
-    fvec<D> dir;
-    if constexpr (D == D2)
-        dir = {1.f, 0.f};
+            m_Densities[p_Index2] += density;
+            m_NearDensities[p_Index2] += nearDensity;
+        });
     else
-        dir = {1.f, 0.f, 0.f};
-    if (TKit::ApproachesZero(p_Distance))
-        return dir;
-    return (p_P1 - p_P2) / p_Distance;
+        for (usize i = 0; i < m_Positions.size(); ++i)
+        {
+            f32 density = 0.f;
+            f32 nearDensity = 0.f;
+            ForEachParticleWithinSmoothingRadius(i, [this, &density, &nearDensity](const u32, const f32 p_Distance) {
+                density += Settings.ParticleMass * getInfluence(p_Distance);
+                nearDensity += Settings.ParticleMass * getNearInfluence(p_Distance);
+            });
+            m_Densities[i] = density;
+            m_NearDensities[i] = nearDensity;
+        }
 }
-template <Dimension D> fvec<D> Solver<D>::ComputePressureGradient(const u32 p_Index1) const noexcept
+template <Dimension D> void Solver<D>::ApplyPressureAndViscosity() noexcept
 {
-    fvec<D> gradient{0.f};
-    ForEachParticleWithinSmoothingRadius(p_Index1, [this, &gradient, p_Index1](const u32 p_Index2, const f32 distance) {
-        const fvec<D> dir = getDirection<D>(Positions[p_Index1], Positions[p_Index2], distance);
-        const f32 kernelGradient = getInfluenceSlope(distance);
-        const f32 nearKernelGradient = getNearInfluenceSlope(distance);
-        const auto [p1, np1] = GetPressureFromDensity(m_Densities[p_Index1], m_NearDensities[p_Index1]);
-        const auto [p2, np2] = GetPressureFromDensity(m_Densities[p_Index2], m_NearDensities[p_Index2]);
+    TKIT_PROFILE_NSCOPE("Flu::Solver::PressureAndViscosity");
+    const auto pairwisePressureGradient = getPairwisePressureGradientComputation();
+    const auto pairwiseViscosityTerm = getPairwiseViscosityTermComputation();
+    if (Settings.IterateOverPairs)
+    {
+        ForEachPairWithinSmoothingRadius([this, &pairwisePressureGradient, &pairwiseViscosityTerm](
+                                             const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
+            const fvec<D> gradient = pairwisePressureGradient(p_Index1, p_Index2, p_Distance);
+            const fvec<D> term = pairwiseViscosityTerm(p_Index1, p_Index2, p_Distance);
 
-        const f32 dg1 = 0.5f * (p1 + p2) * kernelGradient / m_Densities[p_Index2];
-        const f32 dg2 = 0.5f * (np1 + np2) * nearKernelGradient / m_NearDensities[p_Index2];
-        gradient += (Settings.ParticleMass * (dg1 + dg2)) * dir;
-    });
-    return gradient;
+            const fvec<D> dv1 = term - gradient / m_Densities[p_Index1];
+            const fvec<D> dv2 = term - gradient / m_Densities[p_Index2];
+
+            m_Accelerations[p_Index1] += dv1;
+            m_Accelerations[p_Index2] -= dv2;
+        });
+    }
+    else
+        for (usize i = 0; i < m_Positions.size(); ++i)
+        {
+            fvec<D> gradient{0.f};
+            fvec<D> vterm{0.f};
+            ForEachParticleWithinSmoothingRadius(i, [&gradient, &vterm, i, &pairwisePressureGradient,
+                                                     &pairwiseViscosityTerm](const u32 p_Index2, const f32 p_Distance) {
+                gradient += pairwisePressureGradient(i, p_Index2, p_Distance);
+                vterm += pairwiseViscosityTerm(i, p_Index2, p_Distance);
+            });
+            m_Accelerations[i] = vterm - gradient / m_Densities[i];
+        }
 }
 
 template <Dimension D>
@@ -214,10 +202,11 @@ template <Dimension D> void Solver<D>::UpdateLookup() noexcept
 
 template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position) noexcept
 {
-    Positions.push_back(p_Position);
-    Velocities.push_back(fvec<D>{0.f});
-    m_Densities.resize(Positions.size(), 0.f);
-    m_NearDensities.resize(Positions.size(), 0.f);
+    m_Positions.push_back(p_Position);
+    m_Velocities.push_back(fvec<D>{0.f});
+    m_Accelerations.push_back(fvec<D>{0.f});
+    m_Densities.resize(m_Positions.size(), 0.f);
+    m_NearDensities.resize(m_Positions.size(), 0.f);
 }
 
 template <Dimension D> void Solver<D>::encase(const usize p_Index) noexcept
@@ -225,15 +214,15 @@ template <Dimension D> void Solver<D>::encase(const usize p_Index) noexcept
     const f32 factor = 1.f - Settings.EncaseFriction;
     for (u32 j = 0; j < D; ++j)
     {
-        if (Positions[p_Index][j] - Settings.ParticleRadius < BoundingBox.Min[j])
+        if (m_Positions[p_Index][j] - Settings.ParticleRadius < BoundingBox.Min[j])
         {
-            Positions[p_Index][j] = BoundingBox.Min[j] + Settings.ParticleRadius;
-            Velocities[p_Index][j] = -factor * Velocities[p_Index][j];
+            m_Positions[p_Index][j] = BoundingBox.Min[j] + Settings.ParticleRadius;
+            m_Velocities[p_Index][j] = -factor * m_Velocities[p_Index][j];
         }
-        else if (Positions[p_Index][j] + Settings.ParticleRadius > BoundingBox.Max[j])
+        else if (m_Positions[p_Index][j] + Settings.ParticleRadius > BoundingBox.Max[j])
         {
-            Positions[p_Index][j] = BoundingBox.Max[j] - Settings.ParticleRadius;
-            Velocities[p_Index][j] = -factor * Velocities[p_Index][j];
+            m_Positions[p_Index][j] = BoundingBox.Max[j] - Settings.ParticleRadius;
+            m_Velocities[p_Index][j] = -factor * m_Velocities[p_Index][j];
         }
     }
 }
@@ -246,15 +235,20 @@ template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_C
 {
     const f32 particleSize = 2.f * Settings.ParticleRadius;
     const Onyx::Gradient gradient{Settings.Gradient};
-    for (usize i = 0; i < Positions.size(); ++i)
+    for (usize i = 0; i < m_Positions.size(); ++i)
     {
-        const fvec<D> &pos = Positions[i];
-        const fvec<D> &vel = Velocities[i];
+        const fvec<D> &pos = m_Positions[i];
+        const fvec<D> &vel = m_Velocities[i];
 
         const f32 speed = glm::min(Settings.FastSpeed, glm::length(vel));
         const Onyx::Color color = gradient.Evaluate(speed / Settings.FastSpeed);
         Visualization<D>::DrawParticle(p_Context, pos, color, particleSize);
     }
+}
+
+template <Dimension D> usize Solver<D>::GetParticleCount() const noexcept
+{
+    return m_Positions.size();
 }
 
 template class Solver<Dimension::D2>;

@@ -20,7 +20,7 @@ class IntroLayer final : public Onyx::Layer
 
     Onyx::Application *m_Application;
     i32 m_Dim = 0;
-    ivec3 m_Dimensions{10, 10, 10};
+    ivec3 m_Dimensions{60, 60, 60};
 
     Onyx::RenderContext<D2> *m_Context2;
     Onyx::RenderContext<D3> *m_Context3;
