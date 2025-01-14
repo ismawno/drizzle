@@ -34,7 +34,7 @@ struct SimulationSettings
     f32 MouseRadius = 6.f;
     f32 MouseForce = -30.f;
 
-    std::array<Onyx::Color, 3> Gradient = {Onyx::Color::CYAN, Onyx::Color::YELLOW, Onyx::Color::RED};
+    TKit::Array<Onyx::Color, 3> Gradient = {Onyx::Color::CYAN, Onyx::Color::YELLOW, Onyx::Color::RED};
 
     NeighborSearch SearchMethod = NeighborSearch::Grid;
     KernelType KType = KernelType::Spiky3;
@@ -56,7 +56,7 @@ template <Dimension D> class Solver
     void ApplyPressureAndViscosity() noexcept;
     void ComputeDensities() noexcept;
 
-    usize GetParticleCount() const noexcept;
+    u32 GetParticleCount() const noexcept;
 
     std::pair<f32, f32> GetPressureFromDensity(f32 p_Density, f32 p_NearDensity) const noexcept;
 
@@ -100,7 +100,7 @@ template <Dimension D> class Solver
     } BoundingBox;
 
   private:
-    void encase(usize p_Index) noexcept;
+    void encase(u32 p_Index) noexcept;
 
     f32 getInfluence(f32 p_Distance) const noexcept;
     f32 getInfluenceSlope(f32 p_Distance) const noexcept;
@@ -147,12 +147,12 @@ template <Dimension D> class Solver
     }
 
     Lookup<D> m_Lookup{&m_Positions};
-    DynamicArray<fvec<D>> m_Positions;
-    DynamicArray<fvec<D>> m_Velocities;
-    DynamicArray<fvec<D>> m_Accelerations;
-    DynamicArray<fvec<D>> m_PredictedPositions;
+    TKit::DynamicArray<fvec<D>> m_Positions;
+    TKit::DynamicArray<fvec<D>> m_Velocities;
+    TKit::DynamicArray<fvec<D>> m_Accelerations;
+    TKit::DynamicArray<fvec<D>> m_PredictedPositions;
 
-    DynamicArray<f32> m_Densities;
-    DynamicArray<f32> m_NearDensities;
+    TKit::DynamicArray<f32> m_Densities;
+    TKit::DynamicArray<f32> m_NearDensities;
 };
 } // namespace Flu

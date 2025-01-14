@@ -1,37 +1,49 @@
 #pragma once
 
 #include "flu/core/glm.hpp"
+#include "onyx/rendering/render_context.hpp"
+#include "tkit/memory/arena_allocator.hpp"
+#include "tkit/core/literals.hpp"
 #include <array>
 
 namespace Flu
 {
-struct IndexPair
+using namespace TKit::Literals;
+
+struct GridCell
 {
-    u32 ParticleIndex;
-    u32 CellKey;
+    u32 Key;
+    u32 Start;
+    u32 End;
 };
 
 struct Grid
 {
-    DynamicArray<IndexPair> CellKeys;
-    DynamicArray<u32> StartIndices;
+    TKit::DynamicArray<u32> ParticleIndices;
+    TKit::DynamicArray<u32> CellKeyToIndex;
+    TKit::DynamicArray<GridCell> Cells;
 };
 
 template <Dimension D> class Lookup
 {
   public:
-    Lookup(const DynamicArray<fvec<D>> *p_Positions) noexcept;
+    Lookup(const TKit::DynamicArray<fvec<D>> *p_Positions) noexcept;
 
     void UpdateBruteForceLookup(f32 p_Radius) noexcept;
     void UpdateGridLookup(f32 p_Radius) noexcept;
 
+    void DrawCells(Onyx::RenderContext<D> *p_Context) const noexcept;
+
+    u32 GetCellCount() const noexcept;
+
     template <typename F> void ForEachPairBruteForce(F &&p_Function) const noexcept
     {
+        auto &positions = *m_Positions;
         const f32 r2 = m_Radius * m_Radius;
         for (u32 i = 0; i < m_Positions->size(); ++i)
             for (u32 j = i + 1; j < m_Positions->size(); ++j)
             {
-                const f32 distance = glm::distance2(m_Positions->at(i), m_Positions->at(j));
+                const f32 distance = glm::distance2(positions[i], positions[j]);
                 if (distance < r2)
                     std::forward<F>(p_Function)(i, j, glm::sqrt(distance));
             }
@@ -42,54 +54,62 @@ template <Dimension D> class Lookup
         const auto offsets = getGridOffsets();
         const f32 r2 = m_Radius * m_Radius;
 
-        const auto isVisited = [](auto it1, auto it2, const u32 p_CellIndex) {
+        const auto isVisited = [](auto it1, auto it2, const u32 p_CellKey) {
             for (auto it = it1; it != it2; ++it)
-                if (*it == p_CellIndex)
+                if (*it == p_CellKey)
                     return true;
             return false;
         };
 
-        const auto processPair = [this, r2](const u32 p_Index1, const u32 p_Index2, F &&p_Function) {
-            const f32 distance = glm::distance2(m_Positions->at(p_Index1), m_Positions->at(p_Index2));
+        auto &positions = *m_Positions;
+        const auto processPair = [r2, &positions](const u32 p_Index1, const u32 p_Index2, F &&p_Function) {
+            const f32 distance = glm::distance2(positions[p_Index1], positions[p_Index2]);
+            TKIT_ASSERT(p_Index1 != p_Index2, "Invalid pair");
             if (distance < r2)
                 std::forward<F>(p_Function)(p_Index1, p_Index2, glm::sqrt(distance));
         };
 
-        auto &keys = m_Grid.CellKeys;
-        auto &indices = m_Grid.StartIndices;
+        auto &particleIndices = m_Grid.ParticleIndices;
+        auto &cellMap = m_Grid.CellKeyToIndex;
+        auto &cells = m_Grid.Cells;
 
-        for (u32 i = 0; i < keys.size(); ++i)
-        {
-            const u32 cellKey1 = keys[i].CellKey;
-            const u32 index1 = keys[i].ParticleIndex;
-            for (u32 j = i + 1; j < keys.size() && keys[j].CellKey == cellKey1; ++j)
-                processPair(index1, keys[j].ParticleIndex, std::forward<F>(p_Function));
-
-            const ivec<D> center = getCellPosition(m_Positions->at(index1));
-            std::array<u32, offsets.size()> visited{};
-            u32 visitedIndex = 0;
-            for (const ivec<D> &offset : offsets)
+        for (const GridCell &cell1 : cells)
+            for (u32 i = cell1.Start; i < cell1.End; ++i)
             {
-                const u32 cellKey2 = getCellIndex(center + offset);
-                if (cellKey2 <= cellKey1 || isVisited(visited.begin(), visited.begin() + visitedIndex, cellKey2))
-                    continue;
-                visited[visitedIndex++] = cellKey2;
+                const u32 index1 = particleIndices[i];
+                for (u32 j = i + 1; j < cell1.End; ++j)
+                    processPair(index1, particleIndices[j], std::forward<F>(p_Function));
 
-                const u32 startIndex = indices[cellKey2];
-                for (u32 j = startIndex; j < keys.size() && keys[j].CellKey == cellKey2; ++j)
-                    processPair(index1, keys[j].ParticleIndex, std::forward<F>(p_Function));
+                const ivec<D> center = getCellPosition(positions[index1]);
+                const u32 cellKey1 = cell1.Key;
+
+                TKit::Array<u32, offsets.size()> visited{};
+                u32 visitedSize = 0;
+                for (const ivec<D> &offset : offsets)
+                {
+                    const u32 cellKey2 = getCellKey(center + offset);
+                    const u32 cellIndex = cellMap[cellKey2];
+                    if (cellKey2 > cellKey1 && cellIndex != UINT32_MAX &&
+                        !isVisited(visited.begin(), visited.begin() + visitedSize, cellKey2))
+                    {
+                        visited[visitedSize++] = cellKey2;
+                        const GridCell &cell2 = cells[cellIndex];
+                        for (u32 j = cell2.Start; j < cell2.End; ++j)
+                            processPair(index1, particleIndices[j], std::forward<F>(p_Function));
+                    }
+                }
             }
-        }
     }
 
     template <typename F> void ForEachParticleBruteForce(const u32 p_Index, F &&p_Function) const noexcept
     {
+        auto &positions = *m_Positions;
         const f32 r2 = m_Radius * m_Radius;
         for (u32 i = 0; i < m_Positions->size(); ++i)
         {
             if (p_Index == i)
                 continue;
-            const f32 distance = glm::distance2(m_Positions->at(p_Index), m_Positions->at(i));
+            const f32 distance = glm::distance2(positions[p_Index], positions[i]);
             if (distance < r2)
                 std::forward<F>(p_Function)(i, glm::sqrt(distance));
         }
@@ -101,28 +121,35 @@ template <Dimension D> class Lookup
             return;
         const f32 r2 = m_Radius * m_Radius;
 
-        std::array<u32, 9> visited{};
-        u32 visitedIndex = 0;
-        const auto processParticle = [this, p_Index, r2, &visited, &visitedIndex](const ivec<D> &p_Offset,
-                                                                                  F &&p_Function) {
-            auto &keys = m_Grid.CellKeys;
-            auto &indices = m_Grid.StartIndices;
+        TKit::Array<u32, 9> visited{};
+        u32 visitedSize = 0;
+        const auto processParticle = [this, p_Index, r2, &visited, &visitedSize](const ivec<D> &p_Offset,
+                                                                                 F &&p_Function) {
+            auto &particleIndices = m_Grid.ParticleIndices;
+            auto &cellMap = m_Grid.CellKeyToIndex;
+            auto &cells = m_Grid.Cells;
+            auto &positions = *m_Positions;
 
-            const fvec<D> &point = m_Positions->at(p_Index);
+            const fvec<D> &point = positions[p_Index];
             const ivec<D> cellPosition = getCellPosition(point) + p_Offset;
-            const u32 cellKey = getCellIndex(cellPosition);
-            for (u32 i = 0; i < visitedIndex; ++i)
+            const u32 cellKey = getCellKey(cellPosition);
+
+            const u32 cellIndex = cellMap[cellKey];
+            if (cellIndex == UINT32_MAX)
+                return;
+
+            for (u32 i = 0; i < visitedSize; ++i)
                 if (visited[i] == cellKey)
                     return;
-            visited[visitedIndex++] = cellKey;
+            visited[visitedSize++] = cellKey;
 
-            const u32 startIndex = indices[cellKey];
-            for (u32 i = startIndex; i < keys.size() && keys[i].CellKey == cellKey; ++i)
+            const GridCell &cell = cells[cellIndex];
+            for (u32 i = cell.Start; i < cell.End; ++i)
             {
-                const u32 particleIndex = keys[i].ParticleIndex;
+                const u32 particleIndex = particleIndices[i];
                 if (particleIndex == p_Index)
                     continue;
-                const f32 distance = glm::distance2(point, m_Positions->at(particleIndex));
+                const f32 distance = glm::distance2(point, positions[particleIndex]);
                 if (distance < r2)
                     std::forward<F>(p_Function)(particleIndex, glm::sqrt(distance));
             }
@@ -145,10 +172,11 @@ template <Dimension D> class Lookup
 
   private:
     ivec<D> getCellPosition(const fvec<D> &p_Position) const noexcept;
-    u32 getCellIndex(const ivec<D> &p_CellPosition) const noexcept;
-    std::array<ivec<D>, D * D * D + 2 - D> getGridOffsets() const noexcept;
+    u32 getCellKey(const ivec<D> &p_CellPosition) const noexcept;
+    TKit::Array<ivec<D>, D * D * D + 2 - D> getGridOffsets() const noexcept;
 
-    const DynamicArray<fvec<D>> *m_Positions;
+    const TKit::DynamicArray<fvec<D>> *m_Positions;
+    TKit::ArenaAllocator m_Allocator{1_mb};
 
     Grid m_Grid;
     f32 m_Radius;

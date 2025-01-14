@@ -4,7 +4,8 @@
 
 namespace Flu
 {
-template <Dimension D> Lookup<D>::Lookup(const DynamicArray<fvec<D>> *p_Positions) noexcept : m_Positions(p_Positions)
+template <Dimension D>
+Lookup<D>::Lookup(const TKit::DynamicArray<fvec<D>> *p_Positions) noexcept : m_Positions(p_Positions)
 {
 }
 
@@ -19,33 +20,69 @@ template <Dimension D> void Lookup<D>::UpdateGridLookup(const f32 p_Radius) noex
     if (m_Positions->empty())
         return;
     m_Radius = p_Radius;
+    const u32 particles = m_Positions->size();
 
-    auto &keys = m_Grid.CellKeys;
-    keys.clear();
-    for (u32 i = 0; i < m_Positions->size(); ++i)
+    struct IndexPair
     {
-        const ivec<D> cellPosition = getCellPosition((*m_Positions)[i]);
-        const u32 index = getCellIndex(cellPosition);
-        keys.push_back({i, index});
+        u32 ParticleIndex;
+        u32 CellKey;
+    };
+
+    auto &cellMap = m_Grid.CellKeyToIndex;
+    auto &particleIndices = m_Grid.ParticleIndices;
+    auto &cells = m_Grid.Cells;
+
+    cellMap.resize(particles);
+    particleIndices.resize(particles);
+    cells.clear();
+
+    IndexPair *keys = m_Allocator.Push<IndexPair>(particles);
+
+    auto &positions = *m_Positions;
+    for (u32 i = 0; i < particles; ++i)
+    {
+        const ivec<D> cellPosition = getCellPosition(positions[i]);
+        const u32 key = getCellKey(cellPosition);
+        keys[i] = IndexPair{i, key};
+        cellMap[i] = UINT32_MAX;
     }
-    std::sort(keys.begin(), keys.end(), [](const IndexPair &a, const IndexPair &b) {
+    std::sort(keys, keys + particles, [](const IndexPair &a, const IndexPair &b) {
         if (a.CellKey == b.CellKey)
             return a.ParticleIndex < b.ParticleIndex;
         return a.CellKey < b.CellKey;
     });
 
-    auto &indices = m_Grid.StartIndices;
-    indices.resize(keys.size(), UINT32_MAX);
-
-    u32 prevIndex = keys[0].CellKey;
-    indices[prevIndex] = 0;
-    for (u32 i = 1; i < keys.size(); ++i)
+    u32 prevKey = keys[0].CellKey;
+    GridCell cell{prevKey, 0, 0};
+    for (u32 i = 0; i < particles; ++i)
     {
-        if (keys[i].CellKey != prevIndex)
-            indices[keys[i].CellKey] = i;
+        if (keys[i].CellKey != prevKey)
+        {
+            cell.End = i;
+            cells.push_back(cell);
 
-        prevIndex = keys[i].CellKey;
+            cellMap[keys[i].CellKey] = cells.size();
+            cell.Key = keys[i].CellKey;
+            cell.Start = i;
+        }
+        particleIndices[i] = keys[i].ParticleIndex;
+        prevKey = keys[i].CellKey;
     }
+    cell.End = particles;
+    cells.push_back(cell);
+    m_Allocator.Reset();
+}
+
+template <Dimension D> void Lookup<D>::DrawCells(Onyx::RenderContext<D> *) const noexcept
+{
+    // auto &positions = *m_Positions;
+    // for (const GridCell &cell : m_Grid.Cells)
+    // {
+    //     const ivec<D> cellPosition = getCellPosition(positions[cell.Start]);
+    //     const fvec<D> min = cellPosition * m_Radius;
+    //     const fvec<D> max = min + fvec<D>{m_Radius};
+    //     TKit::DrawBox(min, max, fvec<D>{1.f});
+    // }
 }
 
 template <Dimension D> ivec<D> Lookup<D>::getCellPosition(const fvec<D> &p_Position) const noexcept
@@ -55,22 +92,22 @@ template <Dimension D> ivec<D> Lookup<D>::getCellPosition(const fvec<D> &p_Posit
         cellPosition[i] = static_cast<i32>(p_Position[i] / m_Radius);
     return cellPosition;
 }
-template <Dimension D> u32 Lookup<D>::getCellIndex(const ivec<D> &p_CellPosition) const noexcept
+template <Dimension D> u32 Lookup<D>::getCellKey(const ivec<D> &p_CellPosition) const noexcept
 {
-    const u32 particles = static_cast<u32>(m_Positions->size());
+    const u32 particles = m_Positions->size();
     if constexpr (D == D2)
     {
         TKit::HashableTuple<u32, u32> key{p_CellPosition.x, p_CellPosition.y};
-        return static_cast<u32>(key() % particles);
+        return key() % particles;
     }
     else
     {
         TKit::HashableTuple<u32, u32, u32> key{p_CellPosition.x, p_CellPosition.y, p_CellPosition.z};
-        return static_cast<u32>(key() % particles);
+        return key() % particles;
     }
 }
 
-template <Dimension D> std::array<ivec<D>, D * D * D + 2 - D> Lookup<D>::getGridOffsets() const noexcept
+template <Dimension D> TKit::Array<ivec<D>, D * D * D + 2 - D> Lookup<D>::getGridOffsets() const noexcept
 {
     if constexpr (D == D2)
         return {ivec<D>{-1, -1}, ivec<D>{-1, 0}, ivec<D>{-1, 1}, ivec<D>{0, -1},
@@ -82,6 +119,11 @@ template <Dimension D> std::array<ivec<D>, D * D * D + 2 - D> Lookup<D>::getGrid
                 ivec<D>{0, 1, 0},    ivec<D>{0, 1, 1},   ivec<D>{1, -1, -1}, ivec<D>{1, -1, 0},  ivec<D>{1, -1, 1},
                 ivec<D>{1, 0, -1},   ivec<D>{1, 0, 0},   ivec<D>{1, 0, 1},   ivec<D>{1, 1, -1},  ivec<D>{1, 1, 0},
                 ivec<D>{1, 1, 1}};
+}
+
+template <Dimension D> u32 Lookup<D>::GetCellCount() const noexcept
+{
+    return m_Grid.Cells.size();
 }
 
 template class Lookup<D2>;

@@ -95,7 +95,7 @@ template <Dimension D> void SimLayer<D>::renderSimulationSettings() noexcept
         ImGui::Text("(%.4f)", m_Timestep);
     }
 
-    ImGui::Text("Particles: %zu", m_Solver.GetParticleCount());
+    ImGui::Text("Particles: %u", m_Solver.GetParticleCount());
     if (ImGui::TreeNode("Bounding box"))
     {
         if (ImGui::DragFloat("Width", &m_Solver.BoundingBox.Max.x, 0.05f))

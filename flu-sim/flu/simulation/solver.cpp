@@ -87,7 +87,7 @@ template <Dimension D> void Solver<D>::EndStep(const f32 p_DeltaTime) noexcept
 {
     TKIT_PROFILE_NSCOPE("Flu::Solver::EndStep");
     std::swap(m_Positions, m_PredictedPositions);
-    for (usize i = 0; i < m_Positions.size(); ++i)
+    for (u32 i = 0; i < m_Positions.size(); ++i)
     {
         m_Velocities[i] += m_Accelerations[i] * p_DeltaTime;
         m_Positions[i] += m_Velocities[i] * p_DeltaTime;
@@ -110,7 +110,7 @@ template <Dimension D> void Solver<D>::ApplyMouseForce(const fvec<D> &p_MousePos
 template <Dimension D> void Solver<D>::ApplyExternal(const f32 p_DeltaTime) noexcept
 {
     TKIT_PROFILE_NSCOPE("Flu::Solver::ApplyExternal");
-    for (usize i = 0; i < m_Positions.size(); ++i)
+    for (u32 i = 0; i < m_Positions.size(); ++i)
     {
         m_Velocities[i].y += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
         m_PredictedPositions[i] = m_Positions[i] + m_Velocities[i] * p_DeltaTime;
@@ -134,7 +134,7 @@ template <Dimension D> void Solver<D>::ComputeDensities() noexcept
             m_NearDensities[p_Index2] += nearDensity;
         });
     else
-        for (usize i = 0; i < m_Positions.size(); ++i)
+        for (u32 i = 0; i < m_Positions.size(); ++i)
         {
             f32 density = 0.f;
             f32 nearDensity = 0.f;
@@ -166,7 +166,7 @@ template <Dimension D> void Solver<D>::ApplyPressureAndViscosity() noexcept
         });
     }
     else
-        for (usize i = 0; i < m_Positions.size(); ++i)
+        for (u32 i = 0; i < m_Positions.size(); ++i)
         {
             fvec<D> gradient{0.f};
             fvec<D> vterm{0.f};
@@ -209,7 +209,7 @@ template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position) no
     m_NearDensities.resize(m_Positions.size(), 0.f);
 }
 
-template <Dimension D> void Solver<D>::encase(const usize p_Index) noexcept
+template <Dimension D> void Solver<D>::encase(const u32 p_Index) noexcept
 {
     const f32 factor = 1.f - Settings.EncaseFriction;
     for (u32 j = 0; j < D; ++j)
@@ -235,7 +235,7 @@ template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_C
 {
     const f32 particleSize = 2.f * Settings.ParticleRadius;
     const Onyx::Gradient gradient{Settings.Gradient};
-    for (usize i = 0; i < m_Positions.size(); ++i)
+    for (u32 i = 0; i < m_Positions.size(); ++i)
     {
         const fvec<D> &pos = m_Positions[i];
         const fvec<D> &vel = m_Velocities[i];
@@ -246,7 +246,7 @@ template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_C
     }
 }
 
-template <Dimension D> usize Solver<D>::GetParticleCount() const noexcept
+template <Dimension D> u32 Solver<D>::GetParticleCount() const noexcept
 {
     return m_Positions.size();
 }
