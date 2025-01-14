@@ -229,7 +229,8 @@ template <Dimension D> void Solver<D>::encase(const u32 p_Index) noexcept
 
 template <Dimension D> void Solver<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context) const noexcept
 {
-    Visualization<D>::DrawBoundingBox(p_Context, Onyx::Color::WHITE, BoundingBox.Min, BoundingBox.Max);
+    Visualization<D>::DrawBoundingBox(p_Context, Onyx::Color::FromHexadecimal("A6B1E1", false), BoundingBox.Min,
+                                      BoundingBox.Max);
 }
 template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_Context) const noexcept
 {
@@ -249,6 +250,11 @@ template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_C
 template <Dimension D> u32 Solver<D>::GetParticleCount() const noexcept
 {
     return m_Positions.size();
+}
+
+template <Dimension D> const Lookup<D> &Solver<D>::GetLookup() const noexcept
+{
+    return m_Lookup;
 }
 
 template class Solver<Dimension::D2>;

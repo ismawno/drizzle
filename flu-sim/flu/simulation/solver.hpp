@@ -57,6 +57,7 @@ template <Dimension D> class Solver
     void ComputeDensities() noexcept;
 
     u32 GetParticleCount() const noexcept;
+    const Lookup<D> &GetLookup() const noexcept;
 
     std::pair<f32, f32> GetPressureFromDensity(f32 p_Density, f32 p_NearDensity) const noexcept;
 

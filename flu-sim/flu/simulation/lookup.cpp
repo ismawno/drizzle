@@ -73,23 +73,39 @@ template <Dimension D> void Lookup<D>::UpdateGridLookup(const f32 p_Radius) noex
     m_Allocator.Reset();
 }
 
-template <Dimension D> void Lookup<D>::DrawCells(Onyx::RenderContext<D> *) const noexcept
+template <Dimension D> void Lookup<D>::DrawCells(Onyx::RenderContext<D> *p_Context) const noexcept
 {
-    // auto &positions = *m_Positions;
-    // for (const GridCell &cell : m_Grid.Cells)
-    // {
-    //     const ivec<D> cellPosition = getCellPosition(positions[cell.Start]);
-    //     const fvec<D> min = cellPosition * m_Radius;
-    //     const fvec<D> max = min + fvec<D>{m_Radius};
-    //     TKit::DrawBox(min, max, fvec<D>{1.f});
-    // }
+    TKit::HashMap<u32, ivec<D>> keyToPosition;
+    for (const fvec<D> &pos : *m_Positions)
+    {
+        p_Context->Fill(Onyx::Color::WHITE);
+
+        const ivec<D> cellPosition = getCellPosition(pos);
+        const u32 key = getCellKey(cellPosition);
+        const auto find = keyToPosition.find(key);
+        if (find == keyToPosition.end())
+            keyToPosition.emplace(key, cellPosition);
+        else if (find->second != cellPosition)
+            p_Context->Fill(Onyx::Color::RED);
+
+        if constexpr (D == D2)
+        {
+            const ivec2 br = cellPosition + ivec2{m_Radius, 0};
+            const ivec2 tl = cellPosition + ivec2{0, m_Radius};
+            p_Context->Line(cellPosition, br, 0.04f);
+            p_Context->Line(cellPosition, tl, 0.04f);
+
+            p_Context->Line(br, br + ivec2{0, m_Radius}, 0.04f);
+            p_Context->Line(tl, tl + ivec2{m_Radius, 0}, 0.04f);
+        }
+    }
 }
 
 template <Dimension D> ivec<D> Lookup<D>::getCellPosition(const fvec<D> &p_Position) const noexcept
 {
     ivec<D> cellPosition{0};
     for (u32 i = 0; i < D; ++i)
-        cellPosition[i] = static_cast<i32>(p_Position[i] / m_Radius);
+        cellPosition[i] = static_cast<i32>(p_Position[i] / m_Radius) - (p_Position[i] < 0.f);
     return cellPosition;
 }
 template <Dimension D> u32 Lookup<D>::getCellKey(const ivec<D> &p_CellPosition) const noexcept

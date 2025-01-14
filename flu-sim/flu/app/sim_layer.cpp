@@ -105,6 +105,11 @@ template <Dimension D> void SimLayer<D>::renderSimulationSettings() noexcept
         ImGui::TreePop();
     }
 
+    static bool drawGrid = false;
+    ImGui::Checkbox("Draw Grid", &drawGrid);
+    if (m_Solver.Settings.SearchMethod == NeighborSearch::Grid && drawGrid)
+        m_Solver.GetLookup().DrawCells(m_Context);
+
     Visualization<D>::RenderSettings(m_Solver.Settings);
 
     ImGui::End();
