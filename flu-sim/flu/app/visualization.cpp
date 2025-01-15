@@ -15,8 +15,8 @@ void Visualization<D>::AdjustAndControlCamera(Onyx::RenderContext<D> *p_Context,
 }
 
 template <Dimension D>
-void Visualization<D>::DrawParticle(Onyx::RenderContext<D> *p_Context, const fvec<D> &p_Position,
-                                    const Onyx::Color &p_Color, const f32 p_Size) noexcept
+void Visualization<D>::DrawParticle(Onyx::RenderContext<D> *p_Context, const fvec<D> &p_Position, const f32 p_Size,
+                                    const Onyx::Color &p_Color) noexcept
 {
     p_Context->Push();
     p_Context->Fill(p_Color);
@@ -37,8 +37,8 @@ void Visualization<D>::DrawParticle(Onyx::RenderContext<D> *p_Context, const fve
 }
 
 template <Dimension D>
-void Visualization<D>::DrawMouseInfluence(Onyx::RenderContext<D> *p_Context, const Onyx::Color &p_Color,
-                                          const f32 p_Size) noexcept
+void Visualization<D>::DrawMouseInfluence(Onyx::RenderContext<D> *p_Context, const f32 p_Size,
+                                          const Onyx::Color &p_Color) noexcept
 {
     const fvec<D> mpos = p_Context->GetMouseCoordinates();
     p_Context->Push();
@@ -50,8 +50,8 @@ void Visualization<D>::DrawMouseInfluence(Onyx::RenderContext<D> *p_Context, con
 }
 
 template <Dimension D>
-void Visualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const Onyx::Color &p_Color,
-                                       const fvec<D> &p_Min, const fvec<D> &p_Max) noexcept
+void Visualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const fvec<D> &p_Min, const fvec<D> &p_Max,
+                                       const Onyx::Color &p_Color) noexcept
 {
     p_Context->Push();
 
@@ -70,8 +70,8 @@ void Visualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const 
 }
 
 template <Dimension D>
-void Visualization<D>::DrawParticleLattice(Onyx::RenderContext<D> *p_Context, const Onyx::Color &p_Color,
-                                           const ivec<D> &p_Dimensions, const f32 p_Size) noexcept
+void Visualization<D>::DrawParticleLattice(Onyx::RenderContext<D> *p_Context, const ivec<D> &p_Dimensions,
+                                           const f32 p_Size, const Onyx::Color &p_Color) noexcept
 {
     const f32 size = p_Size * 2.f;
     for (i32 i = -p_Dimensions.x / 2; i < p_Dimensions.x / 2; ++i)
@@ -80,7 +80,7 @@ void Visualization<D>::DrawParticleLattice(Onyx::RenderContext<D> *p_Context, co
             {
                 const f32 x = static_cast<f32>(i) * size;
                 const f32 y = static_cast<f32>(j) * size;
-                Visualization<D2>::DrawParticle(p_Context, fvec2{x, y}, p_Color, p_Size);
+                Visualization<D2>::DrawParticle(p_Context, fvec2{x, y}, p_Size, p_Color);
             }
             else
                 for (i32 k = -p_Dimensions.z / 2; k < p_Dimensions.z / 2; ++k)
@@ -88,8 +88,51 @@ void Visualization<D>::DrawParticleLattice(Onyx::RenderContext<D> *p_Context, co
                     const f32 x = static_cast<f32>(i) * size;
                     const f32 y = static_cast<f32>(j) * size;
                     const f32 z = static_cast<f32>(k) * size;
-                    Visualization<D3>::DrawParticle(p_Context, fvec3{x, y, z}, p_Color, p_Size);
+                    Visualization<D3>::DrawParticle(p_Context, fvec3{x, y, z}, p_Size, p_Color);
                 }
+}
+
+template <Dimension D>
+void Visualization<D>::DrawCell(Onyx::RenderContext<D> *p_Context, const ivec<D> &p_Position, const f32 p_Size,
+                                const Onyx::Color &p_Color, const f32 p_Thickness) noexcept
+{
+    p_Context->Fill(p_Color);
+    if constexpr (D == D2)
+    {
+        const ivec2 right = ivec2{p_Size, 0};
+        const ivec2 up = ivec2{0, p_Size};
+        const ivec2 wopa = ivec2{p_Size, p_Size};
+
+        p_Context->Line(p_Position, p_Position + right, p_Thickness);
+        p_Context->Line(p_Position, p_Position + up, p_Thickness);
+
+        p_Context->Line(p_Position + right, p_Position + wopa, p_Thickness);
+        p_Context->Line(p_Position + up, p_Position + wopa, p_Thickness);
+    }
+    else
+    {
+        const ivec3 right = ivec3{p_Size, 0, 0};
+        const ivec3 up = ivec3{0, p_Size, 0};
+        const ivec3 front = ivec3{0, 0, p_Size};
+        const ivec3 wopa = ivec3{p_Size, p_Size, 0};
+
+        p_Context->Line(p_Position, p_Position + right, p_Thickness);
+        p_Context->Line(p_Position, p_Position + up, p_Thickness);
+
+        p_Context->Line(p_Position + right, p_Position + wopa, p_Thickness);
+        p_Context->Line(p_Position + up, p_Position + wopa, p_Thickness);
+
+        p_Context->Line(p_Position + front, p_Position + front + right, p_Thickness);
+        p_Context->Line(p_Position + front, p_Position + front + up, p_Thickness);
+
+        p_Context->Line(p_Position + front + right, p_Position + front + wopa, p_Thickness);
+        p_Context->Line(p_Position + front + up, p_Position + front + wopa, p_Thickness);
+
+        p_Context->Line(p_Position, p_Position + front, p_Thickness);
+        p_Context->Line(p_Position + right, p_Position + right + front, p_Thickness);
+        p_Context->Line(p_Position + up, p_Position + up + front, p_Thickness);
+        p_Context->Line(p_Position + wopa, p_Position + wopa + front, p_Thickness);
+    }
 }
 
 template <Dimension D> static void comboKenel(const char *name, KernelType &p_Type) noexcept

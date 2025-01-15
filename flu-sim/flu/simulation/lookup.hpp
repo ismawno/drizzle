@@ -38,7 +38,7 @@ template <Dimension D> class Lookup
 
     template <typename F> void ForEachPairBruteForce(F &&p_Function) const noexcept
     {
-        auto &positions = *m_Positions;
+        const auto &positions = *m_Positions;
         const f32 r2 = m_Radius * m_Radius;
         for (u32 i = 0; i < m_Positions->size(); ++i)
             for (u32 j = i + 1; j < m_Positions->size(); ++j)
@@ -54,14 +54,14 @@ template <Dimension D> class Lookup
         const auto offsets = getGridOffsets();
         const f32 r2 = m_Radius * m_Radius;
 
-        const auto isVisited = [](auto it1, auto it2, const u32 p_CellKey) {
+        const auto isVisited = [](const auto it1, const auto it2, const u32 p_CellKey) {
             for (auto it = it1; it != it2; ++it)
                 if (*it == p_CellKey)
                     return true;
             return false;
         };
 
-        auto &positions = *m_Positions;
+        const auto &positions = *m_Positions;
         const auto processPair = [r2, &positions](const u32 p_Index1, const u32 p_Index2, F &&p_Function) {
             const f32 distance = glm::distance2(positions[p_Index1], positions[p_Index2]);
             TKIT_ASSERT(p_Index1 != p_Index2, "Invalid pair");
@@ -69,9 +69,9 @@ template <Dimension D> class Lookup
                 std::forward<F>(p_Function)(p_Index1, p_Index2, glm::sqrt(distance));
         };
 
-        auto &particleIndices = m_Grid.ParticleIndices;
-        auto &cellMap = m_Grid.CellKeyToIndex;
-        auto &cells = m_Grid.Cells;
+        const auto &particleIndices = m_Grid.ParticleIndices;
+        const auto &cellMap = m_Grid.CellKeyToIndex;
+        const auto &cells = m_Grid.Cells;
 
         for (const GridCell &cell1 : cells)
             for (u32 i = cell1.Start; i < cell1.End; ++i)
@@ -103,7 +103,7 @@ template <Dimension D> class Lookup
 
     template <typename F> void ForEachParticleBruteForce(const u32 p_Index, F &&p_Function) const noexcept
     {
-        auto &positions = *m_Positions;
+        const auto &positions = *m_Positions;
         const f32 r2 = m_Radius * m_Radius;
         for (u32 i = 0; i < m_Positions->size(); ++i)
         {
@@ -125,10 +125,10 @@ template <Dimension D> class Lookup
         u32 visitedSize = 0;
         const auto processParticle = [this, p_Index, r2, &visited, &visitedSize](const ivec<D> &p_Offset,
                                                                                  F &&p_Function) {
-            auto &particleIndices = m_Grid.ParticleIndices;
-            auto &cellMap = m_Grid.CellKeyToIndex;
-            auto &cells = m_Grid.Cells;
-            auto &positions = *m_Positions;
+            const auto &particleIndices = m_Grid.ParticleIndices;
+            const auto &cellMap = m_Grid.CellKeyToIndex;
+            const auto &cells = m_Grid.Cells;
+            const auto &positions = *m_Positions;
 
             const fvec<D> &point = positions[p_Index];
             const ivec<D> cellPosition = getCellPosition(point) + p_Offset;
@@ -176,7 +176,7 @@ template <Dimension D> class Lookup
     TKit::Array<ivec<D>, D * D * D + 2 - D> getGridOffsets() const noexcept;
 
     const TKit::DynamicArray<fvec<D>> *m_Positions;
-    TKit::ArenaAllocator m_Allocator{1_mb};
+    TKit::ArenaAllocator m_Arena{1_mb};
 
     Grid m_Grid;
     f32 m_Radius;

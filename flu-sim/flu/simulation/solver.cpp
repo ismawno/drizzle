@@ -229,12 +229,13 @@ template <Dimension D> void Solver<D>::encase(const u32 p_Index) noexcept
 
 template <Dimension D> void Solver<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context) const noexcept
 {
-    Visualization<D>::DrawBoundingBox(p_Context, Onyx::Color::FromHexadecimal("A6B1E1", false), BoundingBox.Min,
-                                      BoundingBox.Max);
+    Visualization<D>::DrawBoundingBox(p_Context, BoundingBox.Min, BoundingBox.Max,
+                                      Onyx::Color::FromHexadecimal("A6B1E1", false));
 }
 template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_Context) const noexcept
 {
     const f32 particleSize = 2.f * Settings.ParticleRadius;
+
     const Onyx::Gradient gradient{Settings.Gradient};
     for (u32 i = 0; i < m_Positions.size(); ++i)
     {
@@ -243,7 +244,7 @@ template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_C
 
         const f32 speed = glm::min(Settings.FastSpeed, glm::length(vel));
         const Onyx::Color color = gradient.Evaluate(speed / Settings.FastSpeed);
-        Visualization<D>::DrawParticle(p_Context, pos, color, particleSize);
+        Visualization<D>::DrawParticle(p_Context, pos, particleSize, color);
     }
 }
 

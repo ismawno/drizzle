@@ -17,14 +17,14 @@ void IntroLayer::OnRender(const VkCommandBuffer) noexcept
     if (m_Dim == 0)
     {
         Visualization<D2>::AdjustAndControlCamera(m_Context2, m_Application->GetDeltaTime());
-        Visualization<D2>::DrawParticleLattice(m_Context2, m_Settings.Gradient[0], m_Dimensions,
-                                               2.f * m_Settings.ParticleRadius);
+        Visualization<D2>::DrawParticleLattice(m_Context2, m_Dimensions, 2.f * m_Settings.ParticleRadius,
+                                               m_Settings.Gradient[0]);
     }
     else
     {
         Visualization<D3>::AdjustAndControlCamera(m_Context3, m_Application->GetDeltaTime());
-        Visualization<D3>::DrawParticleLattice(m_Context3, m_Settings.Gradient[0], m_Dimensions,
-                                               2.f * m_Settings.ParticleRadius);
+        Visualization<D3>::DrawParticleLattice(m_Context3, m_Dimensions, 2.f * m_Settings.ParticleRadius,
+                                               m_Settings.Gradient[0]);
     }
     renderIntroSettings();
 }

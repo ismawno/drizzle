@@ -53,7 +53,7 @@ template <Dimension D> void SimLayer<D>::OnRender(const VkCommandBuffer) noexcep
     m_Solver.DrawBoundingBox(m_Context);
 
     if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
-        Visualization<D>::DrawMouseInfluence(m_Context, Onyx::Color::ORANGE, 2.f * m_Solver.Settings.MouseRadius);
+        Visualization<D>::DrawMouseInfluence(m_Context, 2.f * m_Solver.Settings.MouseRadius, Onyx::Color::ORANGE);
 
     renderSimulationSettings();
 }

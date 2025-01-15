@@ -1,4 +1,5 @@
 #include "flu/simulation/lookup.hpp"
+#include "flu/app/visualization.hpp"
 #include "tkit/container/hashable_tuple.hpp"
 #include "tkit/profiling/macros.hpp"
 
@@ -36,9 +37,9 @@ template <Dimension D> void Lookup<D>::UpdateGridLookup(const f32 p_Radius) noex
     particleIndices.resize(particles);
     cells.clear();
 
-    IndexPair *keys = m_Allocator.Push<IndexPair>(particles);
+    IndexPair *keys = m_Arena.Push<IndexPair>(particles);
 
-    auto &positions = *m_Positions;
+    const auto &positions = *m_Positions;
     for (u32 i = 0; i < particles; ++i)
     {
         const ivec<D> cellPosition = getCellPosition(positions[i]);
@@ -70,33 +71,42 @@ template <Dimension D> void Lookup<D>::UpdateGridLookup(const f32 p_Radius) noex
     }
     cell.End = particles;
     cells.push_back(cell);
-    m_Allocator.Reset();
+    m_Arena.Reset();
 }
 
 template <Dimension D> void Lookup<D>::DrawCells(Onyx::RenderContext<D> *p_Context) const noexcept
 {
-    TKit::HashMap<u32, ivec<D>> keyToPosition;
-    for (const fvec<D> &pos : *m_Positions)
+    const auto isUnique = [](const auto it1, const auto it2, const ivec<D> &p_Position) {
+        for (auto it = it1; it != it2; ++it)
+            if (*it == p_Position)
+                return false;
+        return true;
+    };
+
+    const auto &positions = *m_Positions;
+    for (const GridCell &cell : m_Grid.Cells)
     {
-        p_Context->Fill(Onyx::Color::WHITE);
-
-        const ivec<D> cellPosition = getCellPosition(pos);
-        const u32 key = getCellKey(cellPosition);
-        const auto find = keyToPosition.find(key);
-        if (find == keyToPosition.end())
-            keyToPosition.emplace(key, cellPosition);
-        else if (find->second != cellPosition)
-            p_Context->Fill(Onyx::Color::RED);
-
-        if constexpr (D == D2)
+        TKit::Array<ivec<D>, 8> uniquePositions;
+        u32 uniqueSize = 0;
+        for (u32 i = cell.Start; i < cell.End; ++i)
         {
-            const ivec2 br = cellPosition + ivec2{m_Radius, 0};
-            const ivec2 tl = cellPosition + ivec2{0, m_Radius};
-            p_Context->Line(cellPosition, br, 0.04f);
-            p_Context->Line(cellPosition, tl, 0.04f);
+            const u32 index = m_Grid.ParticleIndices[i];
+            const ivec<D> cellPosition = getCellPosition(positions[index]);
+            if (isUnique(uniquePositions.begin(), uniquePositions.end(), cellPosition))
+                uniquePositions[uniqueSize++] = cellPosition;
+        }
 
-            p_Context->Line(br, br + ivec2{0, m_Radius}, 0.04f);
-            p_Context->Line(tl, tl + ivec2{m_Radius, 0}, 0.04f);
+        const Onyx::Color color = uniqueSize == 1 ? Onyx::Color::WHITE : Onyx::Color::RED;
+        Visualization<D>::DrawCell(p_Context, uniquePositions[0], m_Radius, color, 0.04f);
+
+        for (u32 i = 1; i < uniqueSize; ++i)
+        {
+            Visualization<D>::DrawCell(p_Context, uniquePositions[i], m_Radius, color, 0.04f);
+            const fvec<D> pos1 = fvec<D>{uniquePositions[i - 1]} + 0.5f * m_Radius;
+            const fvec<D> pos2 = fvec<D>{uniquePositions[i]} + 0.5f * m_Radius;
+
+            p_Context->Fill(Onyx::Color::YELLOW);
+            p_Context->Line(pos1, pos2, 0.08f);
         }
     }
 }
