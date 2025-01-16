@@ -5,9 +5,9 @@
 
 namespace Flu
 {
-template <Dimension D>
-Lookup<D>::Lookup(const TKit::DynamicArray<fvec<D>> *p_Positions) noexcept : m_Positions(p_Positions)
+template <Dimension D> void Lookup<D>::SetPositions(const TKit::DynamicArray<fvec<D>> *p_Positions) noexcept
 {
+    m_Positions = p_Positions;
 }
 
 template <Dimension D> void Lookup<D>::UpdateBruteForceLookup(const f32 p_Radius) noexcept

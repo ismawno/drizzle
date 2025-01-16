@@ -157,7 +157,7 @@ template <Dimension D> class Solver
         };
     }
 
-    Lookup<D> m_Lookup{&m_Positions};
+    Lookup<D> m_Lookup;
     TKit::DynamicArray<fvec<D>> m_Positions;
     TKit::DynamicArray<fvec<D>> m_Velocities;
     TKit::DynamicArray<fvec<D>> m_Accelerations;

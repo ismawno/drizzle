@@ -78,6 +78,7 @@ template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
     ApplyExternal(p_DeltaTime);
     std::swap(m_Positions, m_PredictedPositions);
 
+    m_Lookup.SetPositions(&m_Positions);
     UpdateLookup();
     ComputeDensities();
 

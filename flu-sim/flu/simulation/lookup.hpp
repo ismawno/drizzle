@@ -27,7 +27,7 @@ struct Grid
 template <Dimension D> class Lookup
 {
   public:
-    Lookup(const TKit::DynamicArray<fvec<D>> *p_Positions) noexcept;
+    void SetPositions(const TKit::DynamicArray<fvec<D>> *p_Positions) noexcept;
 
     void UpdateBruteForceLookup(f32 p_Radius) noexcept;
     void UpdateGridLookup(f32 p_Radius) noexcept;
@@ -176,7 +176,7 @@ template <Dimension D> class Lookup
   private:
     TKit::Array<ivec<D>, D * D * D + 2 - D> getGridOffsets() const noexcept;
 
-    const TKit::DynamicArray<fvec<D>> *m_Positions;
+    const TKit::DynamicArray<fvec<D>> *m_Positions = nullptr;
     TKit::ArenaAllocator m_Arena{1_mb};
 
     Grid m_Grid;
