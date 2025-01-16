@@ -69,11 +69,6 @@ void IntroLayer::renderIntroSettings() noexcept
         ImGui::DragInt3("Particles", glm::value_ptr(m_Dimensions), 1, 1, INT32_MAX);
     }
 
-    if (m_Dim == 0)
-        Visualization<D2>::RenderSettings(m_Settings);
-    else
-        Visualization<D3>::RenderSettings(m_Settings);
-
     ImGui::Text("The camera controls are the following:");
     ImGui::Text("W-A-S-D: Move the camera");
     ImGui::Text("Q-E: Rotate the camera");
@@ -82,6 +77,11 @@ void IntroLayer::renderIntroSettings() noexcept
 
     if (ImGui::Button("Start simulation"))
         m_Application->Layers.FlagRemove(this);
+
+    if (m_Dim == 0)
+        Visualization<D2>::RenderSettings(m_Settings);
+    else
+        Visualization<D3>::RenderSettings(m_Settings);
     ImGui::End();
 }
 

@@ -46,16 +46,26 @@ template <Dimension D> class Solver
 {
     TKIT_NON_COPYABLE(Solver)
   public:
+    struct ParticleData
+    {
+        fvec<D> Position;
+        fvec<D> Velocity;
+        fvec<D> Acceleration;
+        ivec<D> CellPosition;
+        u32 CellKey;
+    };
+
     Solver() noexcept = default;
 
     void BeginStep(f32 p_DeltaTime) noexcept;
-    void EndStep(f32 p_DeltaTime) noexcept;
+    void EndStep(f32 p_DeltaTime, bool p_ApplyStep = true) noexcept;
 
     void ApplyExternal(f32 p_DeltaTime) noexcept;
     void ApplyMouseForce(const fvec<D> &p_MousePos) noexcept;
     void ApplyPressureAndViscosity() noexcept;
     void ComputeDensities() noexcept;
 
+    ParticleData GetParticleData(u32 p_Index) const noexcept;
     u32 GetParticleCount() const noexcept;
     const Lookup<D> &GetLookup() const noexcept;
 

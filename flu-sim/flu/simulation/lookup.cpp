@@ -42,8 +42,8 @@ template <Dimension D> void Lookup<D>::UpdateGridLookup(const f32 p_Radius) noex
     const auto &positions = *m_Positions;
     for (u32 i = 0; i < particles; ++i)
     {
-        const ivec<D> cellPosition = getCellPosition(positions[i]);
-        const u32 key = getCellKey(cellPosition);
+        const ivec<D> cellPosition = GetCellPosition(positions[i]);
+        const u32 key = GetCellKey(cellPosition);
         keys[i] = IndexPair{i, key};
         cellMap[i] = UINT32_MAX;
     }
@@ -74,8 +74,9 @@ template <Dimension D> void Lookup<D>::UpdateGridLookup(const f32 p_Radius) noex
     m_Arena.Reset();
 }
 
-template <Dimension D> void Lookup<D>::DrawCells(Onyx::RenderContext<D> *p_Context) const noexcept
+template <Dimension D> u32 Lookup<D>::DrawCells(Onyx::RenderContext<D> *p_Context) const noexcept
 {
+    TKIT_PROFILE_NSCOPE("Flu::Lookup::DrawCells");
     const auto isUnique = [](const auto it1, const auto it2, const ivec<D> &p_Position) {
         for (auto it = it1; it != it2; ++it)
             if (*it == p_Position)
@@ -84,6 +85,8 @@ template <Dimension D> void Lookup<D>::DrawCells(Onyx::RenderContext<D> *p_Conte
     };
 
     const auto &positions = *m_Positions;
+
+    u32 cellClashes = 0;
     for (const GridCell &cell : m_Grid.Cells)
     {
         TKit::Array<ivec<D>, 8> uniquePositions;
@@ -91,13 +94,14 @@ template <Dimension D> void Lookup<D>::DrawCells(Onyx::RenderContext<D> *p_Conte
         for (u32 i = cell.Start; i < cell.End; ++i)
         {
             const u32 index = m_Grid.ParticleIndices[i];
-            const ivec<D> cellPosition = getCellPosition(positions[index]);
-            if (isUnique(uniquePositions.begin(), uniquePositions.end(), cellPosition))
+            const ivec<D> cellPosition = GetCellPosition(positions[index]);
+            if (isUnique(uniquePositions.begin(), uniquePositions.begin() + uniqueSize, cellPosition))
                 uniquePositions[uniqueSize++] = cellPosition;
         }
 
         const Onyx::Color color = uniqueSize == 1 ? Onyx::Color::WHITE : Onyx::Color::RED;
         Visualization<D>::DrawCell(p_Context, uniquePositions[0], m_Radius, color, 0.04f);
+        cellClashes += uniqueSize - 1;
 
         for (u32 i = 1; i < uniqueSize; ++i)
         {
@@ -109,16 +113,17 @@ template <Dimension D> void Lookup<D>::DrawCells(Onyx::RenderContext<D> *p_Conte
             p_Context->Line(pos1, pos2, 0.08f);
         }
     }
+    return cellClashes;
 }
 
-template <Dimension D> ivec<D> Lookup<D>::getCellPosition(const fvec<D> &p_Position) const noexcept
+template <Dimension D> ivec<D> Lookup<D>::GetCellPosition(const fvec<D> &p_Position) const noexcept
 {
     ivec<D> cellPosition{0};
     for (u32 i = 0; i < D; ++i)
         cellPosition[i] = static_cast<i32>(p_Position[i] / m_Radius) - (p_Position[i] < 0.f);
     return cellPosition;
 }
-template <Dimension D> u32 Lookup<D>::getCellKey(const ivec<D> &p_CellPosition) const noexcept
+template <Dimension D> u32 Lookup<D>::GetCellKey(const ivec<D> &p_CellPosition) const noexcept
 {
     const u32 particles = m_Positions->size();
     if constexpr (D == D2)

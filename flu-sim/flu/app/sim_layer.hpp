@@ -11,14 +11,15 @@ template <Dimension D> class SimLayer final : public Onyx::Layer
 {
   public:
     SimLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
-             const ivec<D> &p_StartingLayout) noexcept;
+             const uvec<D> &p_StartingLayout) noexcept;
 
   private:
     void OnUpdate() noexcept override;
     void OnRender(VkCommandBuffer) noexcept override;
     bool OnEvent(const Onyx::Event &p_Event) noexcept override;
 
-    void renderSimulationSettings() noexcept;
+    void step(bool p_Dummy = false) noexcept;
+    void renderVisualizationSettings() noexcept;
 
     Onyx::Application *m_Application;
     Onyx::Window *m_Window;
@@ -27,5 +28,7 @@ template <Dimension D> class SimLayer final : public Onyx::Layer
     Onyx::RenderContext<D> *m_Context;
 
     f32 m_Timestep = 1.f / 60.f;
+    bool m_DummyStep = false;
+    bool m_Pause = false;
 };
 } // namespace Flu

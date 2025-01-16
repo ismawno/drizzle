@@ -83,16 +83,19 @@ template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
 
     ApplyPressureAndViscosity();
 }
-template <Dimension D> void Solver<D>::EndStep(const f32 p_DeltaTime) noexcept
+template <Dimension D> void Solver<D>::EndStep(const f32 p_DeltaTime, const bool p_ApplyStep) noexcept
 {
     TKIT_PROFILE_NSCOPE("Flu::Solver::EndStep");
     std::swap(m_Positions, m_PredictedPositions);
-    for (u32 i = 0; i < m_Positions.size(); ++i)
-    {
-        m_Velocities[i] += m_Accelerations[i] * p_DeltaTime;
-        m_Positions[i] += m_Velocities[i] * p_DeltaTime;
-        encase(i);
-    }
+
+    if (p_ApplyStep) [[likely]]
+        for (u32 i = 0; i < m_Positions.size(); ++i)
+        {
+            m_Velocities[i].y += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
+            m_Velocities[i] += m_Accelerations[i] * p_DeltaTime;
+            m_Positions[i] += m_Velocities[i] * p_DeltaTime;
+            encase(i);
+        }
 }
 template <Dimension D> void Solver<D>::ApplyMouseForce(const fvec<D> &p_MousePos) noexcept
 {
@@ -112,7 +115,6 @@ template <Dimension D> void Solver<D>::ApplyExternal(const f32 p_DeltaTime) noex
     TKIT_PROFILE_NSCOPE("Flu::Solver::ApplyExternal");
     for (u32 i = 0; i < m_Positions.size(); ++i)
     {
-        m_Velocities[i].y += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
         m_PredictedPositions[i] = m_Positions[i] + m_Velocities[i] * p_DeltaTime;
         m_Densities[i] = Settings.ParticleMass;
         m_NearDensities[i] = Settings.ParticleMass;
@@ -205,8 +207,8 @@ template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position) no
     m_Positions.push_back(p_Position);
     m_Velocities.push_back(fvec<D>{0.f});
     m_Accelerations.push_back(fvec<D>{0.f});
-    m_Densities.resize(m_Positions.size(), 0.f);
-    m_NearDensities.resize(m_Positions.size(), 0.f);
+    m_Densities.push_back(0.f);
+    m_NearDensities.push_back(0.f);
 }
 
 template <Dimension D> void Solver<D>::encase(const u32 p_Index) noexcept
@@ -246,6 +248,13 @@ template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_C
         const Onyx::Color color = gradient.Evaluate(speed / Settings.FastSpeed);
         Visualization<D>::DrawParticle(p_Context, pos, particleSize, color);
     }
+}
+
+template <Dimension D> Solver<D>::ParticleData Solver<D>::GetParticleData(const u32 p_Index) const noexcept
+{
+    const ivec<D> cellPosition = m_Lookup.GetCellPosition(m_Positions[p_Index]);
+    const u32 cellKey = m_Lookup.GetCellKey(cellPosition);
+    return {m_Positions[p_Index], m_Velocities[p_Index], m_Accelerations[p_Index], cellPosition, cellKey};
 }
 
 template <Dimension D> u32 Solver<D>::GetParticleCount() const noexcept

@@ -32,7 +32,10 @@ template <Dimension D> class Lookup
     void UpdateBruteForceLookup(f32 p_Radius) noexcept;
     void UpdateGridLookup(f32 p_Radius) noexcept;
 
-    void DrawCells(Onyx::RenderContext<D> *p_Context) const noexcept;
+    ivec<D> GetCellPosition(const fvec<D> &p_Position) const noexcept;
+    u32 GetCellKey(const ivec<D> &p_CellPosition) const noexcept;
+
+    u32 DrawCells(Onyx::RenderContext<D> *p_Context) const noexcept;
 
     u32 GetCellCount() const noexcept;
 
@@ -80,14 +83,14 @@ template <Dimension D> class Lookup
                 for (u32 j = i + 1; j < cell1.End; ++j)
                     processPair(index1, particleIndices[j], std::forward<F>(p_Function));
 
-                const ivec<D> center = getCellPosition(positions[index1]);
+                const ivec<D> center = GetCellPosition(positions[index1]);
                 const u32 cellKey1 = cell1.Key;
 
                 TKit::Array<u32, offsets.size()> visited{};
                 u32 visitedSize = 0;
                 for (const ivec<D> &offset : offsets)
                 {
-                    const u32 cellKey2 = getCellKey(center + offset);
+                    const u32 cellKey2 = GetCellKey(center + offset);
                     const u32 cellIndex = cellMap[cellKey2];
                     if (cellKey2 > cellKey1 && cellIndex != UINT32_MAX &&
                         !isVisited(visited.begin(), visited.begin() + visitedSize, cellKey2))
@@ -131,8 +134,8 @@ template <Dimension D> class Lookup
             const auto &positions = *m_Positions;
 
             const fvec<D> &point = positions[p_Index];
-            const ivec<D> cellPosition = getCellPosition(point) + p_Offset;
-            const u32 cellKey = getCellKey(cellPosition);
+            const ivec<D> cellPosition = GetCellPosition(point) + p_Offset;
+            const u32 cellKey = GetCellKey(cellPosition);
 
             const u32 cellIndex = cellMap[cellKey];
             if (cellIndex == UINT32_MAX)
@@ -171,8 +174,6 @@ template <Dimension D> class Lookup
     }
 
   private:
-    ivec<D> getCellPosition(const fvec<D> &p_Position) const noexcept;
-    u32 getCellKey(const ivec<D> &p_CellPosition) const noexcept;
     TKit::Array<ivec<D>, D * D * D + 2 - D> getGridOffsets() const noexcept;
 
     const TKit::DynamicArray<fvec<D>> *m_Positions;

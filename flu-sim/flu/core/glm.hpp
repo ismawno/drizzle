@@ -18,4 +18,10 @@ using ivec4 = glm::vec<4, i32>;
 
 template <Dimension D> using ivec = glm::vec<D, i32>;
 
+using uvec2 = glm::vec<2, u32>;
+using uvec3 = glm::vec<3, u32>;
+using uvec4 = glm::vec<4, u32>;
+
+template <Dimension D> using uvec = glm::vec<D, u32>;
+
 } // namespace Flu

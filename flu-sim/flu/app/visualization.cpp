@@ -73,22 +73,23 @@ template <Dimension D>
 void Visualization<D>::DrawParticleLattice(Onyx::RenderContext<D> *p_Context, const ivec<D> &p_Dimensions,
                                            const f32 p_Size, const Onyx::Color &p_Color) noexcept
 {
-    const f32 size = p_Size * 2.f;
-    for (i32 i = -p_Dimensions.x / 2; i < p_Dimensions.x / 2; ++i)
-        for (i32 j = -p_Dimensions.y / 2; j < p_Dimensions.y / 2; ++j)
+    const f32 size = 2.f * p_Size;
+    const fvec<D> midPoint = 0.5f * size * fvec<D>{p_Dimensions};
+    for (i32 i = 0; i < p_Dimensions.x; ++i)
+        for (i32 j = 0; j < p_Dimensions.y; ++j)
             if constexpr (D == D2)
             {
                 const f32 x = static_cast<f32>(i) * size;
                 const f32 y = static_cast<f32>(j) * size;
-                Visualization<D2>::DrawParticle(p_Context, fvec2{x, y}, p_Size, p_Color);
+                Visualization<D2>::DrawParticle(p_Context, fvec2{x, y} - midPoint, p_Size, p_Color);
             }
             else
-                for (i32 k = -p_Dimensions.z / 2; k < p_Dimensions.z / 2; ++k)
+                for (i32 k = 0; k < p_Dimensions.z; ++k)
                 {
                     const f32 x = static_cast<f32>(i) * size;
                     const f32 y = static_cast<f32>(j) * size;
                     const f32 z = static_cast<f32>(k) * size;
-                    Visualization<D3>::DrawParticle(p_Context, fvec3{x, y, z}, p_Size, p_Color);
+                    Visualization<D3>::DrawParticle(p_Context, fvec3{x, y, z} - midPoint, p_Size, p_Color);
                 }
 }
 
@@ -144,43 +145,41 @@ template <Dimension D> static void comboKenel(const char *name, KernelType &p_Ty
 template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings &p_Settings) noexcept
 {
     const f32 speed = 0.2f;
-    if (ImGui::CollapsingHeader("Simulation parameters"))
-    {
-        ImGui::Text("Mouse controls:");
-        ImGui::DragFloat("Mouse Radius", &p_Settings.MouseRadius, speed);
-        ImGui::DragFloat("Mouse Force", &p_Settings.MouseForce, speed);
-        ImGui::Spacing();
 
-        ImGui::Text("Particle settings:");
-        ImGui::DragFloat("Particle Radius", &p_Settings.ParticleRadius, speed);
-        ImGui::DragFloat("Particle Mass", &p_Settings.ParticleMass, speed);
-        ImGui::DragFloat("Particle Fast Speed", &p_Settings.FastSpeed, speed);
-        ImGui::DragFloat("Smoothing Radius", &p_Settings.SmoothingRadius, speed);
-        ImGui::Spacing();
+    ImGui::Text("Mouse controls:");
+    ImGui::DragFloat("Mouse Radius", &p_Settings.MouseRadius, speed);
+    ImGui::DragFloat("Mouse Force", &p_Settings.MouseForce, speed);
+    ImGui::Spacing();
 
-        ImGui::Text("Fluid settings:");
-        ImGui::DragFloat("Target Density", &p_Settings.TargetDensity, speed * 0.1f);
-        ImGui::DragFloat("Pressure Stiffness", &p_Settings.PressureStiffness, speed);
-        ImGui::DragFloat("Near Pressure Stiffness", &p_Settings.NearPressureStiffness, speed);
-        ImGui::Spacing();
+    ImGui::Text("Particle settings:");
+    ImGui::DragFloat("Particle Radius", &p_Settings.ParticleRadius, speed);
+    ImGui::DragFloat("Particle Mass", &p_Settings.ParticleMass, speed);
+    ImGui::DragFloat("Particle Fast Speed", &p_Settings.FastSpeed, speed);
+    ImGui::DragFloat("Smoothing Radius", &p_Settings.SmoothingRadius, speed);
+    ImGui::Spacing();
 
-        ImGui::Text("Viscosity settings:");
-        ImGui::DragFloat("Linear Term", &p_Settings.ViscLinearTerm, speed * 0.01f, 0.f, FLT_MAX);
-        ImGui::DragFloat("Quadratic Term", &p_Settings.ViscQuadraticTerm, speed * 0.01f, 0.f, FLT_MAX);
-        comboKenel<D>("Viscosity kernel", p_Settings.ViscosityKType);
+    ImGui::Text("Fluid settings:");
+    ImGui::DragFloat("Target Density", &p_Settings.TargetDensity, speed * 0.1f);
+    ImGui::DragFloat("Pressure Stiffness", &p_Settings.PressureStiffness, speed);
+    ImGui::DragFloat("Near Pressure Stiffness", &p_Settings.NearPressureStiffness, speed);
+    ImGui::Spacing();
 
-        ImGui::Text("Environment settings:");
-        ImGui::DragFloat("Gravity", &p_Settings.Gravity, speed);
-        ImGui::DragFloat("Encase Friction", &p_Settings.EncaseFriction, speed);
+    ImGui::Text("Viscosity settings:");
+    ImGui::DragFloat("Linear Term", &p_Settings.ViscLinearTerm, speed * 0.01f, 0.f, FLT_MAX);
+    ImGui::DragFloat("Quadratic Term", &p_Settings.ViscQuadraticTerm, speed * 0.01f, 0.f, FLT_MAX);
+    comboKenel<D>("Viscosity kernel", p_Settings.ViscosityKType);
 
-        ImGui::Text("Kernel settings:");
-        comboKenel<D>("Smooth radius kernel", p_Settings.KType);
-        comboKenel<D>("Near pressure/density kernel", p_Settings.NearKType);
+    ImGui::Text("Environment settings:");
+    ImGui::DragFloat("Gravity", &p_Settings.Gravity, speed);
+    ImGui::DragFloat("Encase Friction", &p_Settings.EncaseFriction, speed);
 
-        ImGui::Text("Optimizations:");
-        ImGui::Combo("Neighbor Search", reinterpret_cast<i32 *>(&p_Settings.SearchMethod), "Brute Force\0Grid\0\0");
-        ImGui::Checkbox("Iterate over pairs", &p_Settings.IterateOverPairs);
-    }
+    ImGui::Text("Kernel settings:");
+    comboKenel<D>("Smooth radius kernel", p_Settings.KType);
+    comboKenel<D>("Near pressure/density kernel", p_Settings.NearKType);
+
+    ImGui::Text("Optimizations:");
+    ImGui::Combo("Neighbor Search", reinterpret_cast<i32 *>(&p_Settings.SearchMethod), "Brute Force\0Grid\0\0");
+    ImGui::Checkbox("Iterate over pairs", &p_Settings.IterateOverPairs);
 }
 
 template struct Visualization<D2>;
