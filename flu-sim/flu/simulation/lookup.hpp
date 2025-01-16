@@ -2,14 +2,11 @@
 
 #include "flu/core/glm.hpp"
 #include "onyx/rendering/render_context.hpp"
-#include "tkit/memory/arena_allocator.hpp"
 #include "tkit/core/literals.hpp"
 #include <array>
 
 namespace Flu
 {
-using namespace TKit::Literals;
-
 struct GridCell
 {
     u32 Key;
@@ -177,7 +174,6 @@ template <Dimension D> class Lookup
     TKit::Array<ivec<D>, D * D * D + 2 - D> getGridOffsets() const noexcept;
 
     const TKit::DynamicArray<fvec<D>> *m_Positions = nullptr;
-    TKit::ArenaAllocator m_Arena{1_mb};
 
     Grid m_Grid;
     f32 m_Radius;

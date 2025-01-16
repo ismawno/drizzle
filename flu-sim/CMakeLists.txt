@@ -3,6 +3,7 @@ project(flu-sim)
 
 set(SOURCES
     flu/main.cpp
+    flu/core/core.cpp
     flu/app/sim_layer.cpp
     flu/app/intro_layer.cpp
     flu/app/visualization.cpp

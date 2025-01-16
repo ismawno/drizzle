@@ -44,7 +44,6 @@ struct SimulationSettings
 
 template <Dimension D> class Solver
 {
-    TKIT_NON_COPYABLE(Solver)
   public:
     struct ParticleData
     {
@@ -55,15 +54,17 @@ template <Dimension D> class Solver
         u32 CellKey;
     };
 
-    Solver() noexcept = default;
-
     void BeginStep(f32 p_DeltaTime) noexcept;
-    void EndStep(f32 p_DeltaTime, bool p_ApplyStep = true) noexcept;
+    void EndStep() noexcept;
 
-    void ApplyExternal(f32 p_DeltaTime) noexcept;
-    void ApplyMouseForce(const fvec<D> &p_MousePos) noexcept;
-    void ApplyPressureAndViscosity() noexcept;
+    void AddMouseForce(const fvec<D> &p_MousePos) noexcept;
+    void AddPressureAndViscosity() noexcept;
     void ComputeDensities() noexcept;
+    void ApplyComputedForces(f32 p_DeltaTime) noexcept;
+
+    const TKit::DynamicArray<fvec<D>> &GetPositions() const noexcept;
+    const TKit::DynamicArray<fvec<D>> &GetVelocities() const noexcept;
+    const TKit::DynamicArray<fvec<D>> &GetAccelerations() const noexcept;
 
     ParticleData GetParticleData(u32 p_Index) const noexcept;
     u32 GetParticleCount() const noexcept;
@@ -161,7 +162,7 @@ template <Dimension D> class Solver
     TKit::DynamicArray<fvec<D>> m_Positions;
     TKit::DynamicArray<fvec<D>> m_Velocities;
     TKit::DynamicArray<fvec<D>> m_Accelerations;
-    TKit::DynamicArray<fvec<D>> m_PredictedPositions;
+    TKit::DynamicArray<fvec<D>> m_StagedPositions;
 
     TKit::DynamicArray<f32> m_Densities;
     TKit::DynamicArray<f32> m_NearDensities;

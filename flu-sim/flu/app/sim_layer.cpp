@@ -74,12 +74,17 @@ template <Dimension D> bool SimLayer<D>::OnEvent(const Onyx::Event &p_Event) noe
 template <Dimension D> void SimLayer<D>::step(const bool p_Dummy) noexcept
 {
     m_Solver.BeginStep(m_Timestep);
+    m_Solver.UpdateLookup();
+    m_Solver.ComputeDensities();
+    m_Solver.AddPressureAndViscosity();
     if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
     {
         const fvec<D> p_MousePos = m_Context->GetMouseCoordinates();
-        m_Solver.ApplyMouseForce(p_MousePos);
+        m_Solver.AddMouseForce(p_MousePos);
     }
-    m_Solver.EndStep(m_Timestep, !p_Dummy);
+    if (!p_Dummy)
+        m_Solver.ApplyComputedForces(m_Timestep);
+    m_Solver.EndStep();
 }
 
 template <Dimension D> void SimLayer<D>::renderVisualizationSettings() noexcept

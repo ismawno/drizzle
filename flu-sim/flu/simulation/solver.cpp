@@ -74,52 +74,44 @@ template <Dimension D> f32 Solver<D>::getViscosityInfluence(const f32 p_Distance
 template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
 {
     TKIT_PROFILE_NSCOPE("Flu::Solver::BeginStep");
-    m_PredictedPositions.resize(m_Positions.size());
-    ApplyExternal(p_DeltaTime);
-    std::swap(m_Positions, m_PredictedPositions);
+    m_StagedPositions.resize(m_Positions.size());
 
-    m_Lookup.SetPositions(&m_Positions);
-    UpdateLookup();
-    ComputeDensities();
-
-    ApplyPressureAndViscosity();
+    std::swap(m_Positions, m_StagedPositions);
+    for (u32 i = 0; i < m_Positions.size(); ++i)
+    {
+        m_Positions[i] = m_StagedPositions[i] + m_Velocities[i] * p_DeltaTime;
+        m_Densities[i] = Settings.ParticleMass;
+        m_NearDensities[i] = Settings.ParticleMass;
+        m_Accelerations[i] = fvec<D>{0.f};
+    }
 }
-template <Dimension D> void Solver<D>::EndStep(const f32 p_DeltaTime, const bool p_ApplyStep) noexcept
+template <Dimension D> void Solver<D>::EndStep() noexcept
 {
-    TKIT_PROFILE_NSCOPE("Flu::Solver::EndStep");
-    std::swap(m_Positions, m_PredictedPositions);
-
-    if (p_ApplyStep) [[likely]]
-        for (u32 i = 0; i < m_Positions.size(); ++i)
-        {
-            m_Velocities[i].y += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
-            m_Velocities[i] += m_Accelerations[i] * p_DeltaTime;
-            m_Positions[i] += m_Velocities[i] * p_DeltaTime;
-            encase(i);
-        }
+    std::swap(m_Positions, m_StagedPositions);
 }
-template <Dimension D> void Solver<D>::ApplyMouseForce(const fvec<D> &p_MousePos) noexcept
+template <Dimension D> void Solver<D>::ApplyComputedForces(const f32 p_DeltaTime) noexcept
+{
+    TKIT_PROFILE_NSCOPE("Flu::Solver::ApplyComputedForces");
+    for (u32 i = 0; i < m_Positions.size(); ++i)
+    {
+        m_Velocities[i].y += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
+        m_Velocities[i] += m_Accelerations[i] * p_DeltaTime;
+        m_StagedPositions[i] += m_Velocities[i] * p_DeltaTime;
+        encase(i);
+    }
+}
+template <Dimension D> void Solver<D>::AddMouseForce(const fvec<D> &p_MousePos) noexcept
 {
     for (u32 i = 0; i < m_Positions.size(); ++i)
     {
         const fvec<D> diff = m_Positions[i] - p_MousePos;
-        const f32 distance = glm::length(diff);
-        if (distance < Settings.MouseRadius)
+        const f32 distance2 = glm::length2(diff);
+        if (distance2 < Settings.MouseRadius * Settings.MouseRadius)
         {
+            const f32 distance = glm::sqrt(distance2);
             const f32 factor = 1.f - distance / Settings.MouseRadius;
             m_Accelerations[i] += (factor * Settings.MouseForce / distance) * diff;
         }
-    }
-}
-template <Dimension D> void Solver<D>::ApplyExternal(const f32 p_DeltaTime) noexcept
-{
-    TKIT_PROFILE_NSCOPE("Flu::Solver::ApplyExternal");
-    for (u32 i = 0; i < m_Positions.size(); ++i)
-    {
-        m_PredictedPositions[i] = m_Positions[i] + m_Velocities[i] * p_DeltaTime;
-        m_Densities[i] = Settings.ParticleMass;
-        m_NearDensities[i] = Settings.ParticleMass;
-        m_Accelerations[i] = fvec<D>{0.f};
     }
 }
 template <Dimension D> void Solver<D>::ComputeDensities() noexcept
@@ -149,7 +141,7 @@ template <Dimension D> void Solver<D>::ComputeDensities() noexcept
             m_NearDensities[i] = nearDensity;
         }
 }
-template <Dimension D> void Solver<D>::ApplyPressureAndViscosity() noexcept
+template <Dimension D> void Solver<D>::AddPressureAndViscosity() noexcept
 {
     TKIT_PROFILE_NSCOPE("Flu::Solver::PressureAndViscosity");
     const auto pairwisePressureGradient = getPairwisePressureGradientComputation();
@@ -192,6 +184,7 @@ std::pair<f32, f32> Solver<D>::GetPressureFromDensity(const f32 p_Density, const
 
 template <Dimension D> void Solver<D>::UpdateLookup() noexcept
 {
+    m_Lookup.SetPositions(&m_Positions);
     switch (Settings.SearchMethod)
     {
     case NeighborSearch::BruteForce:
@@ -217,14 +210,14 @@ template <Dimension D> void Solver<D>::encase(const u32 p_Index) noexcept
     const f32 factor = 1.f - Settings.EncaseFriction;
     for (u32 j = 0; j < D; ++j)
     {
-        if (m_Positions[p_Index][j] - Settings.ParticleRadius < BoundingBox.Min[j])
+        if (m_StagedPositions[p_Index][j] - Settings.ParticleRadius < BoundingBox.Min[j])
         {
-            m_Positions[p_Index][j] = BoundingBox.Min[j] + Settings.ParticleRadius;
+            m_StagedPositions[p_Index][j] = BoundingBox.Min[j] + Settings.ParticleRadius;
             m_Velocities[p_Index][j] = -factor * m_Velocities[p_Index][j];
         }
-        else if (m_Positions[p_Index][j] + Settings.ParticleRadius > BoundingBox.Max[j])
+        else if (m_StagedPositions[p_Index][j] + Settings.ParticleRadius > BoundingBox.Max[j])
         {
-            m_Positions[p_Index][j] = BoundingBox.Max[j] - Settings.ParticleRadius;
+            m_StagedPositions[p_Index][j] = BoundingBox.Max[j] - Settings.ParticleRadius;
             m_Velocities[p_Index][j] = -factor * m_Velocities[p_Index][j];
         }
     }
@@ -266,6 +259,10 @@ template <Dimension D> u32 Solver<D>::GetParticleCount() const noexcept
 template <Dimension D> const Lookup<D> &Solver<D>::GetLookup() const noexcept
 {
     return m_Lookup;
+}
+template <Dimension D> const TKit::DynamicArray<fvec<D>> &Solver<D>::GetPositions() const noexcept
+{
+    return m_Positions;
 }
 
 template class Solver<Dimension::D2>;

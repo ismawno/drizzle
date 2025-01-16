@@ -1,5 +1,6 @@
 #include "flu/simulation/lookup.hpp"
 #include "flu/app/visualization.hpp"
+#include "flu/core/core.hpp"
 #include "tkit/container/hashable_tuple.hpp"
 #include "tkit/profiling/macros.hpp"
 
@@ -37,7 +38,7 @@ template <Dimension D> void Lookup<D>::UpdateGridLookup(const f32 p_Radius) noex
     particleIndices.resize(particles);
     cells.clear();
 
-    IndexPair *keys = m_Arena.Push<IndexPair>(particles);
+    IndexPair *keys = Core::GetArena().Push<IndexPair>(particles);
 
     const auto &positions = *m_Positions;
     for (u32 i = 0; i < particles; ++i)
@@ -71,7 +72,7 @@ template <Dimension D> void Lookup<D>::UpdateGridLookup(const f32 p_Radius) noex
     }
     cell.End = particles;
     cells.push_back(cell);
-    m_Arena.Reset();
+    Core::GetArena().Reset();
 }
 
 template <Dimension D> u32 Lookup<D>::DrawCells(Onyx::RenderContext<D> *p_Context) const noexcept
