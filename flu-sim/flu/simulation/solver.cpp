@@ -264,6 +264,14 @@ template <Dimension D> const TKit::DynamicArray<fvec<D>> &Solver<D>::GetPosition
 {
     return m_Positions;
 }
+template <Dimension D> const TKit::DynamicArray<fvec<D>> &Solver<D>::GetVelocities() const noexcept
+{
+    return m_Velocities;
+}
+template <Dimension D> const TKit::DynamicArray<fvec<D>> &Solver<D>::GetAccelerations() const noexcept
+{
+    return m_Accelerations;
+}
 
 template class Solver<Dimension::D2>;
 template class Solver<Dimension::D3>;
