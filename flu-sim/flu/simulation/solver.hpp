@@ -107,8 +107,8 @@ template <Dimension D> class Solver
 
     struct
     {
-        fvec<D> Min{-15.f};
-        fvec<D> Max{15.f};
+        fvec<D> Min{-20.f};
+        fvec<D> Max{20.f};
     } BoundingBox;
 
   private:
