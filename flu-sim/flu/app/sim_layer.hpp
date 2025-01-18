@@ -1,13 +1,13 @@
 #pragma once
 
-#include "onyx/app/layer.hpp"
+#include "onyx/app/user_layer.hpp"
 #include "onyx/app/app.hpp"
 #include "onyx/rendering/render_context.hpp"
 #include "flu/simulation/solver.hpp"
 
 namespace Flu
 {
-template <Dimension D> class SimLayer final : public Onyx::Layer
+template <Dimension D> class SimLayer final : public Onyx::UserLayer
 {
   public:
     SimLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,

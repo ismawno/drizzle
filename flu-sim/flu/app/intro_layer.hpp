@@ -1,20 +1,19 @@
 #pragma once
 
-#include "onyx/app/layer.hpp"
+#include "onyx/app/user_layer.hpp"
 #include "onyx/app/app.hpp"
 #include "onyx/rendering/render_context.hpp"
 #include "flu/simulation/solver.hpp"
 
 namespace Flu
 {
-class IntroLayer final : public Onyx::Layer
+class IntroLayer final : public Onyx::UserLayer
 {
   public:
     IntroLayer(Onyx::Application *p_Application) noexcept;
 
   private:
     void OnRender(VkCommandBuffer) noexcept override;
-    void OnRemoval() noexcept override;
 
     void renderIntroSettings() noexcept;
 

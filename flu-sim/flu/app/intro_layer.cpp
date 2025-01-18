@@ -5,8 +5,7 @@
 
 namespace Flu
 {
-IntroLayer::IntroLayer(Onyx::Application *p_Application) noexcept
-    : Onyx::Layer("Intro Layer"), m_Application(p_Application)
+IntroLayer::IntroLayer(Onyx::Application *p_Application) noexcept : m_Application(p_Application)
 {
     m_Context2 = m_Application->GetMainWindow()->GetRenderContext<D2>();
     m_Context3 = m_Application->GetMainWindow()->GetRenderContext<D3>();
@@ -27,14 +26,6 @@ void IntroLayer::OnRender(const VkCommandBuffer) noexcept
                                                m_Settings.Gradient[0]);
     }
     renderIntroSettings();
-}
-
-void IntroLayer::OnRemoval() noexcept
-{
-    if (m_Dim == 0)
-        m_Application->Layers.Push<SimLayer<TKit::D2>>(m_Application, m_Settings, fvec2{m_Dimensions});
-    else
-        m_Application->Layers.Push<SimLayer<TKit::D3>>(m_Application, m_Settings, m_Dimensions);
 }
 
 void IntroLayer::renderIntroSettings() noexcept
@@ -76,7 +67,12 @@ void IntroLayer::renderIntroSettings() noexcept
     ImGui::Text("Left mouse button: Apply a force to the fluid");
 
     if (ImGui::Button("Start simulation"))
-        m_Application->Layers.FlagRemove(this);
+    {
+        if (m_Dim == 0)
+            m_Application->SetUserLayer<SimLayer<TKit::D2>>(m_Application, m_Settings, fvec2{m_Dimensions});
+        else
+            m_Application->SetUserLayer<SimLayer<TKit::D3>>(m_Application, m_Settings, m_Dimensions);
+    }
 
     if (m_Dim == 0)
         Visualization<D2>::RenderSettings(m_Settings);

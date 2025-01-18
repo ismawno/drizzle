@@ -15,7 +15,7 @@ int main()
         specs.Name = "Fluid simulator";
 
         Onyx::Application app{specs};
-        app.Layers.Push<Flu::IntroLayer>(&app);
+        app.SetUserLayer<Flu::IntroLayer>(&app);
         app.Run();
     }
 

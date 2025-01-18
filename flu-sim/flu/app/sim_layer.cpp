@@ -7,7 +7,7 @@ namespace Flu
 template <Dimension D>
 SimLayer<D>::SimLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
                       const uvec<D> &p_StartingLayout) noexcept
-    : Onyx::Layer("Flu Layer"), m_Application(p_Application)
+    : m_Application(p_Application)
 {
     m_Window = m_Application->GetMainWindow();
     m_Context = m_Window->GetRenderContext<D>();
@@ -35,7 +35,7 @@ SimLayer<D>::SimLayer(Onyx::Application *p_Application, const SimulationSettings
 
 template <Dimension D> void SimLayer<D>::OnUpdate() noexcept
 {
-    if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::Space))
+    if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::Space) && !ImGui::GetIO().WantCaptureKeyboard)
         m_Solver.AddParticle(m_Context->GetMouseCoordinates());
     if (!m_Pause)
         step(m_DummyStep);
@@ -47,7 +47,7 @@ template <Dimension D> void SimLayer<D>::OnRender(const VkCommandBuffer) noexcep
     m_Solver.DrawParticles(m_Context);
     m_Solver.DrawBoundingBox(m_Context);
 
-    if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
+    if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft) && !ImGui::GetIO().WantCaptureMouse)
         Visualization<D>::DrawMouseInfluence(m_Context, 2.f * m_Solver.Settings.MouseRadius, Onyx::Color::ORANGE);
 
     if (ImGui::Begin("Simulation settings"))
@@ -89,7 +89,7 @@ template <Dimension D> void SimLayer<D>::step(const bool p_Dummy) noexcept
 
 template <Dimension D> void SimLayer<D>::renderVisualizationSettings() noexcept
 {
-    EditPresentMode(m_Window);
+    PresentModeEditor(m_Window);
     ImGui::Text("Frame time: %.2f ms", m_Application->GetDeltaTime().AsMilliseconds());
 
     static bool syncTimestep = false;
