@@ -1,7 +1,7 @@
 #include "flu/simulation/lookup.hpp"
 #include "flu/app/visualization.hpp"
 #include "flu/core/core.hpp"
-#include "tkit/container/hashable_tuple.hpp"
+#include "tkit/utilities/hash.hpp"
 #include "tkit/profiling/macros.hpp"
 
 namespace Flu
@@ -38,7 +38,7 @@ template <Dimension D> void Lookup<D>::UpdateGridLookup(const f32 p_Radius) noex
     particleIndices.resize(particles);
     cells.clear();
 
-    IndexPair *keys = Core::GetArena().Push<IndexPair>(particles);
+    IndexPair *keys = Core::GetArena().Allocate<IndexPair>(particles);
 
     const auto &positions = *m_Positions;
     for (u32 i = 0; i < particles; ++i)
@@ -127,16 +127,7 @@ template <Dimension D> ivec<D> Lookup<D>::GetCellPosition(const fvec<D> &p_Posit
 template <Dimension D> u32 Lookup<D>::GetCellKey(const ivec<D> &p_CellPosition) const noexcept
 {
     const u32 particles = m_Positions->size();
-    if constexpr (D == D2)
-    {
-        TKit::HashableTuple<u32, u32> key{p_CellPosition.x, p_CellPosition.y};
-        return key() % particles;
-    }
-    else
-    {
-        TKit::HashableTuple<u32, u32, u32> key{p_CellPosition.x, p_CellPosition.y, p_CellPosition.z};
-        return key() % particles;
-    }
+    return TKit::Hash(p_CellPosition) % particles;
 }
 
 template <Dimension D> TKit::Array<ivec<D>, D * D * D + 2 - D> Lookup<D>::getGridOffsets() const noexcept

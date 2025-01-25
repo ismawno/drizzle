@@ -7,7 +7,7 @@ using namespace TKit::Literals;
 
 int main()
 {
-    TKit::ThreadPool<std::mutex> pool{7};
+    TKit::ThreadPool pool{7};
     Onyx::Core::Initialize(&pool);
 
     {

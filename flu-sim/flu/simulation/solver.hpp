@@ -45,15 +45,6 @@ struct SimulationSettings
 template <Dimension D> class Solver
 {
   public:
-    struct ParticleData
-    {
-        fvec<D> Position;
-        fvec<D> Velocity;
-        fvec<D> Acceleration;
-        ivec<D> CellPosition;
-        u32 CellKey;
-    };
-
     void BeginStep(f32 p_DeltaTime) noexcept;
     void EndStep() noexcept;
 
@@ -66,7 +57,6 @@ template <Dimension D> class Solver
     const TKit::DynamicArray<fvec<D>> &GetVelocities() const noexcept;
     const TKit::DynamicArray<fvec<D>> &GetAccelerations() const noexcept;
 
-    ParticleData GetParticleData(u32 p_Index) const noexcept;
     u32 GetParticleCount() const noexcept;
     const Lookup<D> &GetLookup() const noexcept;
 

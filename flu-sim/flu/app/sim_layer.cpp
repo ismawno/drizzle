@@ -123,38 +123,6 @@ template <Dimension D> void SimLayer<D>::renderVisualizationSettings() noexcept
     if ((m_Pause || m_DummyStep) && ImGui::Button("Step"))
         step();
 
-    const u32 pcount = m_Solver.GetParticleCount();
-    if (ImGui::TreeNode(this, "Particles: %u", pcount))
-    {
-        ImGui::BeginChild("Particles", {0, 150}, true);
-        for (u32 i = 0; i < pcount; ++i)
-        {
-            const auto data = m_Solver.GetParticleData(i);
-            ImGui::Text("Particle %u", i);
-            ImGui::Indent(15.f);
-            if constexpr (D == D2)
-            {
-                ImGui::Text("Position: (%.2f, %.2f)", data.Position.x, data.Position.y);
-                ImGui::Text("Velocity: (%.2f, %.2f)", data.Velocity.x, data.Velocity.y);
-                ImGui::Text("Acceleration: (%.2f, %.2f)", data.Acceleration.x, data.Acceleration.y);
-                ImGui::Text("Cell position: (%d, %d)", data.CellPosition.x, data.CellPosition.y);
-            }
-            else
-            {
-                ImGui::Text("Position: (%.2f, %.2f, %.2f)", data.Position.x, data.Position.y, data.Position.z);
-                ImGui::Text("Velocity: (%.2f, %.2f, %.2f)", data.Velocity.x, data.Velocity.y, data.Velocity.z);
-                ImGui::Text("Acceleration: (%.2f, %.2f, %.2f)", data.Acceleration.x, data.Acceleration.y,
-                            data.Acceleration.z);
-                ImGui::Text("Cell position: (%d, %d, %d)", data.CellPosition.x, data.CellPosition.y,
-                            data.CellPosition.z);
-            }
-            ImGui::Text("Cell key: %u", data.CellKey);
-            ImGui::Unindent(15.f);
-        }
-        ImGui::EndChild();
-        ImGui::TreePop();
-    }
-
     if (ImGui::TreeNode("Bounding box"))
     {
         if (ImGui::DragFloat("Width", &m_Solver.BoundingBox.Max.x, 0.05f))

@@ -244,13 +244,6 @@ template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_C
     }
 }
 
-template <Dimension D> Solver<D>::ParticleData Solver<D>::GetParticleData(const u32 p_Index) const noexcept
-{
-    const ivec<D> cellPosition = m_Lookup.GetCellPosition(m_Positions[p_Index]);
-    const u32 cellKey = m_Lookup.GetCellKey(cellPosition);
-    return {m_Positions[p_Index], m_Velocities[p_Index], m_Accelerations[p_Index], cellPosition, cellKey};
-}
-
 template <Dimension D> u32 Solver<D>::GetParticleCount() const noexcept
 {
     return m_Positions.size();
