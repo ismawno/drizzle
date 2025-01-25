@@ -1,6 +1,7 @@
 #pragma once
 
 #include "flu/core/glm.hpp"
+#include "flu/core/core.hpp"
 #include "onyx/rendering/render_context.hpp"
 #include "tkit/core/literals.hpp"
 #include <array>
@@ -16,15 +17,15 @@ struct GridCell
 
 struct Grid
 {
-    TKit::DynamicArray<u32> ParticleIndices;
-    TKit::DynamicArray<u32> CellKeyToIndex;
-    TKit::DynamicArray<GridCell> Cells;
+    SimArray<u32> ParticleIndices;
+    SimArray<u32> CellKeyToIndex;
+    SimArray<GridCell> Cells;
 };
 
 template <Dimension D> class Lookup
 {
   public:
-    void SetPositions(const TKit::DynamicArray<fvec<D>> *p_Positions) noexcept;
+    void SetPositions(const SimArray<fvec<D>> *p_Positions) noexcept;
 
     void UpdateBruteForceLookup(f32 p_Radius) noexcept;
     void UpdateGridLookup(f32 p_Radius) noexcept;
@@ -173,7 +174,7 @@ template <Dimension D> class Lookup
   private:
     TKit::Array<ivec<D>, D * D * D + 2 - D> getGridOffsets() const noexcept;
 
-    const TKit::DynamicArray<fvec<D>> *m_Positions = nullptr;
+    const SimArray<fvec<D>> *m_Positions = nullptr;
 
     Grid m_Grid;
     f32 m_Radius;

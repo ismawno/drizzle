@@ -253,15 +253,15 @@ template <Dimension D> const Lookup<D> &Solver<D>::GetLookup() const noexcept
 {
     return m_Lookup;
 }
-template <Dimension D> const TKit::DynamicArray<fvec<D>> &Solver<D>::GetPositions() const noexcept
+template <Dimension D> const SimArray<fvec<D>> &Solver<D>::GetPositions() const noexcept
 {
     return m_Positions;
 }
-template <Dimension D> const TKit::DynamicArray<fvec<D>> &Solver<D>::GetVelocities() const noexcept
+template <Dimension D> const SimArray<fvec<D>> &Solver<D>::GetVelocities() const noexcept
 {
     return m_Velocities;
 }
-template <Dimension D> const TKit::DynamicArray<fvec<D>> &Solver<D>::GetAccelerations() const noexcept
+template <Dimension D> const SimArray<fvec<D>> &Solver<D>::GetAccelerations() const noexcept
 {
     return m_Accelerations;
 }

@@ -1,12 +1,11 @@
 #include "flu/simulation/lookup.hpp"
 #include "flu/app/visualization.hpp"
-#include "flu/core/core.hpp"
 #include "tkit/utilities/hash.hpp"
 #include "tkit/profiling/macros.hpp"
 
 namespace Flu
 {
-template <Dimension D> void Lookup<D>::SetPositions(const TKit::DynamicArray<fvec<D>> *p_Positions) noexcept
+template <Dimension D> void Lookup<D>::SetPositions(const SimArray<fvec<D>> *p_Positions) noexcept
 {
     m_Positions = p_Positions;
 }

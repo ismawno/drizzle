@@ -53,9 +53,9 @@ template <Dimension D> class Solver
     void ComputeDensities() noexcept;
     void ApplyComputedForces(f32 p_DeltaTime) noexcept;
 
-    const TKit::DynamicArray<fvec<D>> &GetPositions() const noexcept;
-    const TKit::DynamicArray<fvec<D>> &GetVelocities() const noexcept;
-    const TKit::DynamicArray<fvec<D>> &GetAccelerations() const noexcept;
+    const SimArray<fvec<D>> &GetPositions() const noexcept;
+    const SimArray<fvec<D>> &GetVelocities() const noexcept;
+    const SimArray<fvec<D>> &GetAccelerations() const noexcept;
 
     u32 GetParticleCount() const noexcept;
     const Lookup<D> &GetLookup() const noexcept;
@@ -149,12 +149,12 @@ template <Dimension D> class Solver
     }
 
     Lookup<D> m_Lookup;
-    TKit::DynamicArray<fvec<D>> m_Positions;
-    TKit::DynamicArray<fvec<D>> m_Velocities;
-    TKit::DynamicArray<fvec<D>> m_Accelerations;
-    TKit::DynamicArray<fvec<D>> m_StagedPositions;
+    SimArray<fvec<D>> m_Positions;
+    SimArray<fvec<D>> m_Velocities;
+    SimArray<fvec<D>> m_Accelerations;
+    SimArray<fvec<D>> m_StagedPositions;
 
-    TKit::DynamicArray<f32> m_Densities;
-    TKit::DynamicArray<f32> m_NearDensities;
+    SimArray<f32> m_Densities;
+    SimArray<f32> m_NearDensities;
 };
 } // namespace Flu
