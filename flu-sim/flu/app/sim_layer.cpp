@@ -57,6 +57,10 @@ template <Dimension D> void SimLayer<D>::OnRender(const VkCommandBuffer) noexcep
     if (ImGui::Begin("Visualization settings"))
         renderVisualizationSettings();
     ImGui::End();
+
+    if (ImGui::Begin("Simulation inspector"))
+        m_Inspector.Render();
+    ImGui::End();
 }
 
 template <Dimension D> bool SimLayer<D>::OnEvent(const Onyx::Event &p_Event) noexcept
@@ -82,6 +86,9 @@ template <Dimension D> void SimLayer<D>::step(const bool p_Dummy) noexcept
         const fvec<D> p_MousePos = m_Context->GetMouseCoordinates();
         m_Solver.AddMouseForce(p_MousePos);
     }
+    if (m_Inspector.WantsToInspect())
+        m_Inspector.Inspect();
+
     if (!p_Dummy)
         m_Solver.ApplyComputedForces(m_Timestep);
     m_Solver.EndStep();
@@ -114,6 +121,7 @@ template <Dimension D> void SimLayer<D>::renderVisualizationSettings() noexcept
     ImGui::Checkbox("Draw grid", &drawGrid);
     if (m_Solver.Settings.SearchMethod == NeighborSearch::Grid && drawGrid)
     {
+        m_Solver.UpdateLookup();
         const u32 cellClashes = m_Solver.GetLookup().DrawCells(m_Context);
         ImGui::Text("Cell clashes: %u", cellClashes);
     }

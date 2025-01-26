@@ -4,6 +4,7 @@
 #include "onyx/app/app.hpp"
 #include "onyx/rendering/render_context.hpp"
 #include "flu/simulation/solver.hpp"
+#include "flu/app/inspector.hpp"
 
 namespace Flu
 {
@@ -25,6 +26,7 @@ template <Dimension D> class SimLayer final : public Onyx::UserLayer
     Onyx::Window *m_Window;
 
     Solver<D> m_Solver;
+    Inspector<D> m_Inspector{&m_Solver};
     Onyx::RenderContext<D> *m_Context;
 
     f32 m_Timestep = 1.f / 60.f;

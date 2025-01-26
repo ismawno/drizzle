@@ -116,17 +116,25 @@ template <Dimension D> u32 Lookup<D>::DrawCells(Onyx::RenderContext<D> *p_Contex
     return cellClashes;
 }
 
-template <Dimension D> ivec<D> Lookup<D>::GetCellPosition(const fvec<D> &p_Position) const noexcept
+template <Dimension D> ivec<D> Lookup<D>::GetCellPosition(const fvec<D> &p_Position, const f32 p_Radius) noexcept
 {
     ivec<D> cellPosition{0};
     for (u32 i = 0; i < D; ++i)
-        cellPosition[i] = static_cast<i32>(p_Position[i] / m_Radius) - (p_Position[i] < 0.f);
+        cellPosition[i] = static_cast<i32>(p_Position[i] / p_Radius) - (p_Position[i] < 0.f);
     return cellPosition;
+}
+template <Dimension D> u32 Lookup<D>::GetCellKey(const ivec<D> &p_CellPosition, const u32 p_ParticleCount) noexcept
+{
+    return TKit::Hash(p_CellPosition) % p_ParticleCount;
+}
+
+template <Dimension D> ivec<D> Lookup<D>::GetCellPosition(const fvec<D> &p_Position) const noexcept
+{
+    return GetCellPosition(p_Position, m_Radius);
 }
 template <Dimension D> u32 Lookup<D>::GetCellKey(const ivec<D> &p_CellPosition) const noexcept
 {
-    const u32 particles = m_Positions->size();
-    return TKit::Hash(p_CellPosition) % particles;
+    return GetCellKey(p_CellPosition, m_Positions->size());
 }
 
 template <Dimension D> TKit::Array<ivec<D>, D * D * D + 2 - D> Lookup<D>::getGridOffsets() const noexcept
@@ -146,6 +154,15 @@ template <Dimension D> TKit::Array<ivec<D>, D * D * D + 2 - D> Lookup<D>::getGri
 template <Dimension D> u32 Lookup<D>::GetCellCount() const noexcept
 {
     return m_Grid.Cells.size();
+}
+
+template <Dimension D> const Grid &Lookup<D>::GetGrid() const noexcept
+{
+    return m_Grid;
+}
+template <Dimension D> f32 Lookup<D>::GetRadius() const noexcept
+{
+    return m_Radius;
 }
 
 template class Lookup<D2>;

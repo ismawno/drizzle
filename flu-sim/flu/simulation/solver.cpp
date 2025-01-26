@@ -74,43 +74,43 @@ template <Dimension D> f32 Solver<D>::getViscosityInfluence(const f32 p_Distance
 template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
 {
     TKIT_PROFILE_NSCOPE("Flu::Solver::BeginStep");
-    m_StagedPositions.resize(m_Positions.size());
+    m_Data.StagedPositions.resize(m_Data.Positions.size());
 
-    std::swap(m_Positions, m_StagedPositions);
-    for (u32 i = 0; i < m_Positions.size(); ++i)
+    std::swap(m_Data.Positions, m_Data.StagedPositions);
+    for (u32 i = 0; i < m_Data.Positions.size(); ++i)
     {
-        m_Positions[i] = m_StagedPositions[i] + m_Velocities[i] * p_DeltaTime;
-        m_Densities[i] = Settings.ParticleMass;
-        m_NearDensities[i] = Settings.ParticleMass;
-        m_Accelerations[i] = fvec<D>{0.f};
+        m_Data.Positions[i] = m_Data.StagedPositions[i] + m_Data.Velocities[i] * p_DeltaTime;
+        m_Data.Densities[i] = Settings.ParticleMass;
+        m_Data.NearDensities[i] = Settings.ParticleMass;
+        m_Data.Accelerations[i] = fvec<D>{0.f};
     }
 }
 template <Dimension D> void Solver<D>::EndStep() noexcept
 {
-    std::swap(m_Positions, m_StagedPositions);
+    std::swap(m_Data.Positions, m_Data.StagedPositions);
 }
 template <Dimension D> void Solver<D>::ApplyComputedForces(const f32 p_DeltaTime) noexcept
 {
     TKIT_PROFILE_NSCOPE("Flu::Solver::ApplyComputedForces");
-    for (u32 i = 0; i < m_Positions.size(); ++i)
+    for (u32 i = 0; i < m_Data.Positions.size(); ++i)
     {
-        m_Velocities[i].y += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
-        m_Velocities[i] += m_Accelerations[i] * p_DeltaTime;
-        m_StagedPositions[i] += m_Velocities[i] * p_DeltaTime;
+        m_Data.Velocities[i].y += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
+        m_Data.Velocities[i] += m_Data.Accelerations[i] * p_DeltaTime;
+        m_Data.StagedPositions[i] += m_Data.Velocities[i] * p_DeltaTime;
         encase(i);
     }
 }
 template <Dimension D> void Solver<D>::AddMouseForce(const fvec<D> &p_MousePos) noexcept
 {
-    for (u32 i = 0; i < m_Positions.size(); ++i)
+    for (u32 i = 0; i < m_Data.Positions.size(); ++i)
     {
-        const fvec<D> diff = m_Positions[i] - p_MousePos;
+        const fvec<D> diff = m_Data.Positions[i] - p_MousePos;
         const f32 distance2 = glm::length2(diff);
         if (distance2 < Settings.MouseRadius * Settings.MouseRadius)
         {
             const f32 distance = glm::sqrt(distance2);
             const f32 factor = 1.f - distance / Settings.MouseRadius;
-            m_Accelerations[i] += (factor * Settings.MouseForce / distance) * diff;
+            m_Data.Accelerations[i] += (factor * Settings.MouseForce / distance) * diff;
         }
     }
 }
@@ -122,14 +122,14 @@ template <Dimension D> void Solver<D>::ComputeDensities() noexcept
             const f32 density = Settings.ParticleMass * getInfluence(p_Distance);
             const f32 nearDensity = Settings.ParticleMass * getNearInfluence(p_Distance);
 
-            m_Densities[p_Index1] += density;
-            m_NearDensities[p_Index1] += nearDensity;
+            m_Data.Densities[p_Index1] += density;
+            m_Data.NearDensities[p_Index1] += nearDensity;
 
-            m_Densities[p_Index2] += density;
-            m_NearDensities[p_Index2] += nearDensity;
+            m_Data.Densities[p_Index2] += density;
+            m_Data.NearDensities[p_Index2] += nearDensity;
         });
     else
-        for (u32 i = 0; i < m_Positions.size(); ++i)
+        for (u32 i = 0; i < m_Data.Positions.size(); ++i)
         {
             f32 density = 0.f;
             f32 nearDensity = 0.f;
@@ -137,8 +137,8 @@ template <Dimension D> void Solver<D>::ComputeDensities() noexcept
                 density += Settings.ParticleMass * getInfluence(p_Distance);
                 nearDensity += Settings.ParticleMass * getNearInfluence(p_Distance);
             });
-            m_Densities[i] = density;
-            m_NearDensities[i] = nearDensity;
+            m_Data.Densities[i] = density;
+            m_Data.NearDensities[i] = nearDensity;
         }
 }
 template <Dimension D> void Solver<D>::AddPressureAndViscosity() noexcept
@@ -153,15 +153,15 @@ template <Dimension D> void Solver<D>::AddPressureAndViscosity() noexcept
             const fvec<D> gradient = pairwisePressureGradient(p_Index1, p_Index2, p_Distance);
             const fvec<D> term = pairwiseViscosityTerm(p_Index1, p_Index2, p_Distance);
 
-            const fvec<D> dv1 = term - gradient / m_Densities[p_Index1];
-            const fvec<D> dv2 = term - gradient / m_Densities[p_Index2];
+            const fvec<D> dv1 = term - gradient / m_Data.Densities[p_Index1];
+            const fvec<D> dv2 = term - gradient / m_Data.Densities[p_Index2];
 
-            m_Accelerations[p_Index1] += dv1;
-            m_Accelerations[p_Index2] -= dv2;
+            m_Data.Accelerations[p_Index1] += dv1;
+            m_Data.Accelerations[p_Index2] -= dv2;
         });
     }
     else
-        for (u32 i = 0; i < m_Positions.size(); ++i)
+        for (u32 i = 0; i < m_Data.Positions.size(); ++i)
         {
             fvec<D> gradient{0.f};
             fvec<D> vterm{0.f};
@@ -170,7 +170,7 @@ template <Dimension D> void Solver<D>::AddPressureAndViscosity() noexcept
                 gradient += pairwisePressureGradient(i, p_Index2, p_Distance);
                 vterm += pairwiseViscosityTerm(i, p_Index2, p_Distance);
             });
-            m_Accelerations[i] = vterm - gradient / m_Densities[i];
+            m_Data.Accelerations[i] = vterm - gradient / m_Data.Densities[i];
         }
 }
 
@@ -184,7 +184,7 @@ std::pair<f32, f32> Solver<D>::GetPressureFromDensity(const f32 p_Density, const
 
 template <Dimension D> void Solver<D>::UpdateLookup() noexcept
 {
-    m_Lookup.SetPositions(&m_Positions);
+    m_Lookup.SetPositions(&m_Data.Positions);
     switch (Settings.SearchMethod)
     {
     case NeighborSearch::BruteForce:
@@ -198,11 +198,11 @@ template <Dimension D> void Solver<D>::UpdateLookup() noexcept
 
 template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position) noexcept
 {
-    m_Positions.push_back(p_Position);
-    m_Velocities.push_back(fvec<D>{0.f});
-    m_Accelerations.push_back(fvec<D>{0.f});
-    m_Densities.push_back(0.f);
-    m_NearDensities.push_back(0.f);
+    m_Data.Positions.push_back(p_Position);
+    m_Data.Velocities.push_back(fvec<D>{0.f});
+    m_Data.Accelerations.push_back(fvec<D>{0.f});
+    m_Data.Densities.push_back(Settings.ParticleMass);
+    m_Data.NearDensities.push_back(Settings.ParticleMass);
 }
 
 template <Dimension D> void Solver<D>::encase(const u32 p_Index) noexcept
@@ -210,15 +210,15 @@ template <Dimension D> void Solver<D>::encase(const u32 p_Index) noexcept
     const f32 factor = 1.f - Settings.EncaseFriction;
     for (u32 j = 0; j < D; ++j)
     {
-        if (m_StagedPositions[p_Index][j] - Settings.ParticleRadius < BoundingBox.Min[j])
+        if (m_Data.StagedPositions[p_Index][j] - Settings.ParticleRadius < BoundingBox.Min[j])
         {
-            m_StagedPositions[p_Index][j] = BoundingBox.Min[j] + Settings.ParticleRadius;
-            m_Velocities[p_Index][j] = -factor * m_Velocities[p_Index][j];
+            m_Data.StagedPositions[p_Index][j] = BoundingBox.Min[j] + Settings.ParticleRadius;
+            m_Data.Velocities[p_Index][j] = -factor * m_Data.Velocities[p_Index][j];
         }
-        else if (m_StagedPositions[p_Index][j] + Settings.ParticleRadius > BoundingBox.Max[j])
+        else if (m_Data.StagedPositions[p_Index][j] + Settings.ParticleRadius > BoundingBox.Max[j])
         {
-            m_StagedPositions[p_Index][j] = BoundingBox.Max[j] - Settings.ParticleRadius;
-            m_Velocities[p_Index][j] = -factor * m_Velocities[p_Index][j];
+            m_Data.StagedPositions[p_Index][j] = BoundingBox.Max[j] - Settings.ParticleRadius;
+            m_Data.Velocities[p_Index][j] = -factor * m_Data.Velocities[p_Index][j];
         }
     }
 }
@@ -233,10 +233,10 @@ template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_C
     const f32 particleSize = 2.f * Settings.ParticleRadius;
 
     const Onyx::Gradient gradient{Settings.Gradient};
-    for (u32 i = 0; i < m_Positions.size(); ++i)
+    for (u32 i = 0; i < m_Data.Positions.size(); ++i)
     {
-        const fvec<D> &pos = m_Positions[i];
-        const fvec<D> &vel = m_Velocities[i];
+        const fvec<D> &pos = m_Data.Positions[i];
+        const fvec<D> &vel = m_Data.Velocities[i];
 
         const f32 speed = glm::min(Settings.FastSpeed, glm::length(vel));
         const Onyx::Color color = gradient.Evaluate(speed / Settings.FastSpeed);
@@ -246,24 +246,16 @@ template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_C
 
 template <Dimension D> u32 Solver<D>::GetParticleCount() const noexcept
 {
-    return m_Positions.size();
+    return m_Data.Positions.size();
 }
 
 template <Dimension D> const Lookup<D> &Solver<D>::GetLookup() const noexcept
 {
     return m_Lookup;
 }
-template <Dimension D> const SimArray<fvec<D>> &Solver<D>::GetPositions() const noexcept
+template <Dimension D> const SimulationData<D> &Solver<D>::GetData() const noexcept
 {
-    return m_Positions;
-}
-template <Dimension D> const SimArray<fvec<D>> &Solver<D>::GetVelocities() const noexcept
-{
-    return m_Velocities;
-}
-template <Dimension D> const SimArray<fvec<D>> &Solver<D>::GetAccelerations() const noexcept
-{
-    return m_Accelerations;
+    return m_Data;
 }
 
 template class Solver<Dimension::D2>;

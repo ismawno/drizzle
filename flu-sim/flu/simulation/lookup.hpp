@@ -17,9 +17,9 @@ struct GridCell
 
 struct Grid
 {
+    SimArray<GridCell> Cells;
     SimArray<u32> ParticleIndices;
     SimArray<u32> CellKeyToIndex;
-    SimArray<GridCell> Cells;
 };
 
 template <Dimension D> class Lookup
@@ -30,19 +30,24 @@ template <Dimension D> class Lookup
     void UpdateBruteForceLookup(f32 p_Radius) noexcept;
     void UpdateGridLookup(f32 p_Radius) noexcept;
 
+    static ivec<D> GetCellPosition(const fvec<D> &p_Position, f32 p_Radius) noexcept;
+    static u32 GetCellKey(const ivec<D> &p_CellPosition, u32 p_ParticleCount) noexcept;
+
     ivec<D> GetCellPosition(const fvec<D> &p_Position) const noexcept;
     u32 GetCellKey(const ivec<D> &p_CellPosition) const noexcept;
 
     u32 DrawCells(Onyx::RenderContext<D> *p_Context) const noexcept;
-
     u32 GetCellCount() const noexcept;
+
+    const Grid &GetGrid() const noexcept;
+    f32 GetRadius() const noexcept;
 
     template <typename F> void ForEachPairBruteForce(F &&p_Function) const noexcept
     {
         const auto &positions = *m_Positions;
         const f32 r2 = m_Radius * m_Radius;
-        for (u32 i = 0; i < m_Positions->size(); ++i)
-            for (u32 j = i + 1; j < m_Positions->size(); ++j)
+        for (u32 i = 0; i < positions.size(); ++i)
+            for (u32 j = i + 1; j < positions.size(); ++j)
             {
                 const f32 distance = glm::distance2(positions[i], positions[j]);
                 if (distance < r2)
@@ -65,7 +70,6 @@ template <Dimension D> class Lookup
         const auto &positions = *m_Positions;
         const auto processPair = [r2, &positions](const u32 p_Index1, const u32 p_Index2, F &&p_Function) {
             const f32 distance = glm::distance2(positions[p_Index1], positions[p_Index2]);
-            TKIT_ASSERT(p_Index1 != p_Index2, "Invalid pair");
             if (distance < r2)
                 std::forward<F>(p_Function)(p_Index1, p_Index2, glm::sqrt(distance));
         };
@@ -106,7 +110,7 @@ template <Dimension D> class Lookup
     {
         const auto &positions = *m_Positions;
         const f32 r2 = m_Radius * m_Radius;
-        for (u32 i = 0; i < m_Positions->size(); ++i)
+        for (u32 i = 0; i < positions.size(); ++i)
         {
             if (p_Index == i)
                 continue;

@@ -42,6 +42,17 @@ struct SimulationSettings
     bool IterateOverPairs = true;
 };
 
+template <Dimension D> struct SimulationData
+{
+    SimArray<fvec<D>> Positions;
+    SimArray<fvec<D>> Velocities;
+    SimArray<fvec<D>> Accelerations;
+    SimArray<fvec<D>> StagedPositions;
+
+    SimArray<f32> Densities;
+    SimArray<f32> NearDensities;
+};
+
 template <Dimension D> class Solver
 {
   public:
@@ -53,9 +64,7 @@ template <Dimension D> class Solver
     void ComputeDensities() noexcept;
     void ApplyComputedForces(f32 p_DeltaTime) noexcept;
 
-    const SimArray<fvec<D>> &GetPositions() const noexcept;
-    const SimArray<fvec<D>> &GetVelocities() const noexcept;
-    const SimArray<fvec<D>> &GetAccelerations() const noexcept;
+    const SimulationData<D> &GetData() const noexcept;
 
     u32 GetParticleCount() const noexcept;
     const Lookup<D> &GetLookup() const noexcept;
@@ -114,34 +123,27 @@ template <Dimension D> class Solver
 
     auto getPairwisePressureGradientComputation() const noexcept
     {
-        const auto getDirection = [](const fvec<D> &p_P1, const fvec<D> &p_P2, const f32 p_Distance) {
-            fvec<D> dir;
-            if constexpr (D == D2)
-                dir = {1.f, 0.f};
-            else
-                dir = {1.f, 0.f, 0.f};
-            if (TKit::ApproachesZero(p_Distance))
-                return dir;
-            return (p_P1 - p_P2) / p_Distance;
-        };
+        return [this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
+            const fvec<D> dir = (m_Data.Positions[p_Index1] - m_Data.Positions[p_Index2]) / p_Distance;
 
-        return [this, getDirection](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
-            const fvec<D> dir = getDirection(m_Positions[p_Index1], m_Positions[p_Index2], p_Distance);
             const f32 kernelGradient = getInfluenceSlope(p_Distance);
             const f32 nearKernelGradient = getNearInfluenceSlope(p_Distance);
-            const auto [p1, np1] = GetPressureFromDensity(m_Densities[p_Index1], m_NearDensities[p_Index1]);
-            const auto [p2, np2] = GetPressureFromDensity(m_Densities[p_Index2], m_NearDensities[p_Index2]);
+            const auto [p1, np1] = GetPressureFromDensity(m_Data.Densities[p_Index1], m_Data.NearDensities[p_Index1]);
+            const auto [p2, np2] = GetPressureFromDensity(m_Data.Densities[p_Index2], m_Data.NearDensities[p_Index2]);
 
-            const f32 dg1 = 0.5f * (p1 + p2) * kernelGradient / m_Densities[p_Index2];
-            const f32 dg2 = 0.5f * (np1 + np2) * nearKernelGradient / m_NearDensities[p_Index2];
+            const f32 density = 0.5f * (m_Data.Densities[p_Index1] + m_Data.Densities[p_Index2]);
+            const f32 ndensity = 0.5f * (m_Data.NearDensities[p_Index1] + m_Data.NearDensities[p_Index2]);
+
+            const f32 dg1 = 0.5f * (p1 + p2) * kernelGradient / density;
+            const f32 dg2 = 0.5f * (np1 + np2) * nearKernelGradient / ndensity;
             return (Settings.ParticleMass * (dg1 + dg2)) * dir;
         };
     }
     auto getPairwiseViscosityTermComputation() const noexcept
     {
         return [this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
-            const fvec<D> diff = m_Velocities[p_Index2] - m_Velocities[p_Index1];
-            const f32 kernel = getInfluence(p_Distance);
+            const fvec<D> diff = m_Data.Velocities[p_Index2] - m_Data.Velocities[p_Index1];
+            const f32 kernel = getViscosityInfluence(p_Distance);
 
             const f32 u = glm::length(diff);
             return ((Settings.ViscLinearTerm + Settings.ViscQuadraticTerm * u) * kernel) * diff;
@@ -149,12 +151,6 @@ template <Dimension D> class Solver
     }
 
     Lookup<D> m_Lookup;
-    SimArray<fvec<D>> m_Positions;
-    SimArray<fvec<D>> m_Velocities;
-    SimArray<fvec<D>> m_Accelerations;
-    SimArray<fvec<D>> m_StagedPositions;
-
-    SimArray<f32> m_Densities;
-    SimArray<f32> m_NearDensities;
+    SimulationData<D> m_Data;
 };
 } // namespace Flu

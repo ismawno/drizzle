@@ -7,6 +7,7 @@ set(SOURCES
     flu/app/sim_layer.cpp
     flu/app/intro_layer.cpp
     flu/app/visualization.cpp
+    flu/app/inspector.cpp
     flu/simulation/solver.cpp
     flu/simulation/kernel.cpp
     flu/simulation/lookup.cpp
