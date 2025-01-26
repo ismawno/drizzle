@@ -1,6 +1,7 @@
 #pragma once
 
 #include "flu/simulation/solver.hpp"
+#ifdef FLU_ENABLE_INSPECTOR
 
 namespace Flu
 {
@@ -72,3 +73,4 @@ template <Dimension D> class Inspector
     bool m_WantsToInspect = false;
 };
 } // namespace Flu
+#endif

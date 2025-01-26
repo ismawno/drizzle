@@ -1,6 +1,7 @@
 #include "flu/app/inspector.hpp"
-#include "tkit/profiling/clock.hpp"
-#include <imgui.h>
+#ifdef FLU_ENABLE_INSPECTOR
+#    include "tkit/profiling/clock.hpp"
+#    include <imgui.h>
 
 namespace Flu
 {
@@ -273,3 +274,4 @@ template class Inspector<D2>;
 template class Inspector<D3>;
 
 } // namespace Flu
+#endif

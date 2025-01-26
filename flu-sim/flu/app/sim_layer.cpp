@@ -58,9 +58,11 @@ template <Dimension D> void SimLayer<D>::OnRender(const VkCommandBuffer) noexcep
         renderVisualizationSettings();
     ImGui::End();
 
+#ifdef FLU_ENABLE_INSPECTOR
     if (ImGui::Begin("Simulation inspector"))
         m_Inspector.Render();
     ImGui::End();
+#endif
 }
 
 template <Dimension D> bool SimLayer<D>::OnEvent(const Onyx::Event &p_Event) noexcept
@@ -86,8 +88,11 @@ template <Dimension D> void SimLayer<D>::step(const bool p_Dummy) noexcept
         const fvec<D> p_MousePos = m_Context->GetMouseCoordinates();
         m_Solver.AddMouseForce(p_MousePos);
     }
+
+#ifdef FLU_ENABLE_INSPECTOR
     if (m_Inspector.WantsToInspect())
         m_Inspector.Inspect();
+#endif
 
     if (!p_Dummy)
         m_Solver.ApplyComputedForces(m_Timestep);

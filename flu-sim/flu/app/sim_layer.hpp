@@ -26,7 +26,9 @@ template <Dimension D> class SimLayer final : public Onyx::UserLayer
     Onyx::Window *m_Window;
 
     Solver<D> m_Solver;
+#ifdef FLU_ENABLE_INSPECTOR
     Inspector<D> m_Inspector{&m_Solver};
+#endif
     Onyx::RenderContext<D> *m_Context;
 
     f32 m_Timestep = 1.f / 60.f;
