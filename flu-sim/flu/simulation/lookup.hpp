@@ -57,8 +57,23 @@ template <Dimension D> class Lookup
 
     template <typename F> void ForEachPairGrid(F &&p_Function) const noexcept
     {
-        const auto offsets = getGridOffsets();
+        const OffsetArray offsets = getGridOffsets();
+        for (const GridCell &cell : m_Grid.Cells)
+            processCell(cell, offsets, std::forward<F>(p_Function));
+    }
+
+  private:
+    static constexpr u32 s_OffsetCount = D * D * D + 2 - D;
+    using OffsetArray = TKit::Array<ivec<D>, s_OffsetCount>;
+
+    template <typename F>
+    void processCell(const GridCell &p_Cell, const OffsetArray &p_Offsets, F &&p_Function) const noexcept
+    {
         const f32 r2 = m_Radius * m_Radius;
+        const auto &positions = *m_Positions;
+        const auto &particleIndices = m_Grid.ParticleIndices;
+        const auto &cellMap = m_Grid.CellKeyToIndex;
+        const auto &cells = m_Grid.Cells;
 
         const auto isVisited = [](const auto it1, const auto it2, const u32 p_CellKey) {
             for (auto it = it1; it != it2; ++it)
@@ -67,47 +82,40 @@ template <Dimension D> class Lookup
             return false;
         };
 
-        const auto &positions = *m_Positions;
         const auto processPair = [r2, &positions](const u32 p_Index1, const u32 p_Index2, F &&p_Function) {
             const f32 distance = glm::distance2(positions[p_Index1], positions[p_Index2]);
             if (distance < r2)
                 std::forward<F>(p_Function)(p_Index1, p_Index2, glm::sqrt(distance));
         };
 
-        const auto &particleIndices = m_Grid.ParticleIndices;
-        const auto &cellMap = m_Grid.CellKeyToIndex;
-        const auto &cells = m_Grid.Cells;
+        for (u32 i = p_Cell.Start; i < p_Cell.End; ++i)
+        {
+            const u32 index1 = particleIndices[i];
+            for (u32 j = i + 1; j < p_Cell.End; ++j)
+                processPair(index1, particleIndices[j], std::forward<F>(p_Function));
 
-        for (const GridCell &cell1 : cells)
-            for (u32 i = cell1.Start; i < cell1.End; ++i)
+            const ivec<D> center = GetCellPosition(positions[index1]);
+            const u32 cellKey1 = p_Cell.Key;
+
+            TKit::Array<u32, s_OffsetCount> visited{};
+            u32 visitedSize = 0;
+            for (const ivec<D> &offset : p_Offsets)
             {
-                const u32 index1 = particleIndices[i];
-                for (u32 j = i + 1; j < cell1.End; ++j)
-                    processPair(index1, particleIndices[j], std::forward<F>(p_Function));
-
-                const ivec<D> center = GetCellPosition(positions[index1]);
-                const u32 cellKey1 = cell1.Key;
-
-                TKit::Array<u32, offsets.size()> visited{};
-                u32 visitedSize = 0;
-                for (const ivec<D> &offset : offsets)
+                const u32 cellKey2 = GetCellKey(center + offset);
+                const u32 cellIndex = cellMap[cellKey2];
+                if (cellKey2 > cellKey1 && cellIndex != UINT32_MAX &&
+                    !isVisited(visited.begin(), visited.begin() + visitedSize, cellKey2))
                 {
-                    const u32 cellKey2 = GetCellKey(center + offset);
-                    const u32 cellIndex = cellMap[cellKey2];
-                    if (cellKey2 > cellKey1 && cellIndex != UINT32_MAX &&
-                        !isVisited(visited.begin(), visited.begin() + visitedSize, cellKey2))
-                    {
-                        visited[visitedSize++] = cellKey2;
-                        const GridCell &cell2 = cells[cellIndex];
-                        for (u32 j = cell2.Start; j < cell2.End; ++j)
-                            processPair(index1, particleIndices[j], std::forward<F>(p_Function));
-                    }
+                    visited[visitedSize++] = cellKey2;
+                    const GridCell &cell2 = cells[cellIndex];
+                    for (u32 j = cell2.Start; j < cell2.End; ++j)
+                        processPair(index1, particleIndices[j], std::forward<F>(p_Function));
                 }
             }
+        }
     }
 
-  private:
-    TKit::Array<ivec<D>, D * D * D + 2 - D> getGridOffsets() const noexcept;
+    OffsetArray getGridOffsets() const noexcept;
 
     const SimArray<fvec<D>> *m_Positions = nullptr;
 

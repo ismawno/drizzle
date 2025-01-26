@@ -137,7 +137,7 @@ template <Dimension D> u32 Lookup<D>::GetCellKey(const ivec<D> &p_CellPosition) 
     return GetCellKey(p_CellPosition, m_Positions->size());
 }
 
-template <Dimension D> TKit::Array<ivec<D>, D * D * D + 2 - D> Lookup<D>::getGridOffsets() const noexcept
+template <Dimension D> Lookup<D>::OffsetArray Lookup<D>::getGridOffsets() const noexcept
 {
     if constexpr (D == D2)
         return {ivec<D>{-1, -1}, ivec<D>{-1, 0}, ivec<D>{-1, 1}, ivec<D>{0, -1},
