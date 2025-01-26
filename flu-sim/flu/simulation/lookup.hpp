@@ -42,7 +42,7 @@ template <Dimension D> class Lookup
     const Grid &GetGrid() const noexcept;
     f32 GetRadius() const noexcept;
 
-    template <typename F> void ForEachPairBruteForce(F &&p_Function) const noexcept
+    template <typename F> void ForEachPairBruteForceST(F &&p_Function) const noexcept
     {
         const auto &positions = *m_Positions;
         const f32 r2 = m_Radius * m_Radius;
@@ -55,7 +55,7 @@ template <Dimension D> class Lookup
             }
     }
 
-    template <typename F> void ForEachPairGrid(F &&p_Function) const noexcept
+    template <typename F> void ForEachPairGridST(F &&p_Function) const noexcept
     {
         const OffsetArray offsets = getGridOffsets();
         for (const GridCell &cell : m_Grid.Cells)

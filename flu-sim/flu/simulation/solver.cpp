@@ -147,7 +147,7 @@ template <Dimension D> void Solver<D>::AddMouseForce(const fvec<D> &p_MousePos) 
 template <Dimension D> void Solver<D>::ComputeDensities() noexcept
 {
     TKIT_PROFILE_NSCOPE("Flu::Solver::ComputeDensities");
-    ForEachPairWithinSmoothingRadius([this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
+    ForEachPairWithinSmoothingRadiusST([this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
         const f32 density = Settings.ParticleMass * getInfluence(p_Distance);
         const f32 nearDensity = Settings.ParticleMass * getNearInfluence(p_Distance);
 
@@ -161,7 +161,7 @@ template <Dimension D> void Solver<D>::ComputeDensities() noexcept
 template <Dimension D> void Solver<D>::AddPressureAndViscosity() noexcept
 {
     TKIT_PROFILE_NSCOPE("Flu::Solver::PressureAndViscosity");
-    ForEachPairWithinSmoothingRadius([this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
+    ForEachPairWithinSmoothingRadiusST([this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
         const fvec<D> gradient = computePairwisePressureGradient(p_Index1, p_Index2, p_Distance);
         const fvec<D> term = computePairwiseViscosityTerm(p_Index1, p_Index2, p_Distance);
 

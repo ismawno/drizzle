@@ -45,8 +45,8 @@ template <Dimension D> void Inspector<D>::Inspect() noexcept
     m_Inspection = InspectionData{};
 
     TKit::Clock clock;
-    lookup.ForEachPairBruteForce(getPairCollectionIterPair(m_Inspection.BruteForcePairs));
-    lookup.ForEachPairGrid(getPairCollectionIterPair(m_Inspection.GridPairs));
+    lookup.ForEachPairBruteForceST(getPairCollectionIterPair(m_Inspection.BruteForcePairs));
+    lookup.ForEachPairGridST(getPairCollectionIterPair(m_Inspection.GridPairs));
 
     for (const auto &pair : m_Inspection.BruteForcePairs.Pairs)
         if (!m_Inspection.GridPairs.Pairs.contains(pair))

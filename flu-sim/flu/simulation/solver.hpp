@@ -71,27 +71,15 @@ template <Dimension D> class Solver
     std::pair<f32, f32> GetPressureFromDensity(f32 p_Density, f32 p_NearDensity) const noexcept;
 
     void UpdateLookup() noexcept;
-    template <typename F> void ForEachPairWithinSmoothingRadius(F &&p_Function) const noexcept
+    template <typename F> void ForEachPairWithinSmoothingRadiusST(F &&p_Function) const noexcept
     {
         switch (Settings.SearchMethod)
         {
         case NeighborSearch::BruteForce:
-            m_Lookup.ForEachPairBruteForce(std::forward<F>(p_Function));
+            m_Lookup.ForEachPairBruteForceST(std::forward<F>(p_Function));
             break;
         case NeighborSearch::Grid:
-            m_Lookup.ForEachPairGrid(std::forward<F>(p_Function));
-            break;
-        }
-    }
-    template <typename F> void ForEachParticleWithinSmoothingRadius(const u32 p_Index, F &&p_Function) const noexcept
-    {
-        switch (Settings.SearchMethod)
-        {
-        case NeighborSearch::BruteForce:
-            m_Lookup.ForEachParticleBruteForce(p_Index, std::forward<F>(p_Function));
-            break;
-        case NeighborSearch::Grid:
-            m_Lookup.ForEachParticleGrid(p_Index, std::forward<F>(p_Function));
+            m_Lookup.ForEachPairGridST(std::forward<F>(p_Function));
             break;
         }
     }
