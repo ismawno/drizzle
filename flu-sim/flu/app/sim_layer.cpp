@@ -98,6 +98,8 @@ template <Dimension D> void SimLayer<D>::renderVisualizationSettings() noexcept
 {
     PresentModeEditor(m_Window);
     ImGui::Text("Frame time: %.2f ms", m_Application->GetDeltaTime().AsMilliseconds());
+    const u32 fps = static_cast<u32>(1.f / m_Application->GetDeltaTime().AsSeconds());
+    ImGui::Text("FPS: %u", fps);
 
     static bool syncTimestep = false;
     ImGui::Checkbox("Sync Timestep", &syncTimestep);
