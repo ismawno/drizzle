@@ -4,6 +4,7 @@
 #include "flu/core/core.hpp"
 #include "onyx/rendering/render_context.hpp"
 #include "tkit/core/literals.hpp"
+#include "tkit/multiprocessing/for_each.hpp"
 #include <array>
 
 namespace Flu
@@ -44,15 +45,24 @@ template <Dimension D> class Lookup
 
     template <typename F> void ForEachPairBruteForceST(F &&p_Function) const noexcept
     {
+        const f32 r2 = m_Radius * m_Radius;
+        for (u32 i = 0; i < m_Positions->size(); ++i)
+            processPass(i, r2, std::forward<F>(p_Function));
+    }
+
+    template <typename F> void ForEachPairBruteForceMT(F &&p_Function) const noexcept
+    {
         const auto &positions = *m_Positions;
         const f32 r2 = m_Radius * m_Radius;
-        for (u32 i = 0; i < positions.size(); ++i)
-            for (u32 j = i + 1; j < positions.size(); ++j)
-            {
-                const f32 distance = glm::distance2(positions[i], positions[j]);
-                if (distance < r2)
-                    std::forward<F>(p_Function)(i, j, glm::sqrt(distance));
-            }
+
+        TKit::ThreadPool &pool = Flu::Core::GetThreadPool();
+        TKit::ForEachMainThreadLead(
+            pool, 0, positions.size(), pool.GetThreadCount(),
+            [this, r2, &positions, &p_Function](const u32 p_Start, const u32 p_End, const u32 p_ThreadIndex) {
+                for (u32 i = p_Start; i < p_End; ++i)
+                    processPass(i, r2, std::forward<F>(p_Function), p_ThreadIndex);
+            });
+        pool.AwaitPendingTasks();
     }
 
     template <typename F> void ForEachPairGridST(F &&p_Function) const noexcept
@@ -62,12 +72,39 @@ template <Dimension D> class Lookup
             processCell(cell, offsets, std::forward<F>(p_Function));
     }
 
+    template <typename F> void ForEachPairGridMT(F &&p_Function) const noexcept
+    {
+        const OffsetArray offsets = getGridOffsets();
+        TKit::ThreadPool &pool = Flu::Core::GetThreadPool();
+
+        TKit::ForEachMainThreadLead(
+            pool, 0, m_Grid.Cells.size(), pool.GetThreadCount(),
+            [this, &offsets, &p_Function](const u32 p_Start, const u32 p_End, const u32 p_ThreadIndex) {
+                for (u32 i = p_Start; i < p_End; ++i)
+                    processCell(m_Grid.Cells[i], offsets, std::forward<F>(p_Function), p_ThreadIndex);
+            });
+        pool.AwaitPendingTasks();
+    }
+
   private:
     static constexpr u32 s_OffsetCount = D * D * D + 2 - D;
     using OffsetArray = TKit::Array<ivec<D>, s_OffsetCount>;
 
-    template <typename F>
-    void processCell(const GridCell &p_Cell, const OffsetArray &p_Offsets, F &&p_Function) const noexcept
+    template <typename F, typename... Args>
+    void processPass(const u32 p_Index, const f32 p_Radius2, F &&p_Function, Args &&...p_Args) const noexcept
+    {
+        const auto &positions = *m_Positions;
+        for (u32 j = p_Index + 1; j < positions.size(); ++j)
+        {
+            const f32 distance = glm::distance2(positions[p_Index], positions[j]);
+            if (distance < p_Radius2)
+                std::forward<F>(p_Function)(p_Index, j, glm::sqrt(distance), std::forward<Args>(p_Args)...);
+        }
+    }
+
+    template <typename F, typename... Args>
+    void processCell(const GridCell &p_Cell, const OffsetArray &p_Offsets, F &&p_Function,
+                     Args &&...p_Args) const noexcept
     {
         const f32 r2 = m_Radius * m_Radius;
         const auto &positions = *m_Positions;
@@ -82,10 +119,11 @@ template <Dimension D> class Lookup
             return false;
         };
 
-        const auto processPair = [r2, &positions](const u32 p_Index1, const u32 p_Index2, F &&p_Function) {
+        const auto processPair = [r2, &positions](const u32 p_Index1, const u32 p_Index2, F &&p_Function,
+                                                  Args &&...p_Args) {
             const f32 distance = glm::distance2(positions[p_Index1], positions[p_Index2]);
             if (distance < r2)
-                std::forward<F>(p_Function)(p_Index1, p_Index2, glm::sqrt(distance));
+                std::forward<F>(p_Function)(p_Index1, p_Index2, glm::sqrt(distance), std::forward<Args>(p_Args)...);
         };
 
         for (u32 i = p_Cell.Start; i < p_Cell.End; ++i)
@@ -109,7 +147,8 @@ template <Dimension D> class Lookup
                     visited[visitedSize++] = cellKey2;
                     const GridCell &cell2 = cells[cellIndex];
                     for (u32 j = cell2.Start; j < cell2.End; ++j)
-                        processPair(index1, particleIndices[j], std::forward<F>(p_Function));
+                        processPair(index1, particleIndices[j], std::forward<F>(p_Function),
+                                    std::forward<Args>(p_Args)...);
                 }
             }
         }
