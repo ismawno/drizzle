@@ -3,7 +3,7 @@
 #include "tkit/memory/arena_allocator.hpp"
 #include "tkit/container/static_array.hpp"
 
-#define FLU_ENABLE_INSPECTOR
+// #define FLU_ENABLE_INSPECTOR
 
 namespace Flu
 {

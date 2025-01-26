@@ -120,34 +120,8 @@ template <Dimension D> class Solver
 
     f32 getViscosityInfluence(f32 p_Distance) const noexcept;
 
-    auto getPairwisePressureGradientComputation() const noexcept
-    {
-        return [this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
-            const fvec<D> dir = (m_Data.Positions[p_Index1] - m_Data.Positions[p_Index2]) / p_Distance;
-
-            const f32 kernelGradient = getInfluenceSlope(p_Distance);
-            const f32 nearKernelGradient = getNearInfluenceSlope(p_Distance);
-            const auto [p1, np1] = GetPressureFromDensity(m_Data.Densities[p_Index1], m_Data.NearDensities[p_Index1]);
-            const auto [p2, np2] = GetPressureFromDensity(m_Data.Densities[p_Index2], m_Data.NearDensities[p_Index2]);
-
-            const f32 density = 0.5f * (m_Data.Densities[p_Index1] + m_Data.Densities[p_Index2]);
-            const f32 ndensity = 0.5f * (m_Data.NearDensities[p_Index1] + m_Data.NearDensities[p_Index2]);
-
-            const f32 dg1 = 0.5f * (p1 + p2) * kernelGradient / density;
-            const f32 dg2 = 0.5f * (np1 + np2) * nearKernelGradient / ndensity;
-            return (Settings.ParticleMass * (dg1 + dg2)) * dir;
-        };
-    }
-    auto getPairwiseViscosityTermComputation() const noexcept
-    {
-        return [this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
-            const fvec<D> diff = m_Data.Velocities[p_Index2] - m_Data.Velocities[p_Index1];
-            const f32 kernel = getViscosityInfluence(p_Distance);
-
-            const f32 u = glm::length(diff);
-            return ((Settings.ViscLinearTerm + Settings.ViscQuadraticTerm * u) * kernel) * diff;
-        };
-    }
+    fvec<D> computePairwisePressureGradient(u32 p_Index1, u32 p_Index2, f32 p_Distance) const noexcept;
+    fvec<D> computePairwiseViscosityTerm(u32 p_Index1, u32 p_Index2, f32 p_Distance) const noexcept;
 
     Lookup<D> m_Lookup;
     SimulationData<D> m_Data;
