@@ -39,7 +39,6 @@ template <Dimension D> class Inspector
 
     void renderParticle(const u32 p_Index) const noexcept;
     void renderPairs(const TKit::TreeSet<ParticlePair> &p_Pairs, const u32 p_Selected) const noexcept;
-    void renderPairData(const InspectionData &p_Data, const u32 p_Selected) const noexcept;
 
     static auto getPairCollectionIterPair(LookupPairs &p_Pairs) noexcept
     {
@@ -67,8 +66,7 @@ template <Dimension D> class Inspector
     Grid m_Grid;
     f32 m_LookupRadius;
 
-    InspectionData m_PairIterData{};
-    InspectionData m_ParticleIterData{};
+    InspectionData m_Inspection{};
     f32 m_LastInspectionTime = 0.f;
     bool m_WantsToInspect = false;
 };

@@ -74,6 +74,19 @@ template <Dimension D> bool SimLayer<D>::OnEvent(const Onyx::Event &p_Event) noe
             return true;
         }
 
+    if (p_Event.Type == Onyx::Event::KeyPressed && !ImGui::GetIO().WantCaptureKeyboard)
+        switch (p_Event.Key)
+        {
+        case Onyx::Input::Key::P:
+            m_Pause = !m_Pause;
+            break;
+        case Onyx::Input::Key::O:
+            m_DummyStep = !m_DummyStep;
+            break;
+        default:
+            break;
+        }
+
     return false;
 }
 

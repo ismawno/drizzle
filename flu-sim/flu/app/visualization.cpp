@@ -179,7 +179,6 @@ template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings 
 
     ImGui::Text("Optimizations:");
     ImGui::Combo("Neighbor Search", reinterpret_cast<i32 *>(&p_Settings.SearchMethod), "Brute Force\0Grid\0\0");
-    ImGui::Checkbox("Iterate over pairs", &p_Settings.IterateOverPairs);
 }
 
 template struct Visualization<D2>;

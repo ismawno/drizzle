@@ -39,7 +39,6 @@ struct SimulationSettings
     NeighborSearch SearchMethod = NeighborSearch::Grid;
     KernelType KType = KernelType::Spiky3;
     KernelType NearKType = KernelType::Spiky5;
-    bool IterateOverPairs = true;
 };
 
 template <Dimension D> struct SimulationData

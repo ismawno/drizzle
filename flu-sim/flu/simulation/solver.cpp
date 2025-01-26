@@ -117,61 +117,34 @@ template <Dimension D> void Solver<D>::AddMouseForce(const fvec<D> &p_MousePos) 
 template <Dimension D> void Solver<D>::ComputeDensities() noexcept
 {
     TKIT_PROFILE_NSCOPE("Flu::Solver::ComputeDensities");
-    if (Settings.IterateOverPairs)
-        ForEachPairWithinSmoothingRadius([this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
-            const f32 density = Settings.ParticleMass * getInfluence(p_Distance);
-            const f32 nearDensity = Settings.ParticleMass * getNearInfluence(p_Distance);
+    ForEachPairWithinSmoothingRadius([this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
+        const f32 density = Settings.ParticleMass * getInfluence(p_Distance);
+        const f32 nearDensity = Settings.ParticleMass * getNearInfluence(p_Distance);
 
-            m_Data.Densities[p_Index1] += density;
-            m_Data.NearDensities[p_Index1] += nearDensity;
+        m_Data.Densities[p_Index1] += density;
+        m_Data.NearDensities[p_Index1] += nearDensity;
 
-            m_Data.Densities[p_Index2] += density;
-            m_Data.NearDensities[p_Index2] += nearDensity;
-        });
-    else
-        for (u32 i = 0; i < m_Data.Positions.size(); ++i)
-        {
-            f32 density = 0.f;
-            f32 nearDensity = 0.f;
-            ForEachParticleWithinSmoothingRadius(i, [this, &density, &nearDensity](const u32, const f32 p_Distance) {
-                density += Settings.ParticleMass * getInfluence(p_Distance);
-                nearDensity += Settings.ParticleMass * getNearInfluence(p_Distance);
-            });
-            m_Data.Densities[i] = density;
-            m_Data.NearDensities[i] = nearDensity;
-        }
+        m_Data.Densities[p_Index2] += density;
+        m_Data.NearDensities[p_Index2] += nearDensity;
+    });
 }
 template <Dimension D> void Solver<D>::AddPressureAndViscosity() noexcept
 {
     TKIT_PROFILE_NSCOPE("Flu::Solver::PressureAndViscosity");
     const auto pairwisePressureGradient = getPairwisePressureGradientComputation();
     const auto pairwiseViscosityTerm = getPairwiseViscosityTermComputation();
-    if (Settings.IterateOverPairs)
-    {
-        ForEachPairWithinSmoothingRadius([this, &pairwisePressureGradient, &pairwiseViscosityTerm](
-                                             const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
-            const fvec<D> gradient = pairwisePressureGradient(p_Index1, p_Index2, p_Distance);
-            const fvec<D> term = pairwiseViscosityTerm(p_Index1, p_Index2, p_Distance);
 
-            const fvec<D> dv1 = term - gradient / m_Data.Densities[p_Index1];
-            const fvec<D> dv2 = term - gradient / m_Data.Densities[p_Index2];
+    ForEachPairWithinSmoothingRadius([this, pairwisePressureGradient, pairwiseViscosityTerm](
+                                         const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
+        const fvec<D> gradient = pairwisePressureGradient(p_Index1, p_Index2, p_Distance);
+        const fvec<D> term = pairwiseViscosityTerm(p_Index1, p_Index2, p_Distance);
 
-            m_Data.Accelerations[p_Index1] += dv1;
-            m_Data.Accelerations[p_Index2] -= dv2;
-        });
-    }
-    else
-        for (u32 i = 0; i < m_Data.Positions.size(); ++i)
-        {
-            fvec<D> gradient{0.f};
-            fvec<D> vterm{0.f};
-            ForEachParticleWithinSmoothingRadius(i, [&gradient, &vterm, i, &pairwisePressureGradient,
-                                                     &pairwiseViscosityTerm](const u32 p_Index2, const f32 p_Distance) {
-                gradient += pairwisePressureGradient(i, p_Index2, p_Distance);
-                vterm += pairwiseViscosityTerm(i, p_Index2, p_Distance);
-            });
-            m_Data.Accelerations[i] = vterm - gradient / m_Data.Densities[i];
-        }
+        const fvec<D> dv1 = term - gradient / m_Data.Densities[p_Index1];
+        const fvec<D> dv2 = term - gradient / m_Data.Densities[p_Index2];
+
+        m_Data.Accelerations[p_Index1] += dv1;
+        m_Data.Accelerations[p_Index2] -= dv2;
+    });
 }
 
 template <Dimension D>
