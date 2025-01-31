@@ -104,7 +104,10 @@ template <Dimension D> void SimLayer<D>::step(const bool p_Dummy) noexcept
 
 #ifdef FLU_ENABLE_INSPECTOR
     if (m_Inspector.WantsToInspect())
+    {
+        m_Solver.UpdateAllLookups();
         m_Inspector.Inspect();
+    }
 #endif
 
     if (!p_Dummy)
@@ -118,6 +121,9 @@ template <Dimension D> void SimLayer<D>::renderVisualizationSettings() noexcept
     ImGui::Text("Frame time: %.2f ms", m_Application->GetDeltaTime().AsMilliseconds());
     const u32 fps = static_cast<u32>(1.f / m_Application->GetDeltaTime().AsSeconds());
     ImGui::Text("FPS: %u", fps);
+
+    const u32 pcount = m_Solver.GetParticleCount();
+    ImGui::Text("Particles: %u", pcount);
 
     static bool syncTimestep = false;
     ImGui::Checkbox("Sync Timestep", &syncTimestep);
@@ -139,7 +145,7 @@ template <Dimension D> void SimLayer<D>::renderVisualizationSettings() noexcept
 
     static bool drawGrid = false;
     ImGui::Checkbox("Draw grid", &drawGrid);
-    if (m_Solver.Settings.SearchMethod == NeighborSearch::Grid && drawGrid)
+    if (m_Solver.Settings.UsesGrid() && drawGrid)
     {
         m_Solver.UpdateLookup();
         const u32 cellClashes = m_Solver.GetLookup().DrawCells(m_Context);

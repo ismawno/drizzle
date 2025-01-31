@@ -7,10 +7,19 @@
 
 namespace Flu
 {
-enum class NeighborSearch
+enum class ParticleLookupMode
 {
-    BruteForce = 0,
-    Grid
+    BruteForceSingleThread = 0,
+    BruteForceMultiThread,
+
+    GridSingleThread,
+    GridMultiThread
+};
+
+enum class ParticleIterationMode
+{
+    PairWise = 0,
+    ParticleWise
 };
 
 struct SimulationSettings
@@ -36,10 +45,17 @@ struct SimulationSettings
 
     TKit::Array<Onyx::Color, 3> Gradient = {Onyx::Color::CYAN, Onyx::Color::YELLOW, Onyx::Color::RED};
 
-    NeighborSearch SearchMethod = NeighborSearch::Grid;
+    ParticleLookupMode LookupMode = ParticleLookupMode::GridMultiThread;
+    ParticleIterationMode IterationMode = ParticleIterationMode::PairWise;
+
     KernelType KType = KernelType::Spiky3;
     KernelType NearKType = KernelType::Spiky5;
+
+    bool UsesGrid() const noexcept;
+    bool UsesMultiThread() const noexcept;
 };
+
+using Density = fvec2;
 
 template <Dimension D> struct SimulationData
 {
@@ -48,8 +64,7 @@ template <Dimension D> struct SimulationData
     SimArray<fvec<D>> Accelerations;
     SimArray<fvec<D>> StagedPositions;
 
-    SimArray<f32> Densities;
-    SimArray<f32> NearDensities;
+    SimArray<Density> Densities; // Density and Near Density
 };
 
 template <Dimension D> class Solver
@@ -68,33 +83,88 @@ template <Dimension D> class Solver
     u32 GetParticleCount() const noexcept;
     const Lookup<D> &GetLookup() const noexcept;
 
-    std::pair<f32, f32> GetPressureFromDensity(f32 p_Density, f32 p_NearDensity) const noexcept;
+    fvec2 GetPressureFromDensity(const Density &p_Density) const noexcept;
 
     void UpdateLookup() noexcept;
+    void UpdateAllLookups() noexcept;
 
-    template <typename F> void ForEachPairWithinSmoothingRadiusST(F &&p_Function) const noexcept
+    // This is hilarious
+    template <typename F1, typename F2, typename F3, typename F4, typename F5, typename F6, typename F7, typename F8>
+    void ForEachWithinSmoothingRadius(F1 &&p_BruteForcePairWiseST, F2 &&p_BruteForcePairWiseMT, F3 &&p_GridPairWiseST,
+                                      F4 &&p_GridPairWiseMT, F5 &&p_BruteForceParticleWiseST,
+                                      F6 &&p_BruteForceParticleWiseMT, F7 &&p_GridParticleWiseST,
+                                      F8 &&p_GridParticleWiseMT) const noexcept
     {
-        switch (Settings.SearchMethod)
+        switch (Settings.IterationMode)
         {
-        case NeighborSearch::BruteForce:
-            m_Lookup.ForEachPairBruteForceST(std::forward<F>(p_Function));
-            break;
-        case NeighborSearch::Grid:
-            m_Lookup.ForEachPairGridST(std::forward<F>(p_Function));
-            break;
+        case ParticleIterationMode::PairWise:
+            switch (Settings.LookupMode)
+            {
+            case ParticleLookupMode::BruteForceSingleThread:
+                std::forward<F1>(p_BruteForcePairWiseST)();
+                return;
+            case ParticleLookupMode::BruteForceMultiThread:
+                std::forward<F2>(p_BruteForcePairWiseMT)();
+                return;
+            case ParticleLookupMode::GridSingleThread:
+                std::forward<F3>(p_GridPairWiseST)();
+                return;
+            case ParticleLookupMode::GridMultiThread:
+                std::forward<F4>(p_GridPairWiseMT)();
+                return;
+            }
+            return;
+        case ParticleIterationMode::ParticleWise:
+            switch (Settings.LookupMode)
+            {
+            case ParticleLookupMode::BruteForceSingleThread:
+                std::forward<F5>(p_BruteForceParticleWiseST)();
+                return;
+            case ParticleLookupMode::BruteForceMultiThread:
+                std::forward<F6>(p_BruteForceParticleWiseMT)();
+                return;
+            case ParticleLookupMode::GridSingleThread:
+                std::forward<F7>(p_GridParticleWiseST)();
+                return;
+            case ParticleLookupMode::GridMultiThread:
+                std::forward<F8>(p_GridParticleWiseMT)();
+                return;
+            }
+            return;
         }
     }
 
-    template <typename F> void ForEachPairWithinSmoothingRadiusMT(F &&p_Function) const noexcept
+    template <typename F> void ForEachPairWithinSmoothingRadius(F &&p_Function) const noexcept
     {
-        switch (Settings.SearchMethod)
+        switch (Settings.LookupMode)
         {
-        case NeighborSearch::BruteForce:
+        case ParticleLookupMode::BruteForceSingleThread:
+            m_Lookup.ForEachPairBruteForceST(std::forward<F>(p_Function));
+            return;
+        case ParticleLookupMode::BruteForceMultiThread:
             m_Lookup.ForEachPairBruteForceMT(std::forward<F>(p_Function));
-            break;
-        case NeighborSearch::Grid:
+            return;
+        case ParticleLookupMode::GridSingleThread:
+            m_Lookup.ForEachPairGridST(std::forward<F>(p_Function));
+            return;
+        case ParticleLookupMode::GridMultiThread:
             m_Lookup.ForEachPairGridMT(std::forward<F>(p_Function));
-            break;
+            return;
+        }
+    }
+
+    template <typename F> void ForEachParticleWithinSmoothingRadius(const u32 p_Index, F &&p_Function) const noexcept
+    {
+        switch (Settings.LookupMode)
+        {
+        case ParticleLookupMode::BruteForceSingleThread:
+        case ParticleLookupMode::BruteForceMultiThread:
+            m_Lookup.ForEachParticleBruteForce(p_Index, std::forward<F>(p_Function));
+            return;
+        case ParticleLookupMode::GridSingleThread:
+        case ParticleLookupMode::GridMultiThread:
+            m_Lookup.ForEachParticleGrid(p_Index, std::forward<F>(p_Function));
+            return;
         }
     }
 
@@ -114,6 +184,9 @@ template <Dimension D> class Solver
   private:
     void encase(u32 p_Index) noexcept;
 
+    void mergeDensityArrays() noexcept;
+    void mergeAccelerationArrays() noexcept;
+
     f32 getInfluence(f32 p_Distance) const noexcept;
     f32 getInfluenceSlope(f32 p_Distance) const noexcept;
 
@@ -127,5 +200,8 @@ template <Dimension D> class Solver
 
     Lookup<D> m_Lookup;
     SimulationData<D> m_Data;
+
+    TKit::Array<SimArray<fvec<D>>, FLU_THREAD_COUNT> m_ThreadAccelerations;
+    TKit::Array<SimArray<Density>, FLU_THREAD_COUNT> m_ThreadDensities;
 };
 } // namespace Flu

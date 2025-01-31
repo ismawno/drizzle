@@ -178,7 +178,9 @@ template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings 
     comboKenel<D>("Near pressure/density kernel", p_Settings.NearKType);
 
     ImGui::Text("Optimizations:");
-    ImGui::Combo("Neighbor Search", reinterpret_cast<i32 *>(&p_Settings.SearchMethod), "Brute Force\0Grid\0\0");
+    ImGui::Combo("Lookup mode", reinterpret_cast<i32 *>(&p_Settings.LookupMode),
+                 "Brute Force SingleThread\0Brute Force MultiTread\0Grid SingleTread\0Grid MultiTread\0\0");
+    ImGui::Combo("Iteration mode", reinterpret_cast<i32 *>(&p_Settings.IterationMode), "Pairwise\0Particlewise\0\0");
 }
 
 template struct Visualization<D2>;

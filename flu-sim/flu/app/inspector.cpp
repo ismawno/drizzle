@@ -19,18 +19,36 @@ template <Dimension D> void Inspector<D>::Render() noexcept
         "inspector inspects at the middle of the frame, just after the pressure gradients and viscosities have been "
         "computed");
 
-    if (!m_WantsToInspect)
-        m_WantsToInspect = ImGui::Button("Inspect");
-    else
-        ImGui::Text("Waiting for simulation to un-pause... To prevent it from progressing, use 'Dummy step' instead.");
-    if (m_LastInspectionTime > 0.f && ImGui::TreeNode("Inspection results"))
-    {
-        renderInspectionData();
-        ImGui::TreePop();
-    }
+    static bool showOffFrame = false;
+    ImGui::Checkbox("Show off-frame data", &showOffFrame);
 
-    renderGridData();
-    renderParticleData();
+    if (!showOffFrame)
+    {
+        if (!m_WantsToInspect)
+            m_WantsToInspect = ImGui::Button("Inspect");
+        else
+            ImGui::Text(
+                "Waiting for simulation to un-pause... To prevent it from progressing, use 'Dummy step' instead.");
+        if (m_LastInspectionTime > 0.f && ImGui::TreeNode("Inspection results"))
+        {
+            ImGui::PushID(42);
+            renderInspectionData();
+            renderGridData();
+            renderParticleData();
+            ImGui::PopID();
+            ImGui::TreePop();
+        }
+    }
+    else
+    {
+        const Lookup<D> &lookup = m_Solver->GetLookup();
+        m_Data = m_Solver->GetData();
+        m_Grid = lookup.GetGrid();
+        m_LookupRadius = lookup.GetRadius();
+
+        renderGridData();
+        renderParticleData();
+    }
 }
 
 template <Dimension D> void Inspector<D>::Inspect() noexcept
@@ -42,19 +60,36 @@ template <Dimension D> void Inspector<D>::Inspect() noexcept
     m_Grid = lookup.GetGrid();
     m_LookupRadius = lookup.GetRadius();
 
-    m_Inspection = InspectionData{};
+    m_PairWiseST = InspectionData{};
+    m_PairWiseMT = InspectionData{};
+    m_ParticleWise = InspectionData{};
 
     TKit::Clock clock;
-    lookup.ForEachPairBruteForceST(getPairCollectionIterPair(m_Inspection.BruteForcePairs));
-    lookup.ForEachPairGridST(getPairCollectionIterPair(m_Inspection.GridPairs));
+    lookup.ForEachPairBruteForceST(getPairWiseCollectionST(m_PairWiseST.BruteForcePairs));
+    lookup.ForEachPairGridST(getPairWiseCollectionST(m_PairWiseST.GridPairs));
 
-    for (const auto &pair : m_Inspection.BruteForcePairs.Pairs)
-        if (!m_Inspection.GridPairs.Pairs.contains(pair))
-            m_Inspection.MissingInGrid.insert(pair);
+    lookup.ForEachPairBruteForceMT(getPairWiseCollectionMT(m_PairWiseMT.BruteForcePairs));
+    lookup.ForEachPairGridMT(getPairWiseCollectionMT(m_PairWiseMT.GridPairs));
 
-    for (const auto &pair : m_Inspection.GridPairs.Pairs)
-        if (!m_Inspection.BruteForcePairs.Pairs.contains(pair))
-            m_Inspection.MissingInBruteForce.insert(pair);
+    for (u32 i = 0; i < m_Data.Positions.size(); ++i)
+    {
+        lookup.ForEachParticleBruteForce(i, getParticleWiseCollection(i, m_ParticleWise.BruteForcePairs));
+        lookup.ForEachParticleGrid(i, getParticleWiseCollection(i, m_ParticleWise.GridPairs));
+    }
+
+    const auto fillMissing = [](InspectionData &p_Data) {
+        for (const auto &pair : p_Data.BruteForcePairs.Pairs)
+            if (!p_Data.GridPairs.Pairs.contains(pair))
+                p_Data.MissingInGrid.insert(pair);
+
+        for (const auto &pair : p_Data.GridPairs.Pairs)
+            if (!p_Data.BruteForcePairs.Pairs.contains(pair))
+                p_Data.MissingInBruteForce.insert(pair);
+    };
+
+    fillMissing(m_PairWiseST);
+    fillMissing(m_PairWiseMT);
+    fillMissing(m_ParticleWise);
 
     m_LastInspectionTime = clock.GetElapsed().AsMilliseconds();
 }
@@ -66,24 +101,20 @@ template <Dimension D> bool Inspector<D>::WantsToInspect() const noexcept
 
 template <Dimension D> void Inspector<D>::renderParticle(const u32 p_Index) const noexcept
 {
-    const auto &positions = m_Data.Positions;
-    const auto &velocities = m_Data.Velocities;
-    const auto &accelerations = m_Data.Accelerations;
-    const auto &densities = m_Data.Densities;
-
-    const fvec<D> &pos = positions[p_Index];
-    const fvec<D> &vel = velocities[p_Index];
-    const fvec<D> &acc = accelerations[p_Index];
+    const fvec<D> &pos = m_Data.Positions[p_Index];
+    const fvec<D> &vel = m_Data.Velocities[p_Index];
+    const fvec<D> &acc = m_Data.Accelerations[p_Index];
+    const Density &densities = m_Data.Densities[p_Index];
 
     const f32 speed = glm::length(vel);
     const f32 accMag = glm::length(acc);
 
     const ivec<D> cellPosition = Lookup<D>::GetCellPosition(pos, m_LookupRadius);
-    const u32 cellKey = Lookup<D>::GetCellKey(cellPosition, positions.size());
+    const u32 cellKey = Lookup<D>::GetCellKey(cellPosition, m_Data.Positions.size());
 
     ImGui::Text("Particle %u", p_Index);
     ImGui::Indent(15.f);
-    ImGui::Text("Density: %.2f", densities[p_Index]);
+    ImGui::Text("Density: %.2f", densities.x);
     if constexpr (D == D2)
     {
         ImGui::Text("Position: (%.2f, %.2f)", pos.x, pos.y);
@@ -117,6 +148,69 @@ void Inspector<D>::renderPairs(const TKit::TreeSet<ParticlePair> &p_Pairs, const
     }
 }
 
+template <Dimension D>
+void Inspector<D>::renderDuplicatePairs(const TKit::TreeMap<ParticlePair, u32> &p_Pairs,
+                                        const u32 p_Selected) const noexcept
+{
+    for (const auto &[pair, ocurrences] : p_Pairs)
+    {
+        const bool isSelected =
+            p_Selected == TKit::Limits<u32>::max() || pair.first == p_Selected || pair.second == p_Selected;
+        if (isSelected && ImGui::TreeNode(&pair, "Pair: %u, %u (%u ocurrences)", pair.first, pair.second, ocurrences))
+        {
+            renderParticle(pair.first);
+            renderParticle(pair.second);
+            ImGui::TreePop();
+        }
+    }
+}
+
+template <Dimension D>
+void Inspector<D>::renderPairData(const InspectionData &p_Data, const u32 p_Selected) const noexcept
+{
+    ImGui::Columns(2, "Inspection data", true);
+    ImGui::BeginChild("Brute force", {0, 250}, true);
+    if (ImGui::TreeNode(&p_Data.BruteForcePairs.Pairs, "Brute force pairs: %u", p_Data.BruteForcePairs.Pairs.size()))
+    {
+        renderPairs(p_Data.BruteForcePairs.Pairs, p_Selected);
+        ImGui::TreePop();
+    }
+    if (ImGui::TreeNode(&p_Data.BruteForcePairs.DuplicatePairs, "Duplicate pairs: %u",
+                        p_Data.BruteForcePairs.DuplicatePairs.size()))
+    {
+        renderDuplicatePairs(p_Data.BruteForcePairs.DuplicatePairs, p_Selected);
+        ImGui::TreePop();
+    }
+    if (ImGui::TreeNode(&p_Data.MissingInGrid, "Missing in grid: %u", p_Data.MissingInGrid.size()))
+    {
+        renderPairs(p_Data.MissingInGrid, p_Selected);
+        ImGui::TreePop();
+    }
+    ImGui::EndChild();
+
+    ImGui::NextColumn();
+
+    ImGui::BeginChild("Grid", {0, 250}, true);
+    if (ImGui::TreeNode(&p_Data.GridPairs.Pairs, "Grid pairs: %u", p_Data.GridPairs.Pairs.size()))
+    {
+        renderPairs(p_Data.GridPairs.Pairs, p_Selected);
+        ImGui::TreePop();
+    }
+    if (ImGui::TreeNode(&p_Data.GridPairs.DuplicatePairs, "Duplicate pairs: %u",
+                        p_Data.GridPairs.DuplicatePairs.size()))
+    {
+        renderDuplicatePairs(p_Data.GridPairs.DuplicatePairs, p_Selected);
+        ImGui::TreePop();
+    }
+    if (ImGui::TreeNode(&p_Data.MissingInBruteForce, "Missing in brute force: %u", p_Data.MissingInBruteForce.size()))
+    {
+        renderPairs(p_Data.MissingInBruteForce, p_Selected);
+        ImGui::TreePop();
+    }
+    ImGui::EndChild();
+    ImGui::Columns(1);
+}
+
 template <Dimension D> void Inspector<D>::renderInspectionData() const noexcept
 {
     ImGui::Text("Last inspection took %.2f ms", m_LastInspectionTime);
@@ -130,49 +224,21 @@ template <Dimension D> void Inspector<D>::renderInspectionData() const noexcept
     else
         selected = TKit::Limits<u32>::max();
 
-    ImGui::Columns(2, "Inspection data", true);
-    ImGui::BeginChild("Brute force", {0, 250}, true);
-    if (ImGui::TreeNode(&m_Inspection.BruteForcePairs.Pairs, "Brute force pairs: %u",
-                        m_Inspection.BruteForcePairs.Pairs.size()))
+    if (ImGui::TreeNode("Pairwise ST"))
     {
-        renderPairs(m_Inspection.BruteForcePairs.Pairs, selected);
+        renderPairData(m_PairWiseST, selected);
         ImGui::TreePop();
     }
-    if (ImGui::TreeNode(&m_Inspection.BruteForcePairs.DuplicatePairs, "Duplicate pairs: %u",
-                        m_Inspection.BruteForcePairs.DuplicatePairs.size()))
+    if (ImGui::TreeNode("Pairwise MT"))
     {
-        renderPairs(m_Inspection.BruteForcePairs.DuplicatePairs, selected);
+        renderPairData(m_PairWiseMT, selected);
         ImGui::TreePop();
     }
-    if (ImGui::TreeNode(&m_Inspection.MissingInGrid, "Missing in grid: %u", m_Inspection.MissingInGrid.size()))
+    if (ImGui::TreeNode("Particlewise"))
     {
-        renderPairs(m_Inspection.MissingInGrid, selected);
+        renderPairData(m_ParticleWise, selected);
         ImGui::TreePop();
     }
-    ImGui::EndChild();
-
-    ImGui::NextColumn();
-
-    ImGui::BeginChild("Grid", {0, 250}, true);
-    if (ImGui::TreeNode(&m_Inspection.GridPairs.Pairs, "Grid pairs: %u", m_Inspection.GridPairs.Pairs.size()))
-    {
-        renderPairs(m_Inspection.GridPairs.Pairs, selected);
-        ImGui::TreePop();
-    }
-    if (ImGui::TreeNode(&m_Inspection.GridPairs.DuplicatePairs, "Duplicate pairs: %u",
-                        m_Inspection.GridPairs.DuplicatePairs.size()))
-    {
-        renderPairs(m_Inspection.GridPairs.DuplicatePairs, selected);
-        ImGui::TreePop();
-    }
-    if (ImGui::TreeNode(&m_Inspection.MissingInBruteForce, "Missing in brute force: %u",
-                        m_Inspection.MissingInBruteForce.size()))
-    {
-        renderPairs(m_Inspection.MissingInBruteForce, selected);
-        ImGui::TreePop();
-    }
-    ImGui::EndChild();
-    ImGui::Columns(1);
 }
 
 template <Dimension D> void Inspector<D>::renderGridData() const noexcept

@@ -29,13 +29,9 @@ template <Dimension D> void Lookup<D>::UpdateGridLookup(const f32 p_Radius) noex
         u32 CellKey;
     };
 
-    auto &cellMap = m_Grid.CellKeyToIndex;
-    auto &particleIndices = m_Grid.ParticleIndices;
-    auto &cells = m_Grid.Cells;
-
-    cellMap.resize(particles);
-    particleIndices.resize(particles);
-    cells.clear();
+    m_Grid.CellKeyToIndex.resize(particles);
+    m_Grid.ParticleIndices.resize(particles);
+    m_Grid.Cells.clear();
 
     IndexPair *keys = Core::GetArena().Allocate<IndexPair>(particles);
 
@@ -45,7 +41,7 @@ template <Dimension D> void Lookup<D>::UpdateGridLookup(const f32 p_Radius) noex
         const ivec<D> cellPosition = GetCellPosition(positions[i]);
         const u32 key = GetCellKey(cellPosition);
         keys[i] = IndexPair{i, key};
-        cellMap[i] = UINT32_MAX;
+        m_Grid.CellKeyToIndex[i] = UINT32_MAX;
     }
     std::sort(keys, keys + particles, [](const IndexPair &a, const IndexPair &b) {
         if (a.CellKey == b.CellKey)
@@ -55,22 +51,23 @@ template <Dimension D> void Lookup<D>::UpdateGridLookup(const f32 p_Radius) noex
 
     u32 prevKey = keys[0].CellKey;
     GridCell cell{prevKey, 0, 0};
+    m_Grid.CellKeyToIndex[prevKey] = 0;
     for (u32 i = 0; i < particles; ++i)
     {
         if (keys[i].CellKey != prevKey)
         {
             cell.End = i;
-            cells.push_back(cell);
+            m_Grid.Cells.push_back(cell);
 
-            cellMap[keys[i].CellKey] = cells.size();
+            m_Grid.CellKeyToIndex[keys[i].CellKey] = m_Grid.Cells.size();
             cell.Key = keys[i].CellKey;
             cell.Start = i;
         }
-        particleIndices[i] = keys[i].ParticleIndex;
+        m_Grid.ParticleIndices[i] = keys[i].ParticleIndex;
         prevKey = keys[i].CellKey;
     }
     cell.End = particles;
-    cells.push_back(cell);
+    m_Grid.Cells.push_back(cell);
     Core::GetArena().Reset();
 }
 
@@ -89,7 +86,7 @@ template <Dimension D> u32 Lookup<D>::DrawCells(Onyx::RenderContext<D> *p_Contex
     u32 cellClashes = 0;
     for (const GridCell &cell : m_Grid.Cells)
     {
-        TKit::Array<ivec<D>, 8> uniquePositions;
+        TKit::Array<ivec<D>, 16> uniquePositions;
         u32 uniqueSize = 0;
         for (u32 i = cell.Start; i < cell.End; ++i)
         {

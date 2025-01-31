@@ -4,7 +4,6 @@
 #include "flu/core/core.hpp"
 #include "onyx/rendering/render_context.hpp"
 #include "tkit/core/literals.hpp"
-#include "tkit/multiprocessing/for_each.hpp"
 #include <array>
 
 namespace Flu
@@ -47,43 +46,86 @@ template <Dimension D> class Lookup
     {
         const f32 r2 = m_Radius * m_Radius;
         for (u32 i = 0; i < m_Positions->size(); ++i)
-            processPass(i, r2, std::forward<F>(p_Function));
+            processPairWisePass(i, r2, std::forward<F>(p_Function));
     }
 
     template <typename F> void ForEachPairBruteForceMT(F &&p_Function) const noexcept
     {
         const auto &positions = *m_Positions;
         const f32 r2 = m_Radius * m_Radius;
-
-        TKit::ThreadPool &pool = Flu::Core::GetThreadPool();
-        TKit::ForEachMainThreadLead(
-            pool, 0, positions.size(), pool.GetThreadCount(),
-            [this, r2, &positions, &p_Function](const u32 p_Start, const u32 p_End, const u32 p_ThreadIndex) {
-                for (u32 i = p_Start; i < p_End; ++i)
-                    processPass(i, r2, std::forward<F>(p_Function), p_ThreadIndex);
-            });
-        pool.AwaitPendingTasks();
+        Core::ForEach(0, positions.size(),
+                      [this, r2, &p_Function](const u32 p_Start, const u32 p_End, const u32 p_ThreadIndex) {
+                          for (u32 i = p_Start; i < p_End; ++i)
+                              processPairWisePass(i, r2, std::forward<F>(p_Function), p_ThreadIndex);
+                      });
     }
 
     template <typename F> void ForEachPairGridST(F &&p_Function) const noexcept
     {
         const OffsetArray offsets = getGridOffsets();
         for (const GridCell &cell : m_Grid.Cells)
-            processCell(cell, offsets, std::forward<F>(p_Function));
+            processPairWiseCell(cell, offsets, std::forward<F>(p_Function));
     }
 
     template <typename F> void ForEachPairGridMT(F &&p_Function) const noexcept
     {
         const OffsetArray offsets = getGridOffsets();
-        TKit::ThreadPool &pool = Flu::Core::GetThreadPool();
+        Core::ForEach(0, m_Grid.Cells.size(),
+                      [this, &offsets, &p_Function](const u32 p_Start, const u32 p_End, const u32 p_ThreadIndex) {
+                          for (u32 i = p_Start; i < p_End; ++i)
+                              processPairWiseCell(m_Grid.Cells[i], offsets, std::forward<F>(p_Function), p_ThreadIndex);
+                      });
+    }
 
-        TKit::ForEachMainThreadLead(
-            pool, 0, m_Grid.Cells.size(), pool.GetThreadCount(),
-            [this, &offsets, &p_Function](const u32 p_Start, const u32 p_End, const u32 p_ThreadIndex) {
-                for (u32 i = p_Start; i < p_End; ++i)
-                    processCell(m_Grid.Cells[i], offsets, std::forward<F>(p_Function), p_ThreadIndex);
-            });
-        pool.AwaitPendingTasks();
+    template <typename F> void ForEachParticleBruteForce(const u32 p_Index, F &&p_Function) const noexcept
+    {
+        const auto &positions = *m_Positions;
+        const f32 r2 = m_Radius * m_Radius;
+        for (u32 i = 0; i < positions.size(); ++i)
+            if (p_Index != i)
+            {
+                const f32 distance = glm::distance2(positions[p_Index], positions[i]);
+                if (distance < r2)
+                    std::forward<F>(p_Function)(i, glm::sqrt(distance));
+            }
+    }
+
+    template <typename F> void ForEachParticleGrid(const u32 p_Index1, F &&p_Function) const noexcept
+    {
+        const auto offsets = getGridOffsets();
+        const f32 r2 = m_Radius * m_Radius;
+        const auto &positions = *m_Positions;
+
+        const auto processPair = [r2, p_Index1, &positions](const u32 p_Index2, F &&p_Function) {
+            const f32 distance = glm::distance2(positions[p_Index1], positions[p_Index2]);
+            if (distance < r2)
+                std::forward<F>(p_Function)(p_Index2, glm::sqrt(distance));
+        };
+
+        const ivec<D> center = GetCellPosition(positions[p_Index1]);
+        const u32 cellKey1 = GetCellKey(center);
+        const u32 cellIndex1 = m_Grid.CellKeyToIndex[cellKey1];
+        const GridCell &cell1 = m_Grid.Cells[cellIndex1];
+
+        for (u32 i = cell1.Start; i < cell1.End; ++i)
+        {
+            const u32 index = m_Grid.ParticleIndices[i];
+            if (index != p_Index1)
+                processPair(index, std::forward<F>(p_Function));
+        }
+
+        for (const ivec<D> &offset : offsets)
+        {
+            const ivec<D> cellPosition = center + offset;
+            const u32 cellKey2 = GetCellKey(cellPosition);
+            const u32 cellIndex2 = m_Grid.CellKeyToIndex[cellKey2];
+            if (cellKey2 != cellKey1 && cellIndex2 != UINT32_MAX)
+            {
+                const GridCell &cell2 = m_Grid.Cells[cellIndex2];
+                for (u32 i = cell2.Start; i < cell2.End; ++i)
+                    processPair(m_Grid.ParticleIndices[i], std::forward<F>(p_Function));
+            }
+        }
     }
 
   private:
@@ -91,7 +133,7 @@ template <Dimension D> class Lookup
     using OffsetArray = TKit::Array<ivec<D>, s_OffsetCount>;
 
     template <typename F, typename... Args>
-    void processPass(const u32 p_Index, const f32 p_Radius2, F &&p_Function, Args &&...p_Args) const noexcept
+    void processPairWisePass(const u32 p_Index, const f32 p_Radius2, F &&p_Function, Args &&...p_Args) const noexcept
     {
         const auto &positions = *m_Positions;
         for (u32 j = p_Index + 1; j < positions.size(); ++j)
@@ -103,21 +145,11 @@ template <Dimension D> class Lookup
     }
 
     template <typename F, typename... Args>
-    void processCell(const GridCell &p_Cell, const OffsetArray &p_Offsets, F &&p_Function,
-                     Args &&...p_Args) const noexcept
+    void processPairWiseCell(const GridCell &p_Cell, const OffsetArray &p_Offsets, F &&p_Function,
+                             Args &&...p_Args) const noexcept
     {
         const f32 r2 = m_Radius * m_Radius;
         const auto &positions = *m_Positions;
-        const auto &particleIndices = m_Grid.ParticleIndices;
-        const auto &cellMap = m_Grid.CellKeyToIndex;
-        const auto &cells = m_Grid.Cells;
-
-        const auto isVisited = [](const auto it1, const auto it2, const u32 p_CellKey) {
-            for (auto it = it1; it != it2; ++it)
-                if (*it == p_CellKey)
-                    return true;
-            return false;
-        };
 
         const auto processPair = [r2, &positions](const u32 p_Index1, const u32 p_Index2, F &&p_Function,
                                                   Args &&...p_Args) {
@@ -128,26 +160,33 @@ template <Dimension D> class Lookup
 
         for (u32 i = p_Cell.Start; i < p_Cell.End; ++i)
         {
-            const u32 index1 = particleIndices[i];
+            const u32 index1 = m_Grid.ParticleIndices[i];
             for (u32 j = i + 1; j < p_Cell.End; ++j)
-                processPair(index1, particleIndices[j], std::forward<F>(p_Function));
+                processPair(index1, m_Grid.ParticleIndices[j], std::forward<F>(p_Function),
+                            std::forward<Args>(p_Args)...);
 
             const ivec<D> center = GetCellPosition(positions[index1]);
             const u32 cellKey1 = p_Cell.Key;
 
-            TKit::Array<u32, s_OffsetCount> visited{};
+            TKit::Array<u32, s_OffsetCount> visited;
             u32 visitedSize = 0;
+            const auto checkVisited = [&visited, &visitedSize](const u32 p_CellKey) {
+                for (u32 i = 0; i < visitedSize; ++i)
+                    if (visited[i] == p_CellKey)
+                        return false;
+                visited[visitedSize++] = p_CellKey;
+                return true;
+            };
+
             for (const ivec<D> &offset : p_Offsets)
             {
                 const u32 cellKey2 = GetCellKey(center + offset);
-                const u32 cellIndex = cellMap[cellKey2];
-                if (cellKey2 > cellKey1 && cellIndex != UINT32_MAX &&
-                    !isVisited(visited.begin(), visited.begin() + visitedSize, cellKey2))
+                const u32 cellIndex = m_Grid.CellKeyToIndex[cellKey2];
+                if (cellKey2 > cellKey1 && cellIndex != UINT32_MAX && checkVisited(cellKey2))
                 {
-                    visited[visitedSize++] = cellKey2;
-                    const GridCell &cell2 = cells[cellIndex];
+                    const GridCell &cell2 = m_Grid.Cells[cellIndex];
                     for (u32 j = cell2.Start; j < cell2.End; ++j)
-                        processPair(index1, particleIndices[j], std::forward<F>(p_Function),
+                        processPair(index1, m_Grid.ParticleIndices[j], std::forward<F>(p_Function),
                                     std::forward<Args>(p_Args)...);
                 }
             }
