@@ -6,12 +6,13 @@ namespace Flu
 {
 template <Dimension D>
 SimLayer<D>::SimLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
-                      const uvec<D> &p_StartingLayout) noexcept
+                      const uvec<D> &p_StartingLayout, const BoundingBox<D> &p_BoundingBox) noexcept
     : m_Application(p_Application)
 {
     m_Window = m_Application->GetMainWindow();
     m_Context = m_Window->GetRenderContext<D>();
     m_Solver.Settings = p_Settings;
+    m_Solver.Bounds = p_BoundingBox;
 
     const f32 size = 4.f * m_Solver.Settings.ParticleRadius;
     const fvec<D> midPoint = 0.5f * size * fvec<D>{p_StartingLayout};
@@ -159,10 +160,16 @@ template <Dimension D> void SimLayer<D>::renderVisualizationSettings() noexcept
 
     if (ImGui::TreeNode("Bounding box"))
     {
-        if (ImGui::DragFloat("Width", &m_Solver.BoundingBox.Max.x, 0.05f))
-            m_Solver.BoundingBox.Min.x = -m_Solver.BoundingBox.Max.x;
-        if (ImGui::DragFloat("Height", &m_Solver.BoundingBox.Max.y, 0.05f))
-            m_Solver.BoundingBox.Min.y = -m_Solver.BoundingBox.Max.y;
+        if (ImGui::DragFloat("Width", &m_Solver.Bounds.Max.x, 0.05f))
+            m_Solver.Bounds.Min.x = -m_Solver.Bounds.Max.x;
+        if (ImGui::DragFloat("Height", &m_Solver.Bounds.Max.y, 0.05f))
+            m_Solver.Bounds.Min.y = -m_Solver.Bounds.Max.y;
+        if constexpr (D == D3)
+        {
+            if (ImGui::DragFloat("Depth", &m_Solver.Bounds.Max.z, 0.05f))
+                m_Solver.Bounds.Min.z = -m_Solver.Bounds.Max.z;
+        }
+
         ImGui::TreePop();
     }
 }

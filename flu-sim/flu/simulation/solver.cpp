@@ -405,14 +405,14 @@ template <Dimension D> void Solver<D>::encase(const u32 p_Index) noexcept
     const f32 factor = 1.f - Settings.EncaseFriction;
     for (u32 j = 0; j < D; ++j)
     {
-        if (m_Data.StagedPositions[p_Index][j] - Settings.ParticleRadius < BoundingBox.Min[j])
+        if (m_Data.StagedPositions[p_Index][j] - Settings.ParticleRadius < Bounds.Min[j])
         {
-            m_Data.StagedPositions[p_Index][j] = BoundingBox.Min[j] + Settings.ParticleRadius;
+            m_Data.StagedPositions[p_Index][j] = Bounds.Min[j] + Settings.ParticleRadius;
             m_Data.Velocities[p_Index][j] = -factor * m_Data.Velocities[p_Index][j];
         }
-        else if (m_Data.StagedPositions[p_Index][j] + Settings.ParticleRadius > BoundingBox.Max[j])
+        else if (m_Data.StagedPositions[p_Index][j] + Settings.ParticleRadius > Bounds.Max[j])
         {
-            m_Data.StagedPositions[p_Index][j] = BoundingBox.Max[j] - Settings.ParticleRadius;
+            m_Data.StagedPositions[p_Index][j] = Bounds.Max[j] - Settings.ParticleRadius;
             m_Data.Velocities[p_Index][j] = -factor * m_Data.Velocities[p_Index][j];
         }
     }
@@ -420,8 +420,7 @@ template <Dimension D> void Solver<D>::encase(const u32 p_Index) noexcept
 
 template <Dimension D> void Solver<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context) const noexcept
 {
-    Visualization<D>::DrawBoundingBox(p_Context, BoundingBox.Min, BoundingBox.Max,
-                                      Onyx::Color::FromHexadecimal("A6B1E1", false));
+    Visualization<D>::DrawBoundingBox(p_Context, Bounds.Min, Bounds.Max, Onyx::Color::FromHexadecimal("A6B1E1", false));
 }
 template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_Context) const noexcept
 {

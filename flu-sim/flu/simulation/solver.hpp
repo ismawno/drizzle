@@ -67,6 +67,12 @@ template <Dimension D> struct SimulationData
     SimArray<Density> Densities; // Density and Near Density
 };
 
+template <Dimension D> struct BoundingBox
+{
+    fvec<D> Min;
+    fvec<D> Max;
+};
+
 template <Dimension D> class Solver
 {
   public:
@@ -175,11 +181,7 @@ template <Dimension D> class Solver
 
     SimulationSettings Settings{};
 
-    struct
-    {
-        fvec<D> Min{-20.f};
-        fvec<D> Max{20.f};
-    } BoundingBox;
+    BoundingBox<D> Bounds;
 
   private:
     void encase(u32 p_Index) noexcept;
