@@ -71,25 +71,25 @@ void Visualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const 
 
 template <Dimension D>
 void Visualization<D>::DrawParticleLattice(Onyx::RenderContext<D> *p_Context, const ivec<D> &p_Dimensions,
-                                           const f32 p_Size, const Onyx::Color &p_Color) noexcept
+                                           const f32 p_Separation, const f32 p_ParticleSize,
+                                           const Onyx::Color &p_Color) noexcept
 {
-    const f32 size = 2.f * p_Size;
-    const fvec<D> midPoint = 0.5f * size * fvec<D>{p_Dimensions};
+    const fvec<D> midPoint = 0.5f * p_Separation * fvec<D>{p_Dimensions};
     for (i32 i = 0; i < p_Dimensions.x; ++i)
         for (i32 j = 0; j < p_Dimensions.y; ++j)
             if constexpr (D == D2)
             {
-                const f32 x = static_cast<f32>(i) * size;
-                const f32 y = static_cast<f32>(j) * size;
-                Visualization<D2>::DrawParticle(p_Context, fvec2{x, y} - midPoint, p_Size, p_Color);
+                const f32 x = static_cast<f32>(i) * p_Separation;
+                const f32 y = static_cast<f32>(j) * p_Separation;
+                Visualization<D2>::DrawParticle(p_Context, fvec2{x, y} - midPoint, p_ParticleSize, p_Color);
             }
             else
                 for (i32 k = 0; k < p_Dimensions.z; ++k)
                 {
-                    const f32 x = static_cast<f32>(i) * size;
-                    const f32 y = static_cast<f32>(j) * size;
-                    const f32 z = static_cast<f32>(k) * size;
-                    Visualization<D3>::DrawParticle(p_Context, fvec3{x, y, z} - midPoint, p_Size, p_Color);
+                    const f32 x = static_cast<f32>(i) * p_Separation;
+                    const f32 y = static_cast<f32>(j) * p_Separation;
+                    const f32 z = static_cast<f32>(k) * p_Separation;
+                    Visualization<D3>::DrawParticle(p_Context, fvec3{x, y, z} - midPoint, p_ParticleSize, p_Color);
                 }
 }
 
@@ -152,7 +152,7 @@ template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings 
     ImGui::Spacing();
 
     ImGui::Text("Particle settings:");
-    ImGui::DragFloat("Particle Radius", &p_Settings.ParticleRadius, speed);
+    ImGui::DragFloat("Particle Radius", &p_Settings.ParticleRadius, speed * 0.1f);
     ImGui::DragFloat("Particle Mass", &p_Settings.ParticleMass, speed);
     ImGui::DragFloat("Particle Fast Speed", &p_Settings.FastSpeed, speed);
     ImGui::DragFloat("Smoothing Radius", &p_Settings.SmoothingRadius, speed);

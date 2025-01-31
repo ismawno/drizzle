@@ -14,22 +14,22 @@ SimLayer<D>::SimLayer(Onyx::Application *p_Application, const SimulationSettings
     m_Solver.Settings = p_Settings;
     m_Solver.Bounds = p_BoundingBox;
 
-    const f32 size = 4.f * m_Solver.Settings.ParticleRadius;
-    const fvec<D> midPoint = 0.5f * size * fvec<D>{p_StartingLayout};
+    const f32 separation = 0.4f * m_Solver.Settings.SmoothingRadius;
+    const fvec<D> midPoint = 0.5f * separation * fvec<D>{p_StartingLayout};
     for (u32 i = 0; i < p_StartingLayout.x; ++i)
         for (u32 j = 0; j < p_StartingLayout.y; ++j)
             if constexpr (D == D2)
             {
-                const f32 x = static_cast<f32>(i) * size;
-                const f32 y = static_cast<f32>(j) * size;
+                const f32 x = static_cast<f32>(i) * separation;
+                const f32 y = static_cast<f32>(j) * separation;
                 m_Solver.AddParticle(fvec2{x, y} - midPoint);
             }
             else
                 for (u32 k = 0; k < p_StartingLayout.z; ++k)
                 {
-                    const f32 x = static_cast<f32>(i) * size;
-                    const f32 y = static_cast<f32>(j) * size;
-                    const f32 z = static_cast<f32>(k) * size;
+                    const f32 x = static_cast<f32>(i) * separation;
+                    const f32 y = static_cast<f32>(j) * separation;
+                    const f32 z = static_cast<f32>(k) * separation;
                     m_Solver.AddParticle(fvec3{x, y, z} - midPoint);
                 }
 }

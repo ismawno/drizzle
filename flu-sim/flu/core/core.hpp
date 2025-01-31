@@ -14,7 +14,7 @@
 
 namespace Flu
 {
-template <typename T> using SimArray = TKit::StaticArray<T, 40000>;
+template <typename T> using SimArray = TKit::StaticArray<T, 70000>;
 
 struct Core
 {

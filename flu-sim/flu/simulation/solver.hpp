@@ -24,7 +24,7 @@ enum class ParticleIterationMode
 
 struct SimulationSettings
 {
-    f32 ParticleRadius = 0.1f;
+    f32 ParticleRadius = 0.3f;
     f32 ParticleMass = 1.f;
 
     f32 TargetDensity = 10.f;
@@ -32,7 +32,7 @@ struct SimulationSettings
     f32 NearPressureStiffness = 25.f;
     f32 SmoothingRadius = 1.f;
 
-    f32 FastSpeed = 35.f;
+    f32 FastSpeed = 15.f;
     f32 Gravity = -4.f;
     f32 EncaseFriction = 0.8f;
 
