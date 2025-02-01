@@ -8,10 +8,6 @@
 
 // #define FLU_ENABLE_INSPECTOR
 
-#ifndef FLU_THREAD_COUNT
-#    define FLU_THREAD_COUNT 8
-#endif
-
 namespace Flu
 {
 template <typename T> using SimArray = TKit::StaticArray<T, 70000>;
@@ -23,6 +19,7 @@ struct Core
 
     static TKit::ArenaAllocator &GetArena() noexcept;
     static TKit::ThreadPool &GetThreadPool() noexcept;
+    static void SetThreadCount(u32 p_ThreadCount) noexcept;
 
     template <typename F> static void ForEach(const u32 p_Start, const u32 p_End, F &&p_Function) noexcept
     {

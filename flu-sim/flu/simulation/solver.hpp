@@ -203,7 +203,7 @@ template <Dimension D> class Solver
     Lookup<D> m_Lookup;
     SimulationData<D> m_Data;
 
-    TKit::Array<SimArray<fvec<D>>, FLU_THREAD_COUNT> m_ThreadAccelerations;
-    TKit::Array<SimArray<Density>, FLU_THREAD_COUNT> m_ThreadDensities;
+    TKit::Array<SimArray<fvec<D>>, TKIT_THREAD_POOL_MAX_THREADS> m_ThreadAccelerations;
+    TKit::Array<SimArray<Density>, TKIT_THREAD_POOL_MAX_THREADS> m_ThreadDensities;
 };
 } // namespace Flu

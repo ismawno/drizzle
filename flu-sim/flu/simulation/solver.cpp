@@ -156,7 +156,8 @@ template <Dimension D> void Solver<D>::AddMouseForce(const fvec<D> &p_MousePos) 
 template <Dimension D> void Solver<D>::mergeDensityArrays() noexcept
 {
     Core::ForEach(0, m_Data.Positions.size(), [this](const u32 p_Start, const u32 p_End, const u32) {
-        for (u32 i = 0; i < FLU_THREAD_COUNT; ++i)
+        const u32 threads = Core::GetThreadPool().GetThreadCount() + 1;
+        for (u32 i = 0; i < threads; ++i)
             for (u32 j = p_Start; j < p_End; ++j)
             {
                 m_Data.Densities[j] += m_ThreadDensities[i][j];
@@ -167,7 +168,8 @@ template <Dimension D> void Solver<D>::mergeDensityArrays() noexcept
 template <Dimension D> void Solver<D>::mergeAccelerationArrays() noexcept
 {
     Core::ForEach(0, m_Data.Positions.size(), [this](const u32 p_Start, const u32 p_End, const u32) {
-        for (u32 i = 0; i < FLU_THREAD_COUNT; ++i)
+        const u32 threads = Core::GetThreadPool().GetThreadCount() + 1;
+        for (u32 i = 0; i < threads; ++i)
             for (u32 j = p_Start; j < p_End; ++j)
             {
                 m_Data.Accelerations[j] += m_ThreadAccelerations[i][j];
