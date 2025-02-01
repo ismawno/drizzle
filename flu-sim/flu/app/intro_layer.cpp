@@ -36,10 +36,12 @@ void IntroLayer::OnRender(const VkCommandBuffer) noexcept
 
 bool IntroLayer::OnEvent(const Onyx::Event &p_Event) noexcept
 {
-    if (m_Dim == 0 && p_Event.Type == Onyx::Event::Scrolled &&
-        Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::LeftShift))
+    if (m_Dim == 0 && p_Event.Type == Onyx::Event::Scrolled && !ImGui::GetIO().WantCaptureMouse)
     {
-        m_Context2->ApplyCameraScalingControls(0.005f * p_Event.ScrollOffset.y);
+        f32 step = 0.005f * p_Event.ScrollOffset.y;
+        if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::LeftShift))
+            step *= 10.f;
+        m_Context2->ApplyCameraScalingControls(step);
         return true;
     }
 

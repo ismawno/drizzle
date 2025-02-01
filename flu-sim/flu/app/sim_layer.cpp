@@ -69,9 +69,12 @@ template <Dimension D> void SimLayer<D>::OnRender(const VkCommandBuffer) noexcep
 template <Dimension D> bool SimLayer<D>::OnEvent(const Onyx::Event &p_Event) noexcept
 {
     if constexpr (D == D2)
-        if (p_Event.Type == Onyx::Event::Scrolled && Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::LeftShift))
+        if (p_Event.Type == Onyx::Event::Scrolled && !ImGui::GetIO().WantCaptureMouse)
         {
-            m_Context->ApplyCameraScalingControls(0.005f * p_Event.ScrollOffset.y);
+            f32 step = 0.005f * p_Event.ScrollOffset.y;
+            if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::LeftShift))
+                step *= 10.f;
+            m_Context->ApplyCameraScalingControls(step);
             return true;
         }
 
