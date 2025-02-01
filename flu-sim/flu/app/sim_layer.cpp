@@ -1,6 +1,7 @@
 #include "flu/app/sim_layer.hpp"
 #include "flu/app/visualization.hpp"
 #include "flu/app/intro_layer.hpp"
+#include "tkit/profiling/macros.hpp"
 #include <imgui.h>
 
 namespace Flu
@@ -37,7 +38,7 @@ SimLayer<D>::SimLayer(Onyx::Application *p_Application, const SimulationSettings
 
 template <Dimension D> void SimLayer<D>::OnUpdate() noexcept
 {
-    TKIT_PROFILE_NSCOPED("SimLayer::Onupdate");
+    TKIT_PROFILE_NSCOPE("SimLayer::Onupdate");
     if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::Space) && !ImGui::GetIO().WantCaptureKeyboard)
         m_Solver.AddParticle(m_Context->GetMouseCoordinates());
     if (!m_Pause)
@@ -46,7 +47,7 @@ template <Dimension D> void SimLayer<D>::OnUpdate() noexcept
 
 template <Dimension D> void SimLayer<D>::OnRender(const VkCommandBuffer) noexcept
 {
-    TKIT_PROFILE_NSCOPED("SimLayer::OnRender");
+    TKIT_PROFILE_NSCOPE("SimLayer::OnRender");
     Visualization<D>::AdjustAndControlCamera(m_Context, m_Application->GetDeltaTime());
     m_Solver.DrawParticles(m_Context);
     m_Solver.DrawBoundingBox(m_Context);
