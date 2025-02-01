@@ -25,6 +25,7 @@ static f32 computeKernel(const KernelType p_Kernel, const f32 p_Radius, const f3
     case KernelType::WendlandC4:
         return Kernel<D>::WendlandC4(p_Radius, p_Distance);
     }
+    return 0.f;
 }
 template <Dimension D>
 static f32 computeKernelSlope(const KernelType p_Kernel, const f32 p_Radius, const f32 p_Distance) noexcept
@@ -46,6 +47,7 @@ static f32 computeKernelSlope(const KernelType p_Kernel, const f32 p_Radius, con
     case KernelType::WendlandC4:
         return Kernel<D>::WendlandC4Slope(p_Radius, p_Distance);
     }
+    return 0.f;
 }
 
 bool SimulationSettings::UsesGrid() const noexcept
