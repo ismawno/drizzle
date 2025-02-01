@@ -1,5 +1,6 @@
 #include "flu/app/sim_layer.hpp"
 #include "flu/app/visualization.hpp"
+#include "flu/app/intro_layer.hpp"
 #include <imgui.h>
 
 namespace Flu
@@ -52,7 +53,11 @@ template <Dimension D> void SimLayer<D>::OnRender(const VkCommandBuffer) noexcep
         Visualization<D>::DrawMouseInfluence(m_Context, 2.f * m_Solver.Settings.MouseRadius, Onyx::Color::ORANGE);
 
     if (ImGui::Begin("Simulation settings"))
+    {
+        if (ImGui::Button("Back to menu"))
+            m_Application->SetUserLayer<IntroLayer>(m_Application);
         Visualization<D>::RenderSettings(m_Solver.Settings);
+    }
     ImGui::End();
 
     if (ImGui::Begin("Visualization settings"))
