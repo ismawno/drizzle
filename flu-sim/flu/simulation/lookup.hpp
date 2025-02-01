@@ -114,12 +114,21 @@ template <Dimension D> class Lookup
                 processPair(index, std::forward<F>(p_Function));
         }
 
+        TKit::Array<u32, s_OffsetCount> visited;
+        u32 visitedSize = 0;
+        const auto checkVisited = [&visited, &visitedSize](const u32 p_CellKey) {
+            for (u32 i = 0; i < visitedSize; ++i)
+                if (visited[i] == p_CellKey)
+                    return false;
+            visited[visitedSize++] = p_CellKey;
+            return true;
+        };
         for (const ivec<D> &offset : offsets)
         {
             const ivec<D> cellPosition = center + offset;
             const u32 cellKey2 = GetCellKey(cellPosition);
             const u32 cellIndex2 = m_Grid.CellKeyToIndex[cellKey2];
-            if (cellKey2 != cellKey1 && cellIndex2 != UINT32_MAX)
+            if (cellKey2 != cellKey1 && cellIndex2 != UINT32_MAX && checkVisited(cellKey2))
             {
                 const GridCell &cell2 = m_Grid.Cells[cellIndex2];
                 for (u32 i = cell2.Start; i < cell2.End; ++i)
