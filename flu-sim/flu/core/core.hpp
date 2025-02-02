@@ -24,8 +24,12 @@ struct Core
     template <typename F> static void ForEach(const u32 p_Start, const u32 p_End, F &&p_Function) noexcept
     {
         TKit::ThreadPool &pool = GetThreadPool();
-        TKit::ForEachMainThreadLead(pool, p_Start, p_End, pool.GetThreadCount(), std::forward<F>(p_Function));
-        pool.AwaitPendingTasks();
+        const u32 partitions = pool.GetThreadCount();
+        TKit::Array<TKit::Ref<TKit::Task<void>>, TKIT_THREAD_POOL_MAX_THREADS> tasks;
+
+        TKit::ForEachMainThreadLead(pool, p_Start, p_End, tasks.begin(), partitions, std::forward<F>(p_Function));
+        for (u32 i = 0; i < partitions - 1; ++i)
+            tasks[i]->WaitUntilFinished();
     }
 };
 } // namespace Flu
