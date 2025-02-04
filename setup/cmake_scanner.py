@@ -107,7 +107,10 @@ def main() -> None:
         with open(cmake_file, "r") as f:
             options = [
                 process_option(
-                    content.removeprefix(f"{hint}(").removesuffix(")").split(" ")
+                    content.removeprefix(f"{hint}(")
+                    .removesuffix(")")
+                    .replace('"', "")
+                    .split(" ")
                 )
                 for content in f.read().splitlines()
                 if content.startswith(hint)
