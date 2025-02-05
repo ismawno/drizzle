@@ -28,10 +28,10 @@ TKit::ThreadPool &Core::GetThreadPool() noexcept
 {
     return *s_ThreadPool.Get();
 }
-void Core::SetThreadCount(const u32 p_ThreadCount) noexcept
+void Core::SetWorkerThreadCount(const u32 p_ThreadCount) noexcept
 {
     s_ThreadPool.Destruct();
-    s_ThreadPool.Construct(p_ThreadCount - 1);
+    s_ThreadPool.Construct(p_ThreadCount);
 }
 
 } // namespace Flu

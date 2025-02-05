@@ -19,12 +19,12 @@ struct Core
 
     static TKit::ArenaAllocator &GetArena() noexcept;
     static TKit::ThreadPool &GetThreadPool() noexcept;
-    static void SetThreadCount(u32 p_ThreadCount) noexcept;
+    static void SetWorkerThreadCount(u32 p_ThreadCount) noexcept;
 
     template <typename F> static void ForEach(const u32 p_Start, const u32 p_End, F &&p_Function) noexcept
     {
         TKit::ThreadPool &pool = GetThreadPool();
-        const u32 partitions = pool.GetThreadCount();
+        const u32 partitions = pool.GetThreadCount() + 1;
         TKit::Array<TKit::Ref<TKit::Task<void>>, TKIT_THREAD_POOL_MAX_THREADS> tasks;
 
         TKit::ForEachMainThreadLead(pool, p_Start, p_End, tasks.begin(), partitions, std::forward<F>(p_Function));

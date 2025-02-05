@@ -183,9 +183,9 @@ template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings 
     ImGui::Combo("Iteration mode", reinterpret_cast<i32 *>(&p_Settings.IterationMode), "Pairwise\0Particlewise\0\0");
     if (p_Settings.UsesMultiThread())
     {
-        i32 threads = static_cast<i32>(Core::GetThreadPool().GetThreadCount()) + 1;
-        if (ImGui::SliderInt("Thread count", &threads, 2, TKIT_THREAD_POOL_MAX_THREADS))
-            Core::SetThreadCount(static_cast<u32>(threads));
+        i32 threads = static_cast<i32>(Core::GetThreadPool().GetThreadCount());
+        if (ImGui::SliderInt("Worker thread count", &threads, 0, TKIT_THREAD_POOL_MAX_THREADS))
+            Core::SetWorkerThreadCount(static_cast<u32>(threads));
     }
 }
 
