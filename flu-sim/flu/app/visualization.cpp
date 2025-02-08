@@ -184,7 +184,7 @@ template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings 
     if (p_Settings.UsesMultiThread())
     {
         i32 threads = static_cast<i32>(Core::GetThreadPool().GetThreadCount());
-        if (ImGui::SliderInt("Worker thread count", &threads, 0, TKIT_THREAD_POOL_MAX_THREADS))
+        if (ImGui::SliderInt("Worker thread count", &threads, 0, 15))
             Core::SetWorkerThreadCount(static_cast<u32>(threads));
     }
 }

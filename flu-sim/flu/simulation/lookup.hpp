@@ -3,7 +3,7 @@
 #include "flu/core/glm.hpp"
 #include "flu/core/core.hpp"
 #include "onyx/rendering/render_context.hpp"
-#include "tkit/core/literals.hpp"
+#include "tkit/utils/literals.hpp"
 #include <array>
 
 namespace Flu

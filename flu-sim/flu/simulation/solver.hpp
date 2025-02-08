@@ -3,7 +3,7 @@
 #include "flu/simulation/kernel.hpp"
 #include "flu/simulation/lookup.hpp"
 #include "onyx/rendering/render_context.hpp"
-#include "tkit/utilities/math.hpp"
+#include "tkit/utils/math.hpp"
 
 namespace Flu
 {

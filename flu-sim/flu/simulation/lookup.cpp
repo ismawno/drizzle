@@ -1,6 +1,6 @@
 #include "flu/simulation/lookup.hpp"
 #include "flu/app/visualization.hpp"
-#include "tkit/utilities/hash.hpp"
+#include "tkit/utils/hash.hpp"
 #include "tkit/profiling/macros.hpp"
 
 namespace Flu

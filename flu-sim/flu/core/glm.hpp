@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tkit/utilities/glm.hpp"
+#include "tkit/utils/glm.hpp"
 #include "flu/core/alias.hpp"
 #include "flu/core/dimension.hpp"
 

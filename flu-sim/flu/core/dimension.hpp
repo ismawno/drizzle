@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tkit/utilities/dimension.hpp"
+#include "tkit/utils/dimension.hpp"
 
 namespace Flu
 {
