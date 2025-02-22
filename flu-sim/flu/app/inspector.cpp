@@ -41,10 +41,10 @@ template <Dimension D> void Inspector<D>::Render() noexcept
     }
     else
     {
-        const Lookup<D> &lookup = m_Solver->GetLookup();
-        m_Data = m_Solver->GetData();
-        m_Grid = lookup.GetGrid();
-        m_LookupRadius = lookup.GetRadius();
+        const LookupMethod<D> &lookup = m_Solver->Lookup;
+        m_Data = m_Solver->Data;
+        m_Grid = lookup.Grid;
+        m_LookupRadius = lookup.Radius;
 
         renderGridData();
         renderParticleData();
@@ -54,11 +54,11 @@ template <Dimension D> void Inspector<D>::Render() noexcept
 template <Dimension D> void Inspector<D>::Inspect() noexcept
 {
     m_WantsToInspect = false;
-    const Lookup<D> &lookup = m_Solver->GetLookup();
+    const LookupMethod<D> &lookup = m_Solver->Lookup;
 
-    m_Data = m_Solver->GetData();
-    m_Grid = lookup.GetGrid();
-    m_LookupRadius = lookup.GetRadius();
+    m_Data = m_Solver->Data;
+    m_Grid = lookup.Grid;
+    m_LookupRadius = lookup.Radius;
 
     m_PairWiseST = InspectionData{};
     m_PairWiseMT = InspectionData{};
@@ -71,7 +71,7 @@ template <Dimension D> void Inspector<D>::Inspect() noexcept
     lookup.ForEachPairBruteForceMT(getPairWiseCollectionMT(m_PairWiseMT.BruteForcePairs));
     lookup.ForEachPairGridMT(getPairWiseCollectionMT(m_PairWiseMT.GridPairs));
 
-    for (u32 i = 0; i < m_Data.Positions.size(); ++i)
+    for (u32 i = 0; i < m_Data.State.Positions.size(); ++i)
     {
         lookup.ForEachParticleBruteForce(i, getParticleWiseCollection(i, m_ParticleWise.BruteForcePairs));
         lookup.ForEachParticleGrid(i, getParticleWiseCollection(i, m_ParticleWise.GridPairs));
@@ -101,16 +101,16 @@ template <Dimension D> bool Inspector<D>::WantsToInspect() const noexcept
 
 template <Dimension D> void Inspector<D>::renderParticle(const u32 p_Index) const noexcept
 {
-    const fvec<D> &pos = m_Data.Positions[p_Index];
-    const fvec<D> &vel = m_Data.Velocities[p_Index];
+    const fvec<D> &pos = m_Data.State.Positions[p_Index];
+    const fvec<D> &vel = m_Data.State.Velocities[p_Index];
     const fvec<D> &acc = m_Data.Accelerations[p_Index];
     const Density &densities = m_Data.Densities[p_Index];
 
     const f32 speed = glm::length(vel);
     const f32 accMag = glm::length(acc);
 
-    const ivec<D> cellPosition = Lookup<D>::GetCellPosition(pos, m_LookupRadius);
-    const u32 cellKey = Lookup<D>::GetCellKey(cellPosition, m_Data.Positions.size());
+    const ivec<D> cellPosition = LookupMethod<D>::GetCellPosition(pos, m_LookupRadius);
+    const u32 cellKey = LookupMethod<D>::GetCellKey(cellPosition, m_Data.State.Positions.size());
 
     ImGui::Text("Particle %u", p_Index);
     ImGui::Indent(15.f);
@@ -283,7 +283,7 @@ template <Dimension D> void Inspector<D>::renderGridData() const noexcept
 
 template <Dimension D> void Inspector<D>::renderParticleData() const noexcept
 {
-    const u32 pcount = m_Data.Positions.size();
+    const u32 pcount = m_Data.State.Positions.size();
     if (ImGui::TreeNode(m_Solver, "Particles: %u", pcount))
     {
         ImGui::BeginChild("Particles", {0, 250}, true);

@@ -94,7 +94,7 @@ template <Dimension D> class Inspector
 
     const Solver<D> *m_Solver;
     SimulationData<D> m_Data;
-    Grid m_Grid;
+    GridData m_Grid;
     f32 m_LookupRadius;
 
     InspectionData m_PairWiseST{};

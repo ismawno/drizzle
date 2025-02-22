@@ -8,32 +8,11 @@ namespace Flu
 {
 template <Dimension D>
 SimLayer<D>::SimLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
-                      const uvec<D> &p_StartingLayout, const BoundingBox<D> &p_BoundingBox) noexcept
-    : m_Application(p_Application)
+                      const SimulationState<D> &p_State) noexcept
+    : m_Application(p_Application), m_Solver(p_Settings, p_State)
 {
     m_Window = m_Application->GetMainWindow();
     m_Context = m_Window->GetRenderContext<D>();
-    m_Solver.Settings = p_Settings;
-    m_Solver.Bounds = p_BoundingBox;
-
-    const f32 separation = 0.4f * m_Solver.Settings.SmoothingRadius;
-    const fvec<D> midPoint = 0.5f * separation * fvec<D>{p_StartingLayout};
-    for (u32 i = 0; i < p_StartingLayout.x; ++i)
-        for (u32 j = 0; j < p_StartingLayout.y; ++j)
-            if constexpr (D == D2)
-            {
-                const f32 x = static_cast<f32>(i) * separation;
-                const f32 y = static_cast<f32>(j) * separation;
-                m_Solver.AddParticle(fvec2{x, y} - midPoint);
-            }
-            else
-                for (u32 k = 0; k < p_StartingLayout.z; ++k)
-                {
-                    const f32 x = static_cast<f32>(i) * separation;
-                    const f32 y = static_cast<f32>(j) * separation;
-                    const f32 z = static_cast<f32>(k) * separation;
-                    m_Solver.AddParticle(fvec3{x, y, z} - midPoint);
-                }
 }
 
 template <Dimension D> void SimLayer<D>::OnUpdate() noexcept
@@ -160,7 +139,7 @@ template <Dimension D> void SimLayer<D>::renderVisualizationSettings() noexcept
     if (m_Solver.Settings.UsesGrid() && drawGrid)
     {
         m_Solver.UpdateLookup();
-        const u32 cellClashes = m_Solver.GetLookup().DrawCells(m_Context);
+        const u32 cellClashes = m_Solver.Lookup.DrawCells(m_Context);
         ImGui::Text("Cell clashes: %u", cellClashes);
     }
 
@@ -171,14 +150,14 @@ template <Dimension D> void SimLayer<D>::renderVisualizationSettings() noexcept
 
     if (ImGui::TreeNode("Bounding box"))
     {
-        if (ImGui::DragFloat("Width", &m_Solver.Bounds.Max.x, 0.05f))
-            m_Solver.Bounds.Min.x = -m_Solver.Bounds.Max.x;
-        if (ImGui::DragFloat("Height", &m_Solver.Bounds.Max.y, 0.05f))
-            m_Solver.Bounds.Min.y = -m_Solver.Bounds.Max.y;
+        if (ImGui::DragFloat("Width", &m_Solver.Data.State.Max.x, 0.05f))
+            m_Solver.Data.State.Min.x = -m_Solver.Data.State.Max.x;
+        if (ImGui::DragFloat("Height", &m_Solver.Data.State.Max.y, 0.05f))
+            m_Solver.Data.State.Min.y = -m_Solver.Data.State.Max.y;
         if constexpr (D == D3)
         {
-            if (ImGui::DragFloat("Depth", &m_Solver.Bounds.Max.z, 0.05f))
-                m_Solver.Bounds.Min.z = -m_Solver.Bounds.Max.z;
+            if (ImGui::DragFloat("Depth", &m_Solver.Data.State.Max.z, 0.05f))
+                m_Solver.Data.State.Min.z = -m_Solver.Data.State.Max.z;
         }
 
         ImGui::TreePop();

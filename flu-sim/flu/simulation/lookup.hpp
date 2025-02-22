@@ -15,14 +15,14 @@ struct GridCell
     u32 End;
 };
 
-struct Grid
+struct GridData
 {
     SimArray<GridCell> Cells;
     SimArray<u32> ParticleIndices;
     SimArray<u32> CellKeyToIndex;
 };
 
-template <Dimension D> class Lookup
+template <Dimension D> class LookupMethod
 {
   public:
     void SetPositions(const SimArray<fvec<D>> *p_Positions) noexcept;
@@ -39,12 +39,9 @@ template <Dimension D> class Lookup
     u32 DrawCells(Onyx::RenderContext<D> *p_Context) const noexcept;
     u32 GetCellCount() const noexcept;
 
-    const Grid &GetGrid() const noexcept;
-    f32 GetRadius() const noexcept;
-
     template <typename F> void ForEachPairBruteForceST(F &&p_Function) const noexcept
     {
-        const f32 r2 = m_Radius * m_Radius;
+        const f32 r2 = Radius * Radius;
         for (u32 i = 0; i < m_Positions->size(); ++i)
             processPairWisePass(i, r2, std::forward<F>(p_Function));
     }
@@ -52,7 +49,7 @@ template <Dimension D> class Lookup
     template <typename F> void ForEachPairBruteForceMT(F &&p_Function) const noexcept
     {
         const auto &positions = *m_Positions;
-        const f32 r2 = m_Radius * m_Radius;
+        const f32 r2 = Radius * Radius;
         Core::ForEach(0, positions.size(),
                       [this, r2, &p_Function](const u32 p_Start, const u32 p_End, const u32 p_ThreadIndex) {
                           for (u32 i = p_Start; i < p_End; ++i)
@@ -63,24 +60,24 @@ template <Dimension D> class Lookup
     template <typename F> void ForEachPairGridST(F &&p_Function) const noexcept
     {
         const OffsetArray offsets = getGridOffsets();
-        for (const GridCell &cell : m_Grid.Cells)
+        for (const GridCell &cell : Grid.Cells)
             processPairWiseCell(cell, offsets, std::forward<F>(p_Function));
     }
 
     template <typename F> void ForEachPairGridMT(F &&p_Function) const noexcept
     {
         const OffsetArray offsets = getGridOffsets();
-        Core::ForEach(0, m_Grid.Cells.size(),
+        Core::ForEach(0, Grid.Cells.size(),
                       [this, &offsets, &p_Function](const u32 p_Start, const u32 p_End, const u32 p_ThreadIndex) {
                           for (u32 i = p_Start; i < p_End; ++i)
-                              processPairWiseCell(m_Grid.Cells[i], offsets, std::forward<F>(p_Function), p_ThreadIndex);
+                              processPairWiseCell(Grid.Cells[i], offsets, std::forward<F>(p_Function), p_ThreadIndex);
                       });
     }
 
     template <typename F> void ForEachParticleBruteForce(const u32 p_Index, F &&p_Function) const noexcept
     {
         const auto &positions = *m_Positions;
-        const f32 r2 = m_Radius * m_Radius;
+        const f32 r2 = Radius * Radius;
         for (u32 i = 0; i < positions.size(); ++i)
             if (p_Index != i)
             {
@@ -93,7 +90,7 @@ template <Dimension D> class Lookup
     template <typename F> void ForEachParticleGrid(const u32 p_Index1, F &&p_Function) const noexcept
     {
         const auto offsets = getGridOffsets();
-        const f32 r2 = m_Radius * m_Radius;
+        const f32 r2 = Radius * Radius;
         const auto &positions = *m_Positions;
 
         const auto processPair = [r2, p_Index1, &positions](const u32 p_Index2, F &&p_Function) {
@@ -104,12 +101,12 @@ template <Dimension D> class Lookup
 
         const ivec<D> center = GetCellPosition(positions[p_Index1]);
         const u32 cellKey1 = GetCellKey(center);
-        const u32 cellIndex1 = m_Grid.CellKeyToIndex[cellKey1];
-        const GridCell &cell1 = m_Grid.Cells[cellIndex1];
+        const u32 cellIndex1 = Grid.CellKeyToIndex[cellKey1];
+        const GridCell &cell1 = Grid.Cells[cellIndex1];
 
         for (u32 i = cell1.Start; i < cell1.End; ++i)
         {
-            const u32 index = m_Grid.ParticleIndices[i];
+            const u32 index = Grid.ParticleIndices[i];
             if (index != p_Index1)
                 processPair(index, std::forward<F>(p_Function));
         }
@@ -127,15 +124,18 @@ template <Dimension D> class Lookup
         {
             const ivec<D> cellPosition = center + offset;
             const u32 cellKey2 = GetCellKey(cellPosition);
-            const u32 cellIndex2 = m_Grid.CellKeyToIndex[cellKey2];
+            const u32 cellIndex2 = Grid.CellKeyToIndex[cellKey2];
             if (cellKey2 != cellKey1 && cellIndex2 != UINT32_MAX && checkVisited(cellKey2))
             {
-                const GridCell &cell2 = m_Grid.Cells[cellIndex2];
+                const GridCell &cell2 = Grid.Cells[cellIndex2];
                 for (u32 i = cell2.Start; i < cell2.End; ++i)
-                    processPair(m_Grid.ParticleIndices[i], std::forward<F>(p_Function));
+                    processPair(Grid.ParticleIndices[i], std::forward<F>(p_Function));
             }
         }
     }
+
+    GridData Grid;
+    f32 Radius;
 
   private:
     static constexpr u32 s_OffsetCount = D * D * D + 2 - D;
@@ -157,7 +157,7 @@ template <Dimension D> class Lookup
     void processPairWiseCell(const GridCell &p_Cell, const OffsetArray &p_Offsets, F &&p_Function,
                              Args &&...p_Args) const noexcept
     {
-        const f32 r2 = m_Radius * m_Radius;
+        const f32 r2 = Radius * Radius;
         const auto &positions = *m_Positions;
 
         const auto processPair = [r2, &positions](const u32 p_Index1, const u32 p_Index2, F &&p_Function,
@@ -169,9 +169,9 @@ template <Dimension D> class Lookup
 
         for (u32 i = p_Cell.Start; i < p_Cell.End; ++i)
         {
-            const u32 index1 = m_Grid.ParticleIndices[i];
+            const u32 index1 = Grid.ParticleIndices[i];
             for (u32 j = i + 1; j < p_Cell.End; ++j)
-                processPair(index1, m_Grid.ParticleIndices[j], std::forward<F>(p_Function),
+                processPair(index1, Grid.ParticleIndices[j], std::forward<F>(p_Function),
                             std::forward<Args>(p_Args)...);
 
             const ivec<D> center = GetCellPosition(positions[index1]);
@@ -190,12 +190,12 @@ template <Dimension D> class Lookup
             for (const ivec<D> &offset : p_Offsets)
             {
                 const u32 cellKey2 = GetCellKey(center + offset);
-                const u32 cellIndex = m_Grid.CellKeyToIndex[cellKey2];
+                const u32 cellIndex = Grid.CellKeyToIndex[cellKey2];
                 if (cellKey2 > cellKey1 && cellIndex != UINT32_MAX && checkVisited(cellKey2))
                 {
-                    const GridCell &cell2 = m_Grid.Cells[cellIndex];
+                    const GridCell &cell2 = Grid.Cells[cellIndex];
                     for (u32 j = cell2.Start; j < cell2.End; ++j)
-                        processPair(index1, m_Grid.ParticleIndices[j], std::forward<F>(p_Function),
+                        processPair(index1, Grid.ParticleIndices[j], std::forward<F>(p_Function),
                                     std::forward<Args>(p_Args)...);
                 }
             }
@@ -205,8 +205,5 @@ template <Dimension D> class Lookup
     OffsetArray getGridOffsets() const noexcept;
 
     const SimArray<fvec<D>> *m_Positions = nullptr;
-
-    Grid m_Grid;
-    f32 m_Radius;
 };
 } // namespace Flu

@@ -10,11 +10,16 @@ namespace Flu
 class IntroLayer final : public Onyx::UserLayer
 {
   public:
-    IntroLayer(Onyx::Application *p_Application) noexcept;
+    IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings = {},
+               const SimulationState<D2> &p_State2 = {}, const SimulationState<D3> &p_State3 = {}) noexcept;
 
   private:
     void OnRender(VkCommandBuffer) noexcept override;
     bool OnEvent(const Onyx::Event &p_Event) noexcept override;
+
+    template <Dimension D> void onRender(Onyx::RenderContext<D> *p_Context, const SimulationState<D> &p_State) noexcept;
+    template <Dimension D> void startSimulation(SimulationState<D> &p_State) noexcept;
+    template <Dimension D> void renderBoundingBox(SimulationState<D> &p_State) noexcept;
 
     void renderIntroSettings() noexcept;
 
@@ -25,13 +30,13 @@ class IntroLayer final : public Onyx::UserLayer
 #else
     ivec3 m_Dimensions{20, 20, 20};
 #endif
-    BoundingBox<D2> m_Bounds2{fvec2{-30.f}, fvec2{30.f}};
-    BoundingBox<D3> m_Bounds3{fvec3{-30.f}, fvec3{30.f}};
-
     Onyx::Window *m_Window;
     Onyx::RenderContext<D2> *m_Context2;
     Onyx::RenderContext<D3> *m_Context3;
 
     SimulationSettings m_Settings;
+
+    SimulationState<D2> m_State2;
+    SimulationState<D3> m_State3;
 };
 } // namespace Flu

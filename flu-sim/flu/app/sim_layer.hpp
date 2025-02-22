@@ -11,8 +11,8 @@ namespace Flu
 template <Dimension D> class SimLayer final : public Onyx::UserLayer
 {
   public:
-    SimLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings, const uvec<D> &p_StartingLayout,
-             const BoundingBox<D> &p_BoundingBox) noexcept;
+    SimLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
+             const SimulationState<D> &p_State) noexcept;
 
   private:
     void OnUpdate() noexcept override;
