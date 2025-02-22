@@ -1,4 +1,5 @@
 #include "flu/app/visualization.hpp"
+#include "tkit/reflection/flu/simulation/settings.hpp"
 #include "flu/simulation/solver.hpp"
 #include <imgui.h>
 
@@ -136,7 +137,7 @@ void Visualization<D>::DrawCell(Onyx::RenderContext<D> *p_Context, const ivec<D>
     }
 }
 
-template <Dimension D> static void comboKenel(const char *name, KernelType &p_Type) noexcept
+static void comboKenel(const char *name, KernelType &p_Type) noexcept
 {
     ImGui::Combo(name, reinterpret_cast<i32 *>(&p_Type),
                  "Spiky2\0Spiky3\0Spiky5\0Cubic Spline\0WendlandC2\0WendlandC4\0\0");
@@ -145,6 +146,18 @@ template <Dimension D> static void comboKenel(const char *name, KernelType &p_Ty
 template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings &p_Settings) noexcept
 {
     const f32 speed = 0.2f;
+
+    static char xport[64] = {0};
+    if (ImGui::InputTextWithHint("Export settings", "Filename", xport, 64, ImGuiInputTextFlags_EnterReturnsTrue))
+        Serialize("settings", xport, p_Settings);
+
+    static char import[64] = {0};
+    if (ImGui::InputTextWithHint("Import settings", "Filename", import, 64, ImGuiInputTextFlags_EnterReturnsTrue))
+    {
+        const std::string path = "settings/" + std::string(import);
+        if (!Deserialize<SimulationSettings>(path, p_Settings))
+            import[0] = '\0';
+    }
 
     ImGui::Text("Mouse controls:");
     ImGui::DragFloat("Mouse Radius", &p_Settings.MouseRadius, speed);
@@ -167,15 +180,15 @@ template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings 
     ImGui::Text("Viscosity settings:");
     ImGui::DragFloat("Linear Term", &p_Settings.ViscLinearTerm, speed * 0.01f, 0.f, FLT_MAX);
     ImGui::DragFloat("Quadratic Term", &p_Settings.ViscQuadraticTerm, speed * 0.01f, 0.f, FLT_MAX);
-    comboKenel<D>("Viscosity kernel", p_Settings.ViscosityKType);
+    comboKenel("Viscosity kernel", p_Settings.ViscosityKType);
 
     ImGui::Text("Environment settings:");
     ImGui::DragFloat("Gravity", &p_Settings.Gravity, speed);
     ImGui::DragFloat("Encase Friction", &p_Settings.EncaseFriction, speed);
 
     ImGui::Text("Kernel settings:");
-    comboKenel<D>("Smooth radius kernel", p_Settings.KType);
-    comboKenel<D>("Near pressure/density kernel", p_Settings.NearKType);
+    comboKenel("Smooth radius kernel", p_Settings.KType);
+    comboKenel("Near pressure/density kernel", p_Settings.NearKType);
 
     ImGui::Text("Optimizations:");
     ImGui::Combo("Lookup mode", reinterpret_cast<i32 *>(&p_Settings.LookupMode),

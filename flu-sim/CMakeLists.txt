@@ -15,6 +15,7 @@ set(SOURCES
 
 add_executable(flu-sim ${SOURCES})
 
+
 include(FetchContent)
 FetchContent_Declare(
     onyx
@@ -24,8 +25,12 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(onyx)
 
+
+tkit_register_for_reflection(flu-sim SOURCES flu/simulation/settings.hpp)
+
 target_include_directories(flu-sim PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(flu-sim PRIVATE onyx)
+target_compile_definitions(flu-sim PRIVATE FLU_ROOT_PATH="${FLU_ROOT_PATH}")
 
 if (MSVC)
     tkit_configure_compile_link_options(flu-sim FLAGS /W4 /WX)

@@ -5,6 +5,7 @@
 .DS_Store
 imgui.ini
 traces/
+saves/
 
 # Prerequisites
 *.d

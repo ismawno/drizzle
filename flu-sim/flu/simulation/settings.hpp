@@ -4,8 +4,10 @@
 #include "flu/core/glm.hpp"
 #include "flu/core/core.hpp"
 #include "onyx/draw/color.hpp"
+#include "onyx/serialization/color.hpp"
 #include "tkit/container/array.hpp"
 #include "tkit/reflection/reflect.hpp"
+#include "tkit/serialization/yaml/container.hpp"
 
 namespace Flu
 {
@@ -78,4 +80,24 @@ template <Dimension D> struct SimulationData
 
     SimArray<Density> Densities; // Density and Near Density
 };
+
+template <typename T>
+void Serialize(const std::string &p_DirectoryName, const std::string &p_FileName, const T &p_Instance) noexcept
+{
+    const std::string directory = FLU_ROOT_PATH "/saves/" + p_DirectoryName;
+    std::filesystem::create_directories(directory);
+    const std::string path = directory + "/" + p_FileName;
+
+    TKit::Yaml::Serialize(path, p_Instance);
+}
+template <typename T> bool Deserialize(const std::string &p_RelativePath, T &p_Instance) noexcept
+{
+    const std::string path = FLU_ROOT_PATH "/saves/" + p_RelativePath;
+    if (!std::filesystem::exists(path))
+        return false;
+
+    p_Instance = TKit::Yaml::Deserialize<T>(path);
+    return true;
+}
+
 } // namespace Flu
