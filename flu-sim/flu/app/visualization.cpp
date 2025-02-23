@@ -1,6 +1,8 @@
 #include "flu/app/visualization.hpp"
-#include "tkit/reflection/flu/simulation/settings.hpp"
 #include "flu/simulation/solver.hpp"
+#include "onyx/serialization/color.hpp"
+#include "tkit/reflection/flu/simulation/settings.hpp"
+#include "tkit/serialization/yaml/container.hpp"
 #include <imgui.h>
 
 namespace Flu
@@ -147,16 +149,27 @@ template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings 
 {
     const f32 speed = 0.2f;
 
+    if (ImGui::Button("Load default settings"))
+        p_Settings = SimulationSettings{};
+
     static char xport[64] = {0};
     if (ImGui::InputTextWithHint("Export settings", "Filename", xport, 64, ImGuiInputTextFlags_EnterReturnsTrue))
-        Serialize("settings", xport, p_Settings);
-
-    static char import[64] = {0};
-    if (ImGui::InputTextWithHint("Import settings", "Filename", import, 64, ImGuiInputTextFlags_EnterReturnsTrue))
     {
-        const std::string path = "settings/" + std::string(import);
-        if (!Deserialize<SimulationSettings>(path, p_Settings))
-            import[0] = '\0';
+        const fs::path path = Core::GetSettingsPath() / xport;
+        TKit::Yaml::Serialize(path.c_str(), p_Settings);
+        xport[0] = '\0';
+    }
+
+    if (ImGui::BeginMenu("Import settings"))
+    {
+        for (const auto &entry : fs::directory_iterator(Core::GetSettingsPath()))
+        {
+            const fs::path &path = entry.path();
+            const std::string filename = path.filename().string();
+            if (ImGui::MenuItem(filename.c_str()))
+                p_Settings = TKit::Yaml::Deserialize<SimulationSettings>(path.c_str());
+        }
+        ImGui::EndMenu();
     }
 
     ImGui::Text("Mouse controls:");

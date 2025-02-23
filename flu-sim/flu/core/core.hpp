@@ -5,11 +5,14 @@
 #include "tkit/container/static_array.hpp"
 #include "tkit/multiprocessing/thread_pool.hpp"
 #include "tkit/multiprocessing/for_each.hpp"
+#include <filesystem>
 
 // #define FLU_ENABLE_INSPECTOR
 
 namespace Flu
 {
+namespace fs = std::filesystem;
+
 template <typename T> using SimArray = TKit::StaticArray<T, 70000>;
 
 struct Core
@@ -20,6 +23,9 @@ struct Core
     static TKit::ArenaAllocator &GetArena() noexcept;
     static TKit::ThreadPool &GetThreadPool() noexcept;
     static void SetWorkerThreadCount(u32 p_ThreadCount) noexcept;
+
+    static const fs::path &GetSettingsPath() noexcept;
+    static const fs::path &GetStatePath() noexcept;
 
     template <typename F> static void ForEach(const u32 p_Start, const u32 p_End, F &&p_Function) noexcept
     {

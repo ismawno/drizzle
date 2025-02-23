@@ -117,6 +117,10 @@ Solver<D>::Solver(const SimulationSettings &p_Settings, const SimulationState<D>
     Data.Accelerations.resize(p_State.Positions.size(), fvec<D>{0.f});
     Data.Densities.resize(p_State.Positions.size(), fvec2{Settings.ParticleMass});
     Data.StagedPositions.resize(p_State.Positions.size());
+    for (auto &densities : m_ThreadDensities)
+        densities.resize(p_State.Positions.size(), fvec2{0.f});
+    for (auto &accelerations : m_ThreadAccelerations)
+        accelerations.resize(p_State.Positions.size(), fvec<D>{0.f});
 }
 
 template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
