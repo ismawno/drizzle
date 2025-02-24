@@ -2,6 +2,7 @@
 #include "flu/app/visualization.hpp"
 #include "flu/app/intro_layer.hpp"
 #include "tkit/profiling/macros.hpp"
+#include "tkit/serialization/yaml/glm.hpp"
 #include <imgui.h>
 
 namespace Flu
@@ -36,8 +37,11 @@ template <Dimension D> void SimLayer<D>::OnRender(const VkCommandBuffer) noexcep
 
     if (ImGui::Begin("Simulation settings"))
     {
+        ExportWidget("Export simulation state", Core::GetStatePath<D>(), m_Solver.Data.State);
+        ImportWidget("Import simulation state", Core::GetStatePath<D>(), m_Solver.Data.State);
+
         if (ImGui::Button("Back to menu"))
-            m_Application->SetUserLayer<IntroLayer>(m_Application);
+            m_Application->SetUserLayer<IntroLayer>(m_Application, m_Solver.Settings, m_Solver.Data.State);
         Visualization<D>::RenderSettings(m_Solver.Settings);
     }
     ImGui::End();

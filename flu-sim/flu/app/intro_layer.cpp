@@ -1,14 +1,39 @@
 #include "flu/app/intro_layer.hpp"
 #include "flu/app/sim_layer.hpp"
 #include "flu/app/visualization.hpp"
+#include "tkit/serialization/yaml/glm.hpp"
 #include <imgui.h>
 
 namespace Flu
 {
-IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
-                       const SimulationState<D2> &p_State2, const SimulationState<D3> &p_State3) noexcept
-    : m_Application(p_Application), m_Settings(p_Settings), m_State2(p_State2), m_State3(p_State3)
+IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings) noexcept
+    : m_Application(p_Application), m_Settings(p_Settings)
 {
+    m_Window = m_Application->GetMainWindow();
+    m_Context2 = m_Window->GetRenderContext<D2>();
+    m_Context3 = m_Window->GetRenderContext<D3>();
+
+    updateStateAsLattice(m_State2);
+    updateStateAsLattice(m_State3);
+}
+
+template <Dimension D>
+IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
+                       const SimulationState<D> &p_State) noexcept
+    : m_Application(p_Application), m_Settings(p_Settings)
+{
+    if constexpr (D == D2)
+    {
+        m_Dim = 0;
+        m_State2 = p_State;
+        updateStateAsLattice(m_State3);
+    }
+    else
+    {
+        m_Dim = 1;
+        m_State3 = p_State;
+        updateStateAsLattice(m_State2);
+    }
     m_Window = m_Application->GetMainWindow();
 
     m_Context2 = m_Window->GetRenderContext<D2>();
@@ -28,10 +53,8 @@ template <Dimension D>
 void IntroLayer::onRender(Onyx::RenderContext<D> *p_Context, const SimulationState<D> &p_State) noexcept
 {
     Visualization<D>::AdjustAndControlCamera(p_Context, m_Application->GetDeltaTime());
-    Visualization<D>::DrawParticleLattice(p_Context, m_Dimensions, 0.4f * m_Settings.SmoothingRadius,
-                                          2.f * m_Settings.ParticleRadius, m_Settings.Gradient[0]);
-    Visualization<D>::DrawBoundingBox(p_Context, p_State.Min, p_State.Max,
-                                      Onyx::Color::FromHexadecimal("A6B1E1", false));
+    Visualization<D>::DrawParticles(p_Context, m_Settings, p_State);
+    Visualization<D>::DrawBoundingBox(p_Context, p_State.Min, p_State.Max, Onyx::Color::FromHexadecimal("A6B1E1"));
 }
 
 bool IntroLayer::OnEvent(const Onyx::Event &p_Event) noexcept
@@ -53,11 +76,15 @@ void IntroLayer::renderIntroSettings() noexcept
     ImGui::SetWindowSize({400, 400});
     ImGui::Begin("Welcome to my fluid simulator!");
     const f32 deltaTime = m_Application->GetDeltaTime().AsMilliseconds();
+    PresentModeEditor(m_Window);
     ImGui::Text("Frame time: %.2f ms", deltaTime);
-    ImGui::Text("This is a small project I wanted to make because\nI have always been fascinated by fluid dynamics");
-    ImGui::Spacing();
 
-    ImGui::Text("The fluid can be simulated both in 2D and 3D");
+    ImGui::Spacing();
+    ImGui::TextWrapped("This is a small project I have made inspired by Sebastian Lague's fluid simulation video. It "
+                       "features a 2D and 3D fluid simulation using the Smoothed Particle Hydrodynamics method. The "
+                       "simulation itself is simple, performance oriented and can be simulated both in 2D and 3D.");
+    ImGui::TextLinkOpenURL("Sebastian Lague's video", "https://www.youtube.com/watch?v=rSKMYc1CQHE");
+    ImGui::Spacing();
 
     ImGui::Combo("Dimension", &m_Dim,
                  "2D\0"
@@ -65,33 +92,47 @@ void IntroLayer::renderIntroSettings() noexcept
 
     ImGui::Spacing();
 
-    ImGui::Text(
-        "You can choose how many starting particles you want to have by tweaking the settings below.\nNote that "
-        "you may add more particles during the simulation by pressing the space bar");
+    ImGui::Text("The camera controls are the following:");
+    ImGui::BulletText("W-A-S-D: Move the camera");
+    ImGui::BulletText("Q-E: Rotate the camera");
+    ImGui::BulletText("Mouse wheel: Zoom in/out (Left Shift for faster zoom, 2D only)");
+    ImGui::BulletText("Left mouse button: Apply a force to the fluid");
+
+    ImGui::Spacing();
+
+    ImGui::TextWrapped(
+        "You can choose how many starting particles you want to have by tweaking the settings below. Note "
+        "that you may add more particles during the simulation by pressing the space bar. The layout of the starting "
+        "particles is conditioned by the selected dimension, either 2D or 3D.");
+    ImGui::TextWrapped("Note that you may also choose the option to import a custom or past simulation state.");
+
+    ImGui::Spacing();
 
     if (m_Dim == 0)
     {
-        ImGui::Text("Current amount: %d", m_Dimensions.x * m_Dimensions.y);
-        ImGui::DragInt2("Particles", glm::value_ptr(m_Dimensions), 1, 1, INT32_MAX);
+        ImGui::Text("Current amount: %u", m_State2.Positions.size());
+        if (ImGui::DragInt2("Particles", glm::value_ptr(m_Dimensions), 1, 1, INT32_MAX))
+            updateStateAsLattice(m_State2);
+        ExportWidget("Export particle state", Core::GetStatePath<D2>(), m_State2);
+        ImportWidget("Import particle state", Core::GetStatePath<D2>(), m_State2);
     }
     else
     {
-        ImGui::Text("Current amount: %d", m_Dimensions.x * m_Dimensions.y * m_Dimensions.z);
-        ImGui::DragInt3("Particles", glm::value_ptr(m_Dimensions), 1, 1, INT32_MAX);
+        ImGui::Text("Current amount: %u", m_State3.Positions.size());
+        if (ImGui::DragInt3("Particles", glm::value_ptr(m_Dimensions), 1, 1, INT32_MAX))
+            updateStateAsLattice(m_State3);
+        ExportWidget("Export particle state", Core::GetStatePath<D3>(), m_State3);
+        ImportWidget("Import particle state", Core::GetStatePath<D3>(), m_State3);
     }
 
-    ImGui::Text("The camera controls are the following:");
-    ImGui::Text("W-A-S-D: Move the camera");
-    ImGui::Text("Q-E: Rotate the camera");
-    ImGui::Text("Left shift + Mouse wheel: Zoom in/out");
-    ImGui::Text("Left mouse button: Apply a force to the fluid");
+    ImGui::Spacing();
 
     if (ImGui::Button("Start simulation"))
     {
         if (m_Dim == 0)
-            startSimulation(m_State2);
+            m_Application->SetUserLayer<SimLayer<D2>>(m_Application, m_Settings, m_State2);
         else
-            startSimulation(m_State3);
+            m_Application->SetUserLayer<SimLayer<D3>>(m_Application, m_Settings, m_State3);
     }
 
     if (m_Dim == 0)
@@ -101,7 +142,7 @@ void IntroLayer::renderIntroSettings() noexcept
     ImGui::End();
 }
 
-template <Dimension D> void IntroLayer::startSimulation(SimulationState<D> &p_State) noexcept
+template <Dimension D> void IntroLayer::updateStateAsLattice(SimulationState<D> &p_State) noexcept
 {
     p_State.Positions.clear();
     p_State.Velocities.clear();
@@ -125,7 +166,6 @@ template <Dimension D> void IntroLayer::startSimulation(SimulationState<D> &p_St
                     p_State.Positions.push_back(fvec3{x, y, z} - midPoint);
                     p_State.Velocities.push_back(fvec3{0.f});
                 }
-    m_Application->SetUserLayer<SimLayer<D>>(m_Application, m_Settings, p_State);
 }
 
 template <Dimension D> void IntroLayer::renderBoundingBox(SimulationState<D> &p_State) noexcept
@@ -145,5 +185,10 @@ template <Dimension D> void IntroLayer::renderBoundingBox(SimulationState<D> &p_
     }
     Visualization<D>::RenderSettings(m_Settings);
 }
+
+template IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
+                                const SimulationState<D2> &p_State) noexcept;
+template IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
+                                const SimulationState<D3> &p_State) noexcept;
 
 } // namespace Flu

@@ -1,9 +1,5 @@
 #include "flu/app/visualization.hpp"
 #include "flu/simulation/solver.hpp"
-#include "onyx/serialization/color.hpp"
-#include "tkit/reflection/flu/simulation/settings.hpp"
-#include "tkit/serialization/yaml/container.hpp"
-#include <imgui.h>
 
 namespace Flu
 {
@@ -18,25 +14,29 @@ void Visualization<D>::AdjustAndControlCamera(Onyx::RenderContext<D> *p_Context,
 }
 
 template <Dimension D>
-void Visualization<D>::DrawParticle(Onyx::RenderContext<D> *p_Context, const fvec<D> &p_Position, const f32 p_Size,
-                                    const Onyx::Color &p_Color) noexcept
+void Visualization<D>::DrawParticles(Onyx::RenderContext<D> *p_Context, const SimulationSettings &p_Settings,
+                                     const SimulationState<D> &p_State) noexcept
 {
-    p_Context->Push();
-    p_Context->Fill(p_Color);
+    const f32 psize = 2.f * p_Settings.ParticleRadius;
 
-    p_Context->Scale(p_Size);
-    p_Context->Translate(p_Position);
-    p_Context->Circle();
+    const Onyx::Gradient gradient{p_Settings.Gradient};
+    for (u32 i = 0; i < p_State.Positions.size(); ++i)
+    {
+        const fvec<D> &pos = p_State.Positions[i];
+        const fvec<D> &vel = p_State.Velocities[i];
 
-    // p_Context->Pop();
-    // p_Context->Push();
+        const f32 speed = glm::min(p_Settings.FastSpeed, glm::length(vel));
+        const Onyx::Color color = gradient.Evaluate(speed / p_Settings.FastSpeed);
 
-    // p_Context->Scale(SmoothingRadius);
-    // p_Context->Translate(pos);
-    // p_Context->Alpha(0.4f);
-    // p_Context->Circle(0.f, 1.f);
+        p_Context->Push();
+        p_Context->Fill(color);
 
-    p_Context->Pop();
+        p_Context->Scale(psize);
+        p_Context->Translate(pos);
+        p_Context->Circle();
+
+        p_Context->Pop();
+    }
 }
 
 template <Dimension D>
@@ -70,30 +70,6 @@ void Visualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const 
     p_Context->Square();
 
     p_Context->Pop();
-}
-
-template <Dimension D>
-void Visualization<D>::DrawParticleLattice(Onyx::RenderContext<D> *p_Context, const ivec<D> &p_Dimensions,
-                                           const f32 p_Separation, const f32 p_ParticleSize,
-                                           const Onyx::Color &p_Color) noexcept
-{
-    const fvec<D> midPoint = 0.5f * p_Separation * fvec<D>{p_Dimensions};
-    for (i32 i = 0; i < p_Dimensions.x; ++i)
-        for (i32 j = 0; j < p_Dimensions.y; ++j)
-            if constexpr (D == D2)
-            {
-                const f32 x = static_cast<f32>(i) * p_Separation;
-                const f32 y = static_cast<f32>(j) * p_Separation;
-                Visualization<D2>::DrawParticle(p_Context, fvec2{x, y} - midPoint, p_ParticleSize, p_Color);
-            }
-            else
-                for (i32 k = 0; k < p_Dimensions.z; ++k)
-                {
-                    const f32 x = static_cast<f32>(i) * p_Separation;
-                    const f32 y = static_cast<f32>(j) * p_Separation;
-                    const f32 z = static_cast<f32>(k) * p_Separation;
-                    Visualization<D3>::DrawParticle(p_Context, fvec3{x, y, z} - midPoint, p_ParticleSize, p_Color);
-                }
 }
 
 template <Dimension D>
@@ -148,29 +124,17 @@ static void comboKenel(const char *name, KernelType &p_Type) noexcept
 template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings &p_Settings) noexcept
 {
     const f32 speed = 0.2f;
+    ImGui::TextWrapped(
+        "The simulation settings control general parameters for the fluid simulation. Hover over each parameter "
+        "to get a brief description of its function.");
+    ImGui::TextWrapped("The settings can be exported and imported to and from YAML files located in the "
+                       "\"saves/settings\" folder, relative to the root of the project.");
 
     if (ImGui::Button("Load default settings"))
         p_Settings = SimulationSettings{};
 
-    static char xport[64] = {0};
-    if (ImGui::InputTextWithHint("Export settings", "Filename", xport, 64, ImGuiInputTextFlags_EnterReturnsTrue))
-    {
-        const fs::path path = Core::GetSettingsPath() / xport;
-        TKit::Yaml::Serialize(path.c_str(), p_Settings);
-        xport[0] = '\0';
-    }
-
-    if (ImGui::BeginMenu("Import settings"))
-    {
-        for (const auto &entry : fs::directory_iterator(Core::GetSettingsPath()))
-        {
-            const fs::path &path = entry.path();
-            const std::string filename = path.filename().string();
-            if (ImGui::MenuItem(filename.c_str()))
-                p_Settings = TKit::Yaml::Deserialize<SimulationSettings>(path.c_str());
-        }
-        ImGui::EndMenu();
-    }
+    ExportWidget("Export settings", Core::GetSettingsPath(), p_Settings);
+    ImportWidget("Import settings", Core::GetSettingsPath(), p_Settings);
 
     ImGui::Text("Mouse controls:");
     ImGui::DragFloat("Mouse Radius", &p_Settings.MouseRadius, speed);

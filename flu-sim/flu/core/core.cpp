@@ -10,7 +10,8 @@ static TKit::Storage<TKit::ThreadPool> s_ThreadPool;
 static TKit::ArenaAllocator s_Arena{1_mb};
 
 static fs::path s_SettingsPath = fs::path(FLU_ROOT_PATH) / "saves" / "settings";
-static fs::path s_StatePath = fs::path(FLU_ROOT_PATH) / "saves" / "state";
+static fs::path s_StatePath2 = fs::path(FLU_ROOT_PATH) / "saves" / "2D";
+static fs::path s_StatePath3 = fs::path(FLU_ROOT_PATH) / "saves" / "3D";
 
 void Core::Initialize() noexcept
 {
@@ -18,7 +19,8 @@ void Core::Initialize() noexcept
     Onyx::Core::Initialize(s_ThreadPool.Get());
 
     fs::create_directories(s_SettingsPath);
-    fs::create_directories(s_StatePath);
+    fs::create_directories(s_StatePath2);
+    fs::create_directories(s_StatePath3);
 }
 void Core::Terminate() noexcept
 {
@@ -44,9 +46,16 @@ const fs::path &Core::GetSettingsPath() noexcept
 {
     return s_SettingsPath;
 }
-const fs::path &Core::GetStatePath() noexcept
+
+template <Dimension D> const fs::path &Core::GetStatePath() noexcept
 {
-    return s_StatePath;
+    if constexpr (D == D2)
+        return s_StatePath2;
+    else
+        return s_StatePath3;
 }
+
+template const fs::path &Core::GetStatePath<D2>() noexcept;
+template const fs::path &Core::GetStatePath<D3>() noexcept;
 
 } // namespace Flu

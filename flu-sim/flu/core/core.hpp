@@ -1,6 +1,7 @@
 #pragma once
 
 #include "flu/core/alias.hpp"
+#include "flu/core/dimension.hpp"
 #include "tkit/memory/arena_allocator.hpp"
 #include "tkit/container/static_array.hpp"
 #include "tkit/multiprocessing/thread_pool.hpp"
@@ -25,7 +26,8 @@ struct Core
     static void SetWorkerThreadCount(u32 p_ThreadCount) noexcept;
 
     static const fs::path &GetSettingsPath() noexcept;
-    static const fs::path &GetStatePath() noexcept;
+
+    template <Dimension D> static const fs::path &GetStatePath() noexcept;
 
     template <typename F> static void ForEach(const u32 p_Start, const u32 p_End, F &&p_Function) noexcept
     {
