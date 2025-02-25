@@ -8,7 +8,7 @@ void Visualization<D>::AdjustAndControlCamera(Onyx::RenderContext<D> *p_Context,
                                               const TKit::Timespan p_DeltaTime) noexcept
 {
     p_Context->Flush(0.15f, 0.15f, 0.15f);
-    p_Context->ScaleAxes(0.05f);
+    p_Context->ScaleAxes(0.025f);
 
     p_Context->ApplyCameraMovementControls(1.5f * p_DeltaTime);
 }
@@ -128,7 +128,7 @@ template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings 
         "The simulation settings control general parameters for the fluid simulation. Hover over each parameter "
         "to get a brief description of its function.");
     ImGui::TextWrapped("The settings can be exported and imported to and from YAML files located in the "
-                       "\"saves/settings\" folder, relative to the root of the project.");
+                       "'saves/settings' folder, relative to the root of the project.");
 
     if (ImGui::Button("Load default settings"))
         p_Settings = SimulationSettings{};

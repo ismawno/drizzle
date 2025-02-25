@@ -27,6 +27,8 @@ enum class ParticleIterationMode
 struct SimulationSettings
 {
     TKIT_REFLECT_DECLARE(SimulationSettings)
+
+    TKIT_REFLECT_GROUP_BEGIN("CommandLine")
     f32 ParticleRadius = 0.3f;
     f32 ParticleMass = 1.f;
 
@@ -46,13 +48,14 @@ struct SimulationSettings
     f32 MouseRadius = 6.f;
     f32 MouseForce = -30.f;
 
-    TKit::Array<Onyx::Color, 3> Gradient = {Onyx::Color::CYAN, Onyx::Color::YELLOW, Onyx::Color::RED};
-
     ParticleLookupMode LookupMode = ParticleLookupMode::GridMultiThread;
     ParticleIterationMode IterationMode = ParticleIterationMode::PairWise;
 
     KernelType KType = KernelType::Spiky3;
     KernelType NearKType = KernelType::Spiky5;
+    TKIT_REFLECT_GROUP_END()
+
+    TKit::Array<Onyx::Color, 3> Gradient = {Onyx::Color::CYAN, Onyx::Color::YELLOW, Onyx::Color::RED};
 
     bool UsesGrid() const noexcept;
     bool UsesMultiThread() const noexcept;

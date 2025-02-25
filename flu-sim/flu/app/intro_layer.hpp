@@ -10,7 +10,7 @@ namespace Flu
 class IntroLayer final : public Onyx::UserLayer
 {
   public:
-    IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings = {}) noexcept;
+    IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings, Dimension p_Dim) noexcept;
 
     template <Dimension D>
     IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,

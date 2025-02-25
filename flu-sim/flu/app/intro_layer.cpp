@@ -6,8 +6,9 @@
 
 namespace Flu
 {
-IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings) noexcept
-    : m_Application(p_Application), m_Settings(p_Settings)
+IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
+                       const Dimension p_Dim) noexcept
+    : m_Application(p_Application), m_Dim(p_Dim == D2 ? 0 : 1), m_Settings(p_Settings)
 {
     m_Window = m_Application->GetMainWindow();
     m_Context2 = m_Window->GetRenderContext<D2>();
@@ -67,6 +68,16 @@ bool IntroLayer::OnEvent(const Onyx::Event &p_Event) noexcept
         m_Context2->ApplyCameraScalingControls(step);
         return true;
     }
+
+    if (p_Event.Type == Onyx::Event::KeyPressed && !ImGui::GetIO().WantCaptureKeyboard)
+        switch (p_Event.Key)
+        {
+        case Onyx::Input::Key::Escape:
+            m_Application->Quit();
+            break;
+        default:
+            break;
+        }
 
     return false;
 }
