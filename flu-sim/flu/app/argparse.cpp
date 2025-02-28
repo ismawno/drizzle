@@ -30,19 +30,19 @@ ParseResult ParseArgs(int argc, char **argv) noexcept
 
     parser.add_argument("--settings")
         .help("A path pointing to a .yaml file with simulation settings. The file must be compliant with the program's "
-              "structure to work");
+              "structure to work.");
     parser.add_argument("--state").help(
         "A path pointing to a .yaml file with the simulation state. The file must be compliant with the program's "
-        "structure to work. Trying to load a 2D state in a 3D simulation and vice versa will result in an error");
-    parser.add_argument("--no-intro").flag().help("Skip the intro layer and start the simulation directly");
-    parser.add_argument("--run-time")
+        "structure to work. Trying to load a 2D state in a 3D simulation and vice versa will result in an error.");
+    parser.add_argument("--no-intro").flag().help("Skip the intro layer and start the simulation directly.");
+    parser.add_argument("-s", "--seconds", "--run-time")
         .scan<'f', f32>()
         .help("The amount of time the simulation will run for in seconds. If not "
-              "specified, the simulation will run indefinitely");
+              "specified, the simulation will run indefinitely.");
 
     auto &group = parser.add_mutually_exclusive_group(true);
-    group.add_argument("--2-dim").flag().help("Run the simulation in 2D mode");
-    group.add_argument("--3-dim").flag().help("Run the simulation in 3D mode");
+    group.add_argument("--2-dim").flag().help("Run the simulation in 2D mode.");
+    group.add_argument("--3-dim").flag().help("Run the simulation in 3D mode.");
 
     SimulationSettings settings{};
     TKit::Reflect<SimulationSettings>::ForEachCommandLineField([&parser](const auto &p_Field) {
@@ -57,11 +57,11 @@ ParseResult ParseArgs(int argc, char **argv) noexcept
         {
             using EType = std::underlying_type_t<Type>;
             args.scan<'i', EType>().help(
-                TKIT_FORMAT("'SimulationSettings' enum field of type '{}'. You may specify it with an integer",
+                TKIT_FORMAT("'SimulationSettings' enum field of type '{}'. You may specify it with an integer.",
                             p_Field.TypeString));
         }
         else
-            args.help(TKIT_FORMAT("'SimulationSettings' field of type '{}'", p_Field.TypeString));
+            args.help(TKIT_FORMAT("'SimulationSettings' field of type '{}'.", p_Field.TypeString));
     });
 
     try

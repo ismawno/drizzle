@@ -6,6 +6,7 @@
 imgui.ini
 traces/
 saves/
+scripts/
 
 # Prerequisites
 *.d
