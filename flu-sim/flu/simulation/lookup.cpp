@@ -17,7 +17,7 @@ template <Dimension D> void LookupMethod<D>::UpdateBruteForceLookup(const f32 p_
 
 template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius) noexcept
 {
-    TKIT_PROFILE_NSCOPE("Flu::LookupMethod::UpdateGrid");
+    TKIT_PROFILE_NSCOPE("Flu::LookupMethod::UpdateGridLookup");
     if (m_Positions->empty())
         return;
     Radius = p_Radius;
