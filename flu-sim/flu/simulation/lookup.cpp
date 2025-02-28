@@ -43,15 +43,20 @@ template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius
         keys[i] = IndexPair{i, key};
         Grid.CellKeyToIndex[i] = UINT32_MAX;
     }
-    std::sort(keys, keys + particles, [](const IndexPair &a, const IndexPair &b) {
-        if (a.CellKey == b.CellKey)
-            return a.ParticleIndex < b.ParticleIndex;
-        return a.CellKey < b.CellKey;
-    });
+
+    {
+        TKIT_PROFILE_NSCOPE("Flu::LookupMethod::CellKeySorting");
+        std::sort(keys, keys + particles, [](const IndexPair &a, const IndexPair &b) {
+            if (a.CellKey == b.CellKey)
+                return a.ParticleIndex < b.ParticleIndex;
+            return a.CellKey < b.CellKey;
+        });
+    }
 
     u32 prevKey = keys[0].CellKey;
     GridCell cell{prevKey, 0, 0};
     Grid.CellKeyToIndex[prevKey] = 0;
+
     for (u32 i = 0; i < particles; ++i)
     {
         if (keys[i].CellKey != prevKey)
@@ -66,6 +71,7 @@ template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius
         Grid.ParticleIndices[i] = keys[i].ParticleIndex;
         prevKey = keys[i].CellKey;
     }
+
     cell.End = particles;
     Grid.Cells.push_back(cell);
     Core::GetArena().Reset();
