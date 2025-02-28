@@ -49,19 +49,19 @@ ParseResult ParseArgs(int argc, char **argv) noexcept
         using Field = TKit::NoCVRef<decltype(p_Field)>;
         using Type = typename Field::Type;
 
-        argparse::Argument &args = parser.add_argument(cliName(p_Field.Name));
+        argparse::Argument &arg = parser.add_argument(cliName(p_Field.Name));
         if constexpr (std::is_same_v<Type, f32>)
-            args.scan<'f', f32>();
+            arg.scan<'f', f32>();
 
         if constexpr (std::is_enum_v<Type>)
         {
             using EType = std::underlying_type_t<Type>;
-            args.scan<'i', EType>().help(
+            arg.scan<'i', EType>().help(
                 TKIT_FORMAT("'SimulationSettings' enum field of type '{}'. You may specify it with an integer.",
                             p_Field.TypeString));
         }
         else
-            args.help(TKIT_FORMAT("'SimulationSettings' field of type '{}'.", p_Field.TypeString));
+            arg.help(TKIT_FORMAT("'SimulationSettings' field of type '{}'.", p_Field.TypeString));
     });
 
     try
