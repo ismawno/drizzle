@@ -26,7 +26,12 @@ static std::string cliName(const char *p_Name) noexcept
 
 ParseResult ParseArgs(int argc, char **argv) noexcept
 {
-    argparse::ArgumentParser parser{"Drizzle", "1.0", argparse::default_arguments::all};
+    argparse::ArgumentParser parser{"drizzle", "1.0", argparse::default_arguments::all};
+    parser.add_description(
+        "Drizzle is a small project I have made inspired by Sebastian Lague's fluid simulation video. It "
+        "features a 2D and 3D fluid simulation using the Smoothed Particle Hydrodynamics method. The "
+        "simulation itself is simple, performance oriented and can be simulated both in 2D and 3D.");
+    parser.add_epilog("For similar projects, visit my GitHub at https://github.com/ismawno");
 
     parser.add_argument("--settings")
         .help("A path pointing to a .yaml file with simulation settings. The file must be compliant with the program's "

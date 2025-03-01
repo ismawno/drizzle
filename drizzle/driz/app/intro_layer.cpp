@@ -85,16 +85,19 @@ bool IntroLayer::OnEvent(const Onyx::Event &p_Event) noexcept
 void IntroLayer::renderIntroSettings() noexcept
 {
     ImGui::SetWindowSize({400, 400});
-    ImGui::Begin("Welcome to my fluid simulator!");
+    ImGui::Begin("Welcome to Drizzle, my fluid simulator!");
     const f32 deltaTime = m_Application->GetDeltaTime().AsMilliseconds();
     PresentModeEditor(m_Window);
     ImGui::Text("Frame time: %.2f ms", deltaTime);
 
     ImGui::Spacing();
-    ImGui::TextWrapped("This is a small project I have made inspired by Sebastian Lague's fluid simulation video. It "
-                       "features a 2D and 3D fluid simulation using the Smoothed Particle Hydrodynamics method. The "
-                       "simulation itself is simple, performance oriented and can be simulated both in 2D and 3D.");
+    ImGui::TextWrapped(
+        "Drizzle is a small project I have made inspired by Sebastian Lague's fluid simulation video. It "
+        "features a 2D and 3D fluid simulation using the Smoothed Particle Hydrodynamics method. The "
+        "simulation itself is simple, performance oriented and can be simulated both in 2D and 3D.");
     ImGui::TextLinkOpenURL("Sebastian Lague's video", "https://www.youtube.com/watch?v=rSKMYc1CQHE");
+    ImGui::TextLinkOpenURL("My GitHub", "https://github.com/ismawno");
+
     ImGui::Spacing();
 
     ImGui::Combo("Dimension", &m_Dim,
