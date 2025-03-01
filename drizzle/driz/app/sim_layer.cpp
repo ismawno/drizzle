@@ -28,7 +28,7 @@ template <Dimension D> void SimLayer<D>::OnUpdate() noexcept
 template <Dimension D> void SimLayer<D>::OnRender(const VkCommandBuffer) noexcept
 {
     TKIT_PROFILE_NSCOPE("SimLayer::OnRender");
-    Visualization<D>::AdjustAndControlCamera(m_Context, m_Application->GetDeltaTime());
+    Visualization<D>::AdjustRenderingContext(m_Context, m_Application->GetDeltaTime());
     m_Solver.DrawParticles(m_Context);
     m_Solver.DrawBoundingBox(m_Context);
 

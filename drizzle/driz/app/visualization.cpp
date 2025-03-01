@@ -4,11 +4,17 @@
 namespace Driz
 {
 template <Dimension D>
-void Visualization<D>::AdjustAndControlCamera(Onyx::RenderContext<D> *p_Context,
+void Visualization<D>::AdjustRenderingContext(Onyx::RenderContext<D> *p_Context,
                                               const TKit::Timespan p_DeltaTime) noexcept
 {
     p_Context->Flush(0.15f, 0.15f, 0.15f);
     p_Context->ScaleAxes(0.025f);
+
+    if constexpr (D == D3)
+    {
+        p_Context->TranslateZAxis(-40.f);
+        p_Context->DirectionalLight(0.f, 1.f, 1.f, 0.4f);
+    }
 
     p_Context->ApplyCameraMovementControls(1.5f * p_DeltaTime);
 }
@@ -33,7 +39,10 @@ void Visualization<D>::DrawParticles(Onyx::RenderContext<D> *p_Context, const Si
 
         p_Context->Scale(psize);
         p_Context->Translate(pos);
-        p_Context->Circle();
+        if constexpr (D == D2)
+            p_Context->Circle();
+        else
+            p_Context->Sphere();
 
         p_Context->Pop();
     }
@@ -58,16 +67,52 @@ void Visualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const 
 {
     p_Context->Push();
 
-    p_Context->Fill(false);
-    p_Context->Outline(p_Color);
-    p_Context->OutlineWidth(0.02f);
+    if constexpr (D == D2)
+    {
+        p_Context->Fill(false);
+        p_Context->Outline(p_Color);
+        p_Context->OutlineWidth(0.02f);
 
-    const fvec<D> center = 0.5f * (p_Min + p_Max);
-    const fvec<D> size = p_Max - p_Min;
+        const fvec2 center = 0.5f * (p_Min + p_Max);
+        const fvec2 size = p_Max - p_Min;
 
-    p_Context->Scale(size);
-    p_Context->Translate(center);
-    p_Context->Square();
+        p_Context->Scale(size);
+        p_Context->Translate(center);
+        p_Context->Square();
+    }
+    else
+    {
+        p_Context->Fill(p_Color);
+        const fvec3 dims = p_Max - p_Min;
+        const fvec3 right = fvec3{dims.x, 0, 0};
+        const fvec3 up = fvec3{0, dims.y, 0};
+        const fvec3 front = fvec3{0, 0, dims.z};
+        const fvec3 wopa = fvec3{dims.x, dims.y, 0};
+
+        const f32 thickness = 0.2f;
+        p_Context->Line(p_Min, p_Min + right, thickness);
+        p_Context->Line(p_Min, p_Min + up, thickness);
+
+        p_Context->Line(p_Min + right, p_Min + wopa, thickness);
+        p_Context->Line(p_Min + up, p_Min + wopa, thickness);
+
+        p_Context->Line(p_Min + front, p_Min + front + right, thickness);
+        p_Context->Line(p_Min + front, p_Min + front + up, thickness);
+
+        p_Context->Line(p_Min + front + right, p_Min + front + wopa, thickness);
+        p_Context->Line(p_Min + front + up, p_Min + front + wopa, thickness);
+
+        p_Context->Line(p_Min, p_Min + front, thickness);
+        p_Context->Line(p_Min + right, p_Min + right + front, thickness);
+        p_Context->Line(p_Min + up, p_Min + up + front, thickness);
+        p_Context->Line(p_Min + wopa, p_Min + wopa + front, thickness);
+
+        // p_Context->ScaleX(dims.x);
+        // p_Context->ScaleY(dims.z);
+        // p_Context->RotateX(glm::half_pi<f32>());
+        // p_Context->TranslateY(-0.5f * dims.y);
+        // p_Context->Square();
+    }
 
     p_Context->Pop();
 }

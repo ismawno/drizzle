@@ -35,8 +35,8 @@ int main(int argc, char **argv)
         {
             app.Startup();
             TKit::Clock frameClock{};
-            TKit::Clock runtimeClock{};
-            while (runtimeClock.GetElapsed().AsSeconds() < result->RunTime && app.NextFrame(frameClock))
+            TKit::Clock runTimeClock{};
+            while (runTimeClock.GetElapsed().AsSeconds() < result->RunTime && app.NextFrame(frameClock))
                 ;
             app.Shutdown();
         }

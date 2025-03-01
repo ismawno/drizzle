@@ -57,7 +57,7 @@ void IntroLayer::OnRender(const VkCommandBuffer) noexcept
 template <Dimension D>
 void IntroLayer::onRender(Onyx::RenderContext<D> *p_Context, const SimulationState<D> &p_State) noexcept
 {
-    Visualization<D>::AdjustAndControlCamera(p_Context, m_Application->GetDeltaTime());
+    Visualization<D>::AdjustRenderingContext(p_Context, m_Application->GetDeltaTime());
     Visualization<D>::DrawParticles(p_Context, m_Settings, p_State);
     Visualization<D>::DrawBoundingBox(p_Context, p_State.Min, p_State.Max, Onyx::Color::FromHexadecimal("A6B1E1"));
 }
