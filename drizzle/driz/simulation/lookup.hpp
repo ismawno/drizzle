@@ -1,12 +1,12 @@
 #pragma once
 
-#include "flu/core/glm.hpp"
-#include "flu/core/core.hpp"
+#include "driz/core/glm.hpp"
+#include "driz/core/core.hpp"
 #include "onyx/rendering/render_context.hpp"
 #include "tkit/utils/literals.hpp"
 #include <array>
 
-namespace Flu
+namespace Driz
 {
 struct GridCell
 {
@@ -206,4 +206,4 @@ template <Dimension D> class LookupMethod
 
     const SimArray<fvec<D>> *m_Positions = nullptr;
 };
-} // namespace Flu
+} // namespace Driz

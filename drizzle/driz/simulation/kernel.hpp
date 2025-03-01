@@ -1,9 +1,9 @@
 #pragma once
 
-#include "flu/core/alias.hpp"
-#include "flu/core/dimension.hpp"
+#include "driz/core/alias.hpp"
+#include "driz/core/dimension.hpp"
 
-namespace Flu
+namespace Driz
 {
 enum class KernelType
 {
@@ -39,4 +39,4 @@ template <Dimension D> struct Kernel
     static f32 WendlandC4(f32 p_Radius, f32 p_Distance) noexcept;
     static f32 WendlandC4Slope(f32 p_Radius, f32 p_Distance) noexcept;
 };
-} // namespace Flu
+} // namespace Driz

@@ -3,9 +3,9 @@
 #include "onyx/app/user_layer.hpp"
 #include "onyx/app/app.hpp"
 #include "onyx/rendering/render_context.hpp"
-#include "flu/simulation/solver.hpp"
+#include "driz/simulation/solver.hpp"
 
-namespace Flu
+namespace Driz
 {
 class IntroLayer final : public Onyx::UserLayer
 {
@@ -42,4 +42,4 @@ class IntroLayer final : public Onyx::UserLayer
     SimulationState<D2> m_State2;
     SimulationState<D3> m_State3;
 };
-} // namespace Flu
+} // namespace Driz

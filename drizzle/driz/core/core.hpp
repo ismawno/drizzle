@@ -1,16 +1,16 @@
 #pragma once
 
-#include "flu/core/alias.hpp"
-#include "flu/core/dimension.hpp"
+#include "driz/core/alias.hpp"
+#include "driz/core/dimension.hpp"
 #include "tkit/memory/arena_allocator.hpp"
 #include "tkit/container/static_array.hpp"
 #include "tkit/multiprocessing/thread_pool.hpp"
 #include "tkit/multiprocessing/for_each.hpp"
 #include <filesystem>
 
-// #define FLU_ENABLE_INSPECTOR
+// #define DRIZ_ENABLE_INSPECTOR
 
-namespace Flu
+namespace Driz
 {
 namespace fs = std::filesystem;
 
@@ -40,4 +40,4 @@ struct Core
             tasks[i]->WaitUntilFinished();
     }
 };
-} // namespace Flu
+} // namespace Driz

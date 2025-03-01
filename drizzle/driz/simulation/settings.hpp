@@ -1,13 +1,13 @@
 #pragma once
 
-#include "flu/simulation/kernel.hpp"
-#include "flu/core/glm.hpp"
-#include "flu/core/core.hpp"
+#include "driz/simulation/kernel.hpp"
+#include "driz/core/glm.hpp"
+#include "driz/core/core.hpp"
 #include "onyx/draw/color.hpp"
 #include "tkit/container/array.hpp"
 #include "tkit/reflection/reflect.hpp"
 
-namespace Flu
+namespace Driz
 {
 enum class ParticleLookupMode
 {
@@ -81,4 +81,4 @@ template <Dimension D> struct SimulationData
 
     SimArray<Density> Densities; // Density and Near Density
 };
-} // namespace Flu
+} // namespace Driz

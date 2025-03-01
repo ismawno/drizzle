@@ -2,7 +2,7 @@
 
 #include "tkit/container/alias.hpp"
 
-namespace Flu
+namespace Driz
 {
 using namespace TKit::Alias;
-} // namespace Flu
+} // namespace Driz

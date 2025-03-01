@@ -1,14 +1,14 @@
-#include "flu/app/argparse.hpp"
-#include "flu/app/intro_layer.hpp"
-#include "flu/app/sim_layer.hpp"
+#include "driz/app/argparse.hpp"
+#include "driz/app/intro_layer.hpp"
+#include "driz/app/sim_layer.hpp"
 #include "onyx/serialization/color.hpp"
-#include "tkit/reflection/flu/simulation/settings.hpp"
+#include "tkit/reflection/driz/simulation/settings.hpp"
 #include "tkit/serialization/yaml/container.hpp"
 #include "tkit/serialization/yaml/glm.hpp"
 
 #include <argparse/argparse.hpp>
 
-namespace Flu
+namespace Driz
 {
 static std::string cliName(const char *p_Name) noexcept
 {
@@ -26,7 +26,7 @@ static std::string cliName(const char *p_Name) noexcept
 
 ParseResult ParseArgs(int argc, char **argv) noexcept
 {
-    argparse::ArgumentParser parser{"Fluid simulator", "1.0", argparse::default_arguments::all};
+    argparse::ArgumentParser parser{"Drizzle", "1.0", argparse::default_arguments::all};
 
     parser.add_argument("--settings")
         .help("A path pointing to a .yaml file with simulation settings. The file must be compliant with the program's "
@@ -113,4 +113,4 @@ ParseResult ParseArgs(int argc, char **argv) noexcept
     result.Settings = settings;
     return result;
 }
-} // namespace Flu
+} // namespace Driz

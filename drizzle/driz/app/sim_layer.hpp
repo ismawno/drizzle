@@ -3,10 +3,10 @@
 #include "onyx/app/user_layer.hpp"
 #include "onyx/app/app.hpp"
 #include "onyx/rendering/render_context.hpp"
-#include "flu/simulation/solver.hpp"
-#include "flu/app/inspector.hpp"
+#include "driz/simulation/solver.hpp"
+#include "driz/app/inspector.hpp"
 
-namespace Flu
+namespace Driz
 {
 template <Dimension D> class SimLayer final : public Onyx::UserLayer
 {
@@ -26,7 +26,7 @@ template <Dimension D> class SimLayer final : public Onyx::UserLayer
     Onyx::Window *m_Window;
 
     Solver<D> m_Solver;
-#ifdef FLU_ENABLE_INSPECTOR
+#ifdef DRIZ_ENABLE_INSPECTOR
     Inspector<D> m_Inspector{&m_Solver};
 #endif
     Onyx::RenderContext<D> *m_Context;
@@ -35,4 +35,4 @@ template <Dimension D> class SimLayer final : public Onyx::UserLayer
     bool m_DummyStep = false;
     bool m_Pause = false;
 };
-} // namespace Flu
+} // namespace Driz

@@ -1,9 +1,9 @@
-#include "flu/simulation/solver.hpp"
-#include "flu/app/visualization.hpp"
+#include "driz/simulation/solver.hpp"
+#include "driz/app/visualization.hpp"
 #include "onyx/app/input.hpp"
 #include "tkit/profiling/macros.hpp"
 
-namespace Flu
+namespace Driz
 {
 template <Dimension D>
 static f32 computeKernel(const KernelType p_Kernel, const f32 p_Radius, const f32 p_Distance) noexcept
@@ -125,7 +125,7 @@ Solver<D>::Solver(const SimulationSettings &p_Settings, const SimulationState<D>
 
 template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
 {
-    TKIT_PROFILE_NSCOPE("Flu::Solver::BeginStep");
+    TKIT_PROFILE_NSCOPE("Driz::Solver::BeginStep");
     Data.StagedPositions.resize(Data.State.Positions.size());
 
     std::swap(Data.State.Positions, Data.StagedPositions);
@@ -142,7 +142,7 @@ template <Dimension D> void Solver<D>::EndStep() noexcept
 }
 template <Dimension D> void Solver<D>::ApplyComputedForces(const f32 p_DeltaTime) noexcept
 {
-    TKIT_PROFILE_NSCOPE("Flu::Solver::ApplyComputedForces");
+    TKIT_PROFILE_NSCOPE("Driz::Solver::ApplyComputedForces");
 
     for (u32 i = 0; i < Data.State.Positions.size(); ++i)
     {
@@ -194,7 +194,7 @@ template <Dimension D> void Solver<D>::mergeAccelerationArrays() noexcept
 
 template <Dimension D> void Solver<D>::ComputeDensities() noexcept
 {
-    TKIT_PROFILE_NSCOPE("Flu::Solver::ComputeDensities");
+    TKIT_PROFILE_NSCOPE("Driz::Solver::ComputeDensities");
 
     const auto pairWiseST = [this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
         const fvec2 densities = Settings.ParticleMass * fvec2{getInfluence(p_Distance), getNearInfluence(p_Distance)};
@@ -273,7 +273,7 @@ template <Dimension D> void Solver<D>::ComputeDensities() noexcept
 }
 template <Dimension D> void Solver<D>::AddPressureAndViscosity() noexcept
 {
-    TKIT_PROFILE_NSCOPE("Flu::Solver::PressureAndViscosity");
+    TKIT_PROFILE_NSCOPE("Driz::Solver::PressureAndViscosity");
     const auto computeAccelerations = [this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
         const fvec<D> gradient = computePairwisePressureGradient(p_Index1, p_Index2, p_Distance);
         const fvec<D> term = computePairwiseViscosityTerm(p_Index1, p_Index2, p_Distance);
@@ -453,4 +453,4 @@ template <Dimension D> u32 Solver<D>::GetParticleCount() const noexcept
 template class Solver<Dimension::D2>;
 template class Solver<Dimension::D3>;
 
-} // namespace Flu
+} // namespace Driz

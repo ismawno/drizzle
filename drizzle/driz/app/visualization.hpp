@@ -1,14 +1,14 @@
 #pragma once
 
-#include "flu/core/glm.hpp"
+#include "driz/core/glm.hpp"
 #include "onyx/rendering/render_context.hpp"
 #include "onyx/serialization/color.hpp"
 #include "tkit/profiling/timespan.hpp"
-#include "tkit/reflection/flu/simulation/settings.hpp"
+#include "tkit/reflection/driz/simulation/settings.hpp"
 #include "tkit/serialization/yaml/container.hpp"
 #include <imgui.h>
 
-namespace Flu
+namespace Driz
 {
 struct SimulationSettings;
 template <Dimension D> struct Visualization
@@ -67,4 +67,4 @@ template <typename T> void ImportWidget(const char *p_Name, const fs::path &p_Di
     }
 }
 
-} // namespace Flu
+} // namespace Driz

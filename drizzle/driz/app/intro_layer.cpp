@@ -1,10 +1,10 @@
-#include "flu/app/intro_layer.hpp"
-#include "flu/app/sim_layer.hpp"
-#include "flu/app/visualization.hpp"
+#include "driz/app/intro_layer.hpp"
+#include "driz/app/sim_layer.hpp"
+#include "driz/app/visualization.hpp"
 #include "tkit/serialization/yaml/glm.hpp"
 #include <imgui.h>
 
-namespace Flu
+namespace Driz
 {
 IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
                        const Dimension p_Dim) noexcept
@@ -202,4 +202,4 @@ template IntroLayer::IntroLayer(Onyx::Application *p_Application, const Simulati
 template IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
                                 const SimulationState<D3> &p_State) noexcept;
 
-} // namespace Flu
+} // namespace Driz

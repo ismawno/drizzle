@@ -1,10 +1,10 @@
 #pragma once
 
-#include "flu/simulation/settings.hpp"
-#include "flu/simulation/lookup.hpp"
+#include "driz/simulation/settings.hpp"
+#include "driz/simulation/lookup.hpp"
 #include "onyx/rendering/render_context.hpp"
 
-namespace Flu
+namespace Driz
 {
 template <Dimension D> class Solver
 {
@@ -101,4 +101,4 @@ template <Dimension D> class Solver
     TKit::Array<SimArray<fvec<D>>, TKIT_THREAD_POOL_MAX_THREADS> m_ThreadAccelerations;
     TKit::Array<SimArray<Density>, TKIT_THREAD_POOL_MAX_THREADS> m_ThreadDensities;
 };
-} // namespace Flu
+} // namespace Driz

@@ -1,9 +1,9 @@
-#include "flu/simulation/lookup.hpp"
-#include "flu/app/visualization.hpp"
+#include "driz/simulation/lookup.hpp"
+#include "driz/app/visualization.hpp"
 #include "tkit/utils/hash.hpp"
 #include "tkit/profiling/macros.hpp"
 
-namespace Flu
+namespace Driz
 {
 template <Dimension D> void LookupMethod<D>::SetPositions(const SimArray<fvec<D>> *p_Positions) noexcept
 {
@@ -17,7 +17,7 @@ template <Dimension D> void LookupMethod<D>::UpdateBruteForceLookup(const f32 p_
 
 template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius) noexcept
 {
-    TKIT_PROFILE_NSCOPE("Flu::LookupMethod::UpdateGridLookup");
+    TKIT_PROFILE_NSCOPE("Driz::LookupMethod::UpdateGridLookup");
     if (m_Positions->empty())
         return;
     Radius = p_Radius;
@@ -45,7 +45,7 @@ template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius
     }
 
     {
-        TKIT_PROFILE_NSCOPE("Flu::LookupMethod::CellKeySorting");
+        TKIT_PROFILE_NSCOPE("Driz::LookupMethod::CellKeySorting");
         std::sort(keys, keys + particles, [](const IndexPair &a, const IndexPair &b) {
             if (a.CellKey == b.CellKey)
                 return a.ParticleIndex < b.ParticleIndex;
@@ -79,7 +79,7 @@ template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius
 
 template <Dimension D> u32 LookupMethod<D>::DrawCells(Onyx::RenderContext<D> *p_Context) const noexcept
 {
-    TKIT_PROFILE_NSCOPE("Flu::LookupMethod::DrawCells");
+    TKIT_PROFILE_NSCOPE("Driz::LookupMethod::DrawCells");
     const auto isUnique = [](const auto it1, const auto it2, const ivec<D> &p_Position) {
         for (auto it = it1; it != it2; ++it)
             if (*it == p_Position)
@@ -163,4 +163,4 @@ template <Dimension D> u32 LookupMethod<D>::GetCellCount() const noexcept
 template class LookupMethod<D2>;
 template class LookupMethod<D3>;
 
-} // namespace Flu
+} // namespace Driz

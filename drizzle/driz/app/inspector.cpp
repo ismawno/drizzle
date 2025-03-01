@@ -1,9 +1,9 @@
-#include "flu/app/inspector.hpp"
-#ifdef FLU_ENABLE_INSPECTOR
+#include "driz/app/inspector.hpp"
+#ifdef DRIZ_ENABLE_INSPECTOR
 #    include "tkit/profiling/clock.hpp"
 #    include <imgui.h>
 
-namespace Flu
+namespace Driz
 {
 template <Dimension D> Inspector<D>::Inspector(const Solver<D> *p_Solver) noexcept : m_Solver(p_Solver)
 {
@@ -311,5 +311,5 @@ template <Dimension D> void Inspector<D>::renderParticleData() const noexcept
 template class Inspector<D2>;
 template class Inspector<D3>;
 
-} // namespace Flu
+} // namespace Driz
 #endif

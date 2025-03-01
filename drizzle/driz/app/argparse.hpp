@@ -1,9 +1,9 @@
 #pragma once
 
-#include "flu/simulation/settings.hpp"
+#include "driz/simulation/settings.hpp"
 #include <optional>
 
-namespace Flu
+namespace Driz
 {
 struct ParseResult
 {
@@ -18,4 +18,4 @@ struct ParseResult
 };
 
 ParseResult ParseArgs(int argc, char **argv) noexcept;
-} // namespace Flu
+} // namespace Driz

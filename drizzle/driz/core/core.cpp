@@ -1,17 +1,17 @@
-#include "flu/core/core.hpp"
+#include "driz/core/core.hpp"
 #include "onyx/core/core.hpp"
 #include "tkit/utils/literals.hpp"
 
-namespace Flu
+namespace Driz
 {
 using namespace TKit::Literals;
 
 static TKit::Storage<TKit::ThreadPool> s_ThreadPool;
 static TKit::ArenaAllocator s_Arena{1_mb};
 
-static fs::path s_SettingsPath = fs::path(FLU_ROOT_PATH) / "saves" / "settings";
-static fs::path s_StatePath2 = fs::path(FLU_ROOT_PATH) / "saves" / "2D";
-static fs::path s_StatePath3 = fs::path(FLU_ROOT_PATH) / "saves" / "3D";
+static fs::path s_SettingsPath = fs::path(DRIZ_ROOT_PATH) / "saves" / "settings";
+static fs::path s_StatePath2 = fs::path(DRIZ_ROOT_PATH) / "saves" / "2D";
+static fs::path s_StatePath3 = fs::path(DRIZ_ROOT_PATH) / "saves" / "3D";
 
 void Core::Initialize() noexcept
 {
@@ -58,4 +58,4 @@ template <Dimension D> const fs::path &Core::GetStatePath() noexcept
 template const fs::path &Core::GetStatePath<D2>() noexcept;
 template const fs::path &Core::GetStatePath<D3>() noexcept;
 
-} // namespace Flu
+} // namespace Driz

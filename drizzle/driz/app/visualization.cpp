@@ -1,7 +1,7 @@
-#include "flu/app/visualization.hpp"
-#include "flu/simulation/solver.hpp"
+#include "driz/app/visualization.hpp"
+#include "driz/simulation/solver.hpp"
 
-namespace Flu
+namespace Driz
 {
 template <Dimension D>
 void Visualization<D>::AdjustAndControlCamera(Onyx::RenderContext<D> *p_Context,
@@ -182,4 +182,4 @@ template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings 
 template struct Visualization<D2>;
 template struct Visualization<D3>;
 
-} // namespace Flu
+} // namespace Driz

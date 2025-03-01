@@ -1,7 +1,7 @@
-#include "flu/simulation/kernel.hpp"
-#include "flu/core/glm.hpp"
+#include "driz/simulation/kernel.hpp"
+#include "driz/core/glm.hpp"
 
-namespace Flu
+namespace Driz
 {
 template <Dimension D> static f32 spiky2Sigma(const f32 p_Radius) noexcept
 {
@@ -153,4 +153,4 @@ template <Dimension D> f32 Kernel<D>::WendlandC4Slope(const f32 p_Radius, const 
 template struct Kernel<Dimension::D2>;
 template struct Kernel<Dimension::D3>;
 
-} // namespace Flu
+} // namespace Driz

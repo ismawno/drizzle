@@ -1,10 +1,10 @@
 #pragma once
 
 #include "tkit/utils/glm.hpp"
-#include "flu/core/alias.hpp"
-#include "flu/core/dimension.hpp"
+#include "driz/core/alias.hpp"
+#include "driz/core/dimension.hpp"
 
-namespace Flu
+namespace Driz
 {
 using fvec2 = glm::vec<2, f32>;
 using fvec3 = glm::vec<3, f32>;
@@ -24,4 +24,4 @@ using uvec4 = glm::vec<4, u32>;
 
 template <Dimension D> using uvec = glm::vec<D, u32>;
 
-} // namespace Flu
+} // namespace Driz

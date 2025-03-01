@@ -1,11 +1,11 @@
-#include "flu/app/sim_layer.hpp"
-#include "flu/app/visualization.hpp"
-#include "flu/app/intro_layer.hpp"
+#include "driz/app/sim_layer.hpp"
+#include "driz/app/visualization.hpp"
+#include "driz/app/intro_layer.hpp"
 #include "tkit/profiling/macros.hpp"
 #include "tkit/serialization/yaml/glm.hpp"
 #include <imgui.h>
 
-namespace Flu
+namespace Driz
 {
 template <Dimension D>
 SimLayer<D>::SimLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
@@ -50,7 +50,7 @@ template <Dimension D> void SimLayer<D>::OnRender(const VkCommandBuffer) noexcep
         renderVisualizationSettings();
     ImGui::End();
 
-#ifdef FLU_ENABLE_INSPECTOR
+#ifdef DRIZ_ENABLE_INSPECTOR
     if (ImGui::Begin("Simulation inspector"))
         m_Inspector.Render();
     ImGui::End();
@@ -100,7 +100,7 @@ template <Dimension D> void SimLayer<D>::step(const bool p_Dummy) noexcept
         m_Solver.AddMouseForce(p_MousePos);
     }
 
-#ifdef FLU_ENABLE_INSPECTOR
+#ifdef DRIZ_ENABLE_INSPECTOR
     if (m_Inspector.WantsToInspect())
     {
         m_Solver.UpdateAllLookups();
@@ -174,4 +174,4 @@ template <Dimension D> void SimLayer<D>::renderVisualizationSettings() noexcept
 template class SimLayer<D2>;
 template class SimLayer<D3>;
 
-} // namespace Flu
+} // namespace Driz

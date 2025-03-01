@@ -1,9 +1,9 @@
 #pragma once
 
-#include "flu/simulation/solver.hpp"
-#ifdef FLU_ENABLE_INSPECTOR
+#include "driz/simulation/solver.hpp"
+#ifdef DRIZ_ENABLE_INSPECTOR
 
-namespace Flu
+namespace Driz
 {
 using ParticlePair = std::pair<u32, u32>;
 
@@ -106,5 +106,5 @@ template <Dimension D> class Inspector
 
     mutable std::mutex m_Mutex;
 };
-} // namespace Flu
+} // namespace Driz
 #endif

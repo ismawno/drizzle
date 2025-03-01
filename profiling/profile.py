@@ -15,16 +15,16 @@ def parse_arguments() -> tuple[Namespace, list[str]]:
         "-o", "--output", type=Path, required=True, help="The path to the output trace."
     )
     parser.add_argument(
-        "--flu-exec",
+        "--drizzle-exec",
         type=Path,
         default=None,
-        help="The path to the 'flu-sim' executable. Default is '<root>/build/flu-sim/flu-sim'.",
+        help="The path to the 'drizzle' executable. Default is '<root>/build/drizzle/drizzle'.",
     )
     parser.add_argument(
         "--profiler-exec",
         type=Path,
         default=None,
-        help="The path to the 'flu-sim' executable. Default is '<root>/build/profiler/cli/tracy-capture'.",
+        help="The path to the 'drizzle' executable. Default is '<root>/build/profiler/cli/tracy-capture'.",
     )
     parser.add_argument(
         "-s",
@@ -58,9 +58,9 @@ def main() -> None:
 
     output.parent.mkdir(exist_ok=True, parents=True)
 
-    flu_exec = args.flu_exec
-    if flu_exec is None:
-        flu_exec = Path(__file__).parent.parent / "build" / "flu-sim" / "flu-sim"
+    drizzle_exec = args.drizzle_exec
+    if drizzle_exec is None:
+        drizzle_exec = Path(__file__).parent.parent / "build" / "drizzle" / "drizzle"
 
     profiler_exec: Path = args.profiler_exec
     if profiler_exec is None:
@@ -82,12 +82,12 @@ def main() -> None:
     if args.overwrite:
         profiler.append("-f")
 
-    flu = [str(flu_exec), "--run-time", str(rt + 1.0)] + unknown
+    drizzle = [str(drizzle_exec), "--run-time", str(rt + 1.0)] + unknown
 
     log(f"Executing profiler: {' '.join(profiler)}")
-    log(f"Executing flu-sim: {' '.join(flu)}")
+    log(f"Executing drizzle: {' '.join(drizzle)}")
 
-    p1 = subprocess.Popen(flu)
+    p1 = subprocess.Popen(drizzle)
     time.sleep(0.5)
     p2 = subprocess.Popen(profiler)
 

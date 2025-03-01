@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(flu-sim-root)
+project(drizzle-root)
 
 # Set the C++ standard to C++20
 set(CMAKE_CXX_STANDARD 20)
@@ -16,6 +16,6 @@ endfunction()
 
 define_option(CMAKE_BUILD_TYPE "Debug")
 
-set(FLU_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+set(DRIZZLE_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_subdirectory(flu-sim)
+add_subdirectory(drizzle)
