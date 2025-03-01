@@ -13,6 +13,7 @@ IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSetting
     m_Window = m_Application->GetMainWindow();
     m_Context2 = m_Window->GetRenderContext<D2>();
     m_Context3 = m_Window->GetRenderContext<D3>();
+    m_Context3->SetPerspectiveProjection();
 
     updateStateAsLattice(m_State2);
     updateStateAsLattice(m_State3);
@@ -39,10 +40,13 @@ IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSetting
 
     m_Context2 = m_Window->GetRenderContext<D2>();
     m_Context3 = m_Window->GetRenderContext<D3>();
+    m_Context3->SetPerspectiveProjection();
 }
 
 void IntroLayer::OnRender(const VkCommandBuffer) noexcept
 {
+    m_Context2->Flush();
+    m_Context3->Flush();
     if (m_Dim == 0)
         onRender(m_Context2, m_State2);
     else
@@ -84,7 +88,6 @@ bool IntroLayer::OnEvent(const Onyx::Event &p_Event) noexcept
 
 void IntroLayer::renderIntroSettings() noexcept
 {
-    ImGui::SetWindowSize({400, 400});
     ImGui::Begin("Welcome to Drizzle, my fluid simulator!");
     const f32 deltaTime = m_Application->GetDeltaTime().AsMilliseconds();
     PresentModeEditor(m_Window);

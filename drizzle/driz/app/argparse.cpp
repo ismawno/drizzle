@@ -24,7 +24,7 @@ static std::string cliName(const char *p_Name) noexcept
     return result;
 }
 
-ParseResult ParseArgs(int argc, char **argv) noexcept
+const ParseResult *ParseArgs(int argc, char **argv)
 {
     argparse::ArgumentParser parser{"drizzle", "1.0", argparse::default_arguments::all};
     parser.add_description(
@@ -34,8 +34,8 @@ ParseResult ParseArgs(int argc, char **argv) noexcept
     parser.add_epilog("For similar projects, visit my GitHub at https://github.com/ismawno");
 
     parser.add_argument("--settings")
-        .help("A path pointing to a .yaml file with simulation settings. The file must be compliant with the program's "
-              "structure to work.");
+        .help("A path pointing to a .yaml file with simulation settings. The file must be compliant with the"
+              "program's structure to work.");
     parser.add_argument("--state").help(
         "A path pointing to a .yaml file with the simulation state. The file must be compliant with the program's "
         "structure to work. Trying to load a 2D state in a 3D simulation and vice versa will result in an error.");
@@ -49,7 +49,6 @@ ParseResult ParseArgs(int argc, char **argv) noexcept
     group.add_argument("--2-dim").flag().help("Run the simulation in 2D mode.");
     group.add_argument("--3-dim").flag().help("Run the simulation in 3D mode.");
 
-    SimulationSettings settings{};
     TKit::Reflect<SimulationSettings>::ForEachCommandLineField([&parser](const auto &p_Field) {
         using Field = TKit::NoCVRef<decltype(p_Field)>;
         using Type = typename Field::Type;
@@ -78,11 +77,12 @@ ParseResult ParseArgs(int argc, char **argv) noexcept
         std::cerr << err.what() << std::endl;
         std::exit(EXIT_FAILURE);
     }
-    ParseResult result{};
+    ParseResult *result = new ParseResult{};
 
-    result.Intro = !parser.get<bool>("--no-intro");
+    SimulationSettings settings{};
+    result->Intro = !parser.get<bool>("--no-intro");
     const bool is2D = parser.get<bool>("--2-dim");
-    result.Dim = is2D ? D2 : D3;
+    result->Dim = is2D ? D2 : D3;
 
     if (const auto path = parser.present("--settings"))
         settings = TKit::Yaml::Deserialize<SimulationSettings>(*path);
@@ -90,23 +90,23 @@ ParseResult ParseArgs(int argc, char **argv) noexcept
     if (const auto path = parser.present("--state"))
     {
         if (is2D)
-            result.State2 = TKit::Yaml::Deserialize<SimulationState<D2>>(*path);
+            result->State2 = TKit::Yaml::Deserialize<SimulationState<D2>>(*path);
         else
-            result.State3 = TKit::Yaml::Deserialize<SimulationState<D3>>(*path);
+            result->State3 = TKit::Yaml::Deserialize<SimulationState<D3>>(*path);
     }
-    else if (!result.Intro)
+    else if (!result->Intro)
     {
-        result.State2 = SimulationState<D2>{};
-        result.State3 = SimulationState<D3>{};
+        result->State2.emplace();
+        result->State3.emplace();
     }
 
     if (const auto runTime = parser.present<f32>("--run-time"))
     {
-        result.RunTime = *runTime;
-        result.HasRunTime = true;
+        result->RunTime = *runTime;
+        result->HasRunTime = true;
     }
     else
-        result.HasRunTime = false;
+        result->HasRunTime = false;
 
     TKit::Reflect<SimulationSettings>::ForEachCommandLineField([&parser, &settings](const auto &p_Field) {
         using Field = TKit::NoCVRef<decltype(p_Field)>;
@@ -115,7 +115,7 @@ ParseResult ParseArgs(int argc, char **argv) noexcept
             p_Field.Set(settings, *value);
     });
 
-    result.Settings = settings;
+    result->Settings = settings;
     return result;
 }
 } // namespace Driz
