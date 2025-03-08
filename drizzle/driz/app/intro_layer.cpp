@@ -15,8 +15,8 @@ IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSetting
     m_Context3 = m_Window->GetRenderContext<D3>();
     m_Context3->SetPerspectiveProjection();
 
-    updateStateAsLattice(m_State2);
-    updateStateAsLattice(m_State3);
+    updateStateAsLattice<D2>(m_State2, m_Dimensions2);
+    updateStateAsLattice<D3>(m_State3, m_Dimensions3);
 }
 
 template <Dimension D>
@@ -28,13 +28,13 @@ IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSetting
     {
         m_Dim = 0;
         m_State2 = p_State;
-        updateStateAsLattice(m_State3);
+        updateStateAsLattice<D3>(m_State3, m_Dimensions3);
     }
     else
     {
         m_Dim = 1;
         m_State3 = p_State;
-        updateStateAsLattice(m_State2);
+        updateStateAsLattice<D2>(m_State2, m_Dimensions2);
     }
     m_Window = m_Application->GetMainWindow();
 
@@ -88,101 +88,110 @@ bool IntroLayer::OnEvent(const Onyx::Event &p_Event) noexcept
 
 void IntroLayer::renderIntroSettings() noexcept
 {
-    ImGui::Begin("Welcome to Drizzle, my fluid simulator!");
-    const f32 deltaTime = m_Application->GetDeltaTime().AsMilliseconds();
-    PresentModeEditor(m_Window);
-    ImGui::Text("Frame time: %.2f ms", deltaTime);
-
-    ImGui::Spacing();
-    ImGui::TextWrapped(
-        "Drizzle is a small project I have made inspired by Sebastian Lague's fluid simulation video. It "
-        "features a 2D and 3D fluid simulation using the Smoothed Particle Hydrodynamics method. The "
-        "simulation itself is simple, performance oriented and can be simulated both in 2D and 3D.");
-    ImGui::TextLinkOpenURL("Sebastian Lague's video", "https://www.youtube.com/watch?v=rSKMYc1CQHE");
-    ImGui::TextLinkOpenURL("My GitHub", "https://github.com/ismawno");
-
-    ImGui::Spacing();
-
-    ImGui::Combo("Dimension", &m_Dim,
-                 "2D\0"
-                 "3D\0\0");
-
-    ImGui::Spacing();
-
-    ImGui::Text("The camera controls are the following:");
-    ImGui::BulletText("W-A-S-D: Move the camera");
-    ImGui::BulletText("Q-E: Rotate the camera");
-    ImGui::BulletText("Mouse wheel: Zoom in/out (Left Shift for faster zoom, 2D only)");
-    ImGui::BulletText("Left mouse button: Apply a force to the fluid");
-
-    ImGui::Spacing();
-
-    ImGui::TextWrapped(
-        "You can choose how many starting particles you want to have by tweaking the settings below. Note "
-        "that you may add more particles during the simulation by pressing the space bar. The layout of the starting "
-        "particles is conditioned by the selected dimension, either 2D or 3D.");
-    ImGui::TextWrapped("Note that you may also choose the option to import a custom or past simulation state.");
-
-    ImGui::Spacing();
-
-    if (m_Dim == 0)
+    if (ImGui::Begin("Welcome to Drizzle, my fluid simulator!"))
     {
-        ImGui::Text("Current amount: %u", m_State2.Positions.size());
-        if (ImGui::DragInt2("Particles", glm::value_ptr(m_Dimensions), 1, 1, INT32_MAX))
-            updateStateAsLattice(m_State2);
-        ExportWidget("Export particle state", Core::GetStatePath<D2>(), m_State2);
-        ImportWidget("Import particle state", Core::GetStatePath<D2>(), m_State2);
-    }
-    else
-    {
-        ImGui::Text("Current amount: %u", m_State3.Positions.size());
-        if (ImGui::DragInt3("Particles", glm::value_ptr(m_Dimensions), 1, 1, INT32_MAX))
-            updateStateAsLattice(m_State3);
-        ExportWidget("Export particle state", Core::GetStatePath<D3>(), m_State3);
-        ImportWidget("Import particle state", Core::GetStatePath<D3>(), m_State3);
-    }
+        PresentModeEditor(m_Window, Flag_DisplayHelp);
+        ImGui::Spacing();
+        DisplayFrameTime(m_Application->GetDeltaTime(), Flag_DisplayHelp);
+        ImGui::Spacing();
 
-    ImGui::Spacing();
+        ImGui::Text("Version: " DRIZ_VERSION);
+        ImGui::TextWrapped(
+            "Drizzle is a small project I have made inspired by Sebastian Lague's fluid simulation video. It "
+            "features a 2D and 3D fluid simulation using the Smoothed Particle Hydrodynamics method. The "
+            "simulation itself is simple and performance oriented.");
 
-    if (ImGui::Button("Start simulation"))
-    {
+        ImGui::Text("Missing features I would like to implement shortly:");
+        ImGui::BulletText("Additional fluid behaviours: Viscoealsticity, plasticity, stickiness, etc.");
+        ImGui::BulletText("SIMD optimizations.");
+        ImGui::BulletText("Compute shaders support.");
+
+        ImGui::TextLinkOpenURL("Sebastian Lague's video", "https://www.youtube.com/watch?v=rSKMYc1CQHE");
+        ImGui::TextLinkOpenURL("My GitHub", "https://github.com/ismawno");
+
+        ImGui::Spacing();
+        ImGui::Combo("Dimension", &m_Dim,
+                     "2D\0"
+                     "3D\0\0");
+        HelpMarkerSameLine("You can choose between a 2D and 3D simulation. 3D is more computationally expensive.");
+        ImGui::Spacing();
+
+        ImGui::Text("The camera controls are the following:");
         if (m_Dim == 0)
-            m_Application->SetUserLayer<SimLayer<D2>>(m_Application, m_Settings, m_State2);
+            DisplayCameraMovementControls<D2>();
         else
-            m_Application->SetUserLayer<SimLayer<D3>>(m_Application, m_Settings, m_State3);
-    }
+            DisplayCameraMovementControls<D3>();
+        ImGui::BulletText("R: Spawn particles");
+        ImGui::BulletText("Mouse click: Interact with the fluid!");
 
-    if (m_Dim == 0)
-        renderBoundingBox(m_State2);
-    else
-        renderBoundingBox(m_State3);
+        ImGui::Spacing();
+        ImGui::TextWrapped("You can choose how many starting particles you want to have by tweaking the settings "
+                           "below. The layout of the starting particles is conditioned by the selected dimension.");
+        ImGui::TextWrapped("Note that you may also choose the option to import a custom or past simulation state.");
+        ImGui::Spacing();
+
+        if (m_Dim == 0)
+        {
+            ImGui::Text("Current amount: %u", m_State2.Positions.size());
+            if (ImGui::DragInt2("Particles", reinterpret_cast<i32 *>(glm::value_ptr(m_Dimensions2)), 1.f, 1, INT32_MAX))
+                updateStateAsLattice<D2>(m_State2, m_Dimensions2);
+            ExportWidget("Export simulation state", Core::GetStatePath<D2>(), m_State2);
+            ImportWidget("Import simulation state", Core::GetStatePath<D2>(), m_State2);
+        }
+        else
+        {
+            ImGui::Text("Current amount: %u", m_State3.Positions.size());
+            if (ImGui::DragInt3("Particles", reinterpret_cast<i32 *>(glm::value_ptr(m_Dimensions3)), 1.f, 1, INT32_MAX))
+                updateStateAsLattice<D3>(m_State3, m_Dimensions3);
+            ExportWidget("Export simulation state", Core::GetStatePath<D3>(), m_State3);
+            ImportWidget("Import simulation state", Core::GetStatePath<D3>(), m_State3);
+        }
+
+        ImGui::Spacing();
+
+        if (ImGui::Button("Start simulation"))
+        {
+            if (m_Dim == 0)
+                m_Application->SetUserLayer<SimLayer<D2>>(m_Application, m_Settings, m_State2);
+            else
+                m_Application->SetUserLayer<SimLayer<D3>>(m_Application, m_Settings, m_State3);
+        }
+
+        if (m_Dim == 0)
+            renderBoundingBox(m_State2);
+        else
+            renderBoundingBox(m_State3);
+    }
     ImGui::End();
 }
 
-template <Dimension D> void IntroLayer::updateStateAsLattice(SimulationState<D> &p_State) noexcept
+template <Dimension D>
+void IntroLayer::updateStateAsLattice(SimulationState<D> &p_State, const uvec<D> &p_Dimensions) noexcept
 {
     p_State.Positions.clear();
     p_State.Velocities.clear();
     const f32 separation = 0.4f * m_Settings.SmoothingRadius;
-    const fvec<D> midPoint = 0.5f * separation * fvec<D>{m_Dimensions};
-    for (i32 i = 0; i < m_Dimensions.x; ++i)
-        for (i32 j = 0; j < m_Dimensions.y; ++j)
+    const fvec<D> midPoint = 0.5f * separation * fvec<D>{p_Dimensions - 1u};
+    for (u32 i = 0; i < p_Dimensions.x; ++i)
+    {
+        const f32 x = static_cast<f32>(i) * separation;
+        for (u32 j = 0; j < p_Dimensions.y; ++j)
+        {
+            const f32 y = static_cast<f32>(j) * separation;
             if constexpr (D == D2)
             {
-                const f32 x = static_cast<f32>(i) * separation;
-                const f32 y = static_cast<f32>(j) * separation;
                 p_State.Positions.push_back(fvec2{x, y} - midPoint);
                 p_State.Velocities.push_back(fvec2{0.f});
             }
             else
-                for (i32 k = 0; k < m_Dimensions.z; ++k)
+                for (u32 k = 0; k < p_Dimensions.z; ++k)
                 {
-                    const f32 x = static_cast<f32>(i) * separation;
-                    const f32 y = static_cast<f32>(j) * separation;
                     const f32 z = static_cast<f32>(k) * separation;
                     p_State.Positions.push_back(fvec3{x, y, z} - midPoint);
                     p_State.Velocities.push_back(fvec3{0.f});
                 }
+        }
+    }
 }
 
 template <Dimension D> void IntroLayer::renderBoundingBox(SimulationState<D> &p_State) noexcept

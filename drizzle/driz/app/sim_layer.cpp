@@ -19,7 +19,7 @@ SimLayer<D>::SimLayer(Onyx::Application *p_Application, const SimulationSettings
 template <Dimension D> void SimLayer<D>::OnUpdate() noexcept
 {
     TKIT_PROFILE_NSCOPE("SimLayer::Onupdate");
-    if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::Space) && !ImGui::GetIO().WantCaptureKeyboard)
+    if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::R) && !ImGui::GetIO().WantCaptureKeyboard)
         m_Solver.AddParticle(m_Context->GetMouseCoordinates());
     if (!m_Pause)
         step(m_DummyStep);
@@ -32,8 +32,10 @@ template <Dimension D> void SimLayer<D>::OnRender(const VkCommandBuffer) noexcep
     m_Solver.DrawParticles(m_Context);
     m_Solver.DrawBoundingBox(m_Context);
 
-    if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft) && !ImGui::GetIO().WantCaptureMouse)
-        Visualization<D>::DrawMouseInfluence(m_Context, 2.f * m_Solver.Settings.MouseRadius, Onyx::Color::ORANGE);
+    if constexpr (D == D2)
+        if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft) &&
+            !ImGui::GetIO().WantCaptureMouse)
+            Visualization<D2>::DrawMouseInfluence(m_Context, 2.f * m_Solver.Settings.MouseRadius, Onyx::Color::ORANGE);
 
     if (ImGui::Begin("Simulation settings"))
     {
@@ -115,16 +117,18 @@ template <Dimension D> void SimLayer<D>::step(const bool p_Dummy) noexcept
 
 template <Dimension D> void SimLayer<D>::renderVisualizationSettings() noexcept
 {
-    PresentModeEditor(m_Window);
-    ImGui::Text("Frame time: %.2f ms", m_Application->GetDeltaTime().AsMilliseconds());
-    const u32 fps = static_cast<u32>(1.f / m_Application->GetDeltaTime().AsSeconds());
-    ImGui::Text("FPS: %u", fps);
+    PresentModeEditor(m_Window, Flag_DisplayHelp);
+    ImGui::Spacing();
+    DisplayFrameTime(m_Application->GetDeltaTime(), Flag_DisplayHelp);
+    ImGui::Spacing();
 
     const u32 pcount = m_Solver.GetParticleCount();
     ImGui::Text("Particles: %u", pcount);
 
     static bool syncTimestep = false;
-    ImGui::Checkbox("Sync Timestep", &syncTimestep);
+    ImGui::Checkbox("Sync timestep", &syncTimestep);
+    HelpMarkerSameLine("If enabled, the timestep will be synchronized with the application's delta time. This is "
+                       "actually discouraged, as it can lead to unstable simulations.");
 
     if (syncTimestep)
     {
@@ -140,18 +144,37 @@ template <Dimension D> void SimLayer<D>::renderVisualizationSettings() noexcept
         ImGui::SameLine();
         ImGui::Text("(%.4f)", m_Timestep);
     }
+    HelpMarkerSameLine(
+        "This is the time step/frequency of the simulation, which determines how big time jumps are between steps. A "
+        "larger time step will make the simulation run faster (as in, time will pass faster), but it can lead to "
+        "unstabilities. Smaller time steps however will make the simulation run slower, but it will be more stable. "
+        "Usually, 60 hertz is a good enough value.");
 
     static bool drawGrid = false;
     ImGui::Checkbox("Draw grid", &drawGrid);
+    HelpMarkerSameLine(
+        "If the grid spatial lookup optimization is enabled, this setting will let you visualize the grid cells as "
+        "well as if there are clashes between them.");
+
     if (m_Solver.Settings.UsesGrid() && drawGrid)
     {
         m_Solver.UpdateLookup();
         const u32 cellClashes = m_Solver.Lookup.DrawCells(m_Context);
         ImGui::Text("Cell clashes: %u", cellClashes);
+        HelpMarkerSameLine(
+            "The grid spatial lookup optimization divides the simulation space into cells, which are "
+            "used to quickly find neighboring particles. To efficiently access and relate particles "
+            "with their corresponding cells, the latter are hashed to the number of particles. Because of this, cell "
+            "hashes can clash, which will render the grid lookup slightly less efficient. This metric displays the "
+            "number of clashes found.");
     }
 
     ImGui::Checkbox("Pause simulation", &m_Pause);
     ImGui::Checkbox("Dummy step", &m_DummyStep);
+    HelpMarkerSameLine(
+        "A dummy step is very similar to pausing the simulation. The only difference is that the whole step is "
+        "actually computed, but the forces are not applied to the particles. This is useful for debugging purposes.");
+
     if ((m_Pause || m_DummyStep) && ImGui::Button("Step"))
         step();
 

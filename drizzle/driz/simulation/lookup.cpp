@@ -103,17 +103,17 @@ template <Dimension D> u32 LookupMethod<D>::DrawCells(Onyx::RenderContext<D> *p_
         }
 
         const Onyx::Color color = uniqueSize == 1 ? Onyx::Color::WHITE : Onyx::Color::RED;
-        Visualization<D>::DrawCell(p_Context, uniquePositions[0], Radius, color, 0.04f);
+        Visualization<D>::DrawCell(p_Context, uniquePositions[0], Radius, color, 0.1f);
         cellClashes += uniqueSize - 1;
 
         for (u32 i = 1; i < uniqueSize; ++i)
         {
-            Visualization<D>::DrawCell(p_Context, uniquePositions[i], Radius, color, 0.04f);
+            Visualization<D>::DrawCell(p_Context, uniquePositions[i], Radius, color, 0.1f);
             const fvec<D> pos1 = fvec<D>{uniquePositions[i - 1]} + 0.5f * Radius;
             const fvec<D> pos2 = fvec<D>{uniquePositions[i]} + 0.5f * Radius;
 
             p_Context->Fill(Onyx::Color::YELLOW);
-            p_Context->Line(pos1, pos2, 0.08f);
+            p_Context->Line(pos1, pos2, 0.1f);
         }
     }
     return cellClashes;

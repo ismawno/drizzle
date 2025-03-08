@@ -10,6 +10,8 @@
 
 // #define DRIZ_ENABLE_INSPECTOR
 
+#define DRIZ_VERSION "0.1.0"
+
 namespace Driz
 {
 namespace fs = std::filesystem;

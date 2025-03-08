@@ -4,24 +4,24 @@
 namespace Driz
 {
 template <Dimension D>
-void Visualization<D>::AdjustRenderingContext(Onyx::RenderContext<D> *p_Context,
-                                              const TKit::Timespan p_DeltaTime) noexcept
+void IVisualization<D>::AdjustRenderingContext(Onyx::RenderContext<D> *p_Context,
+                                               const TKit::Timespan p_DeltaTime) noexcept
 {
     p_Context->Flush(0.15f, 0.15f, 0.15f);
     p_Context->ScaleAxes(0.025f);
 
     if constexpr (D == D3)
     {
-        p_Context->TranslateZAxis(-40.f);
+        p_Context->TranslateZAxis(-20.f);
         p_Context->DirectionalLight(0.f, 1.f, 1.f, 0.4f);
     }
 
-    p_Context->ApplyCameraMovementControls(1.5f * p_DeltaTime);
+    p_Context->ApplyCameraMovementControls(p_DeltaTime);
 }
 
 template <Dimension D>
-void Visualization<D>::DrawParticles(Onyx::RenderContext<D> *p_Context, const SimulationSettings &p_Settings,
-                                     const SimulationState<D> &p_State) noexcept
+void IVisualization<D>::DrawParticles(Onyx::RenderContext<D> *p_Context, const SimulationSettings &p_Settings,
+                                      const SimulationState<D> &p_State) noexcept
 {
     const f32 psize = 2.f * p_Settings.ParticleRadius;
 
@@ -49,21 +49,8 @@ void Visualization<D>::DrawParticles(Onyx::RenderContext<D> *p_Context, const Si
 }
 
 template <Dimension D>
-void Visualization<D>::DrawMouseInfluence(Onyx::RenderContext<D> *p_Context, const f32 p_Size,
-                                          const Onyx::Color &p_Color) noexcept
-{
-    const fvec<D> mpos = p_Context->GetMouseCoordinates();
-    p_Context->Push();
-    p_Context->Fill(p_Color);
-    p_Context->Scale(p_Size);
-    p_Context->Translate(mpos);
-    p_Context->Circle(0.f, 0.f, 0.99f);
-    p_Context->Pop();
-}
-
-template <Dimension D>
-void Visualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const fvec<D> &p_Min, const fvec<D> &p_Max,
-                                       const Onyx::Color &p_Color) noexcept
+void IVisualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const fvec<D> &p_Min, const fvec<D> &p_Max,
+                                        const Onyx::Color &p_Color) noexcept
 {
     p_Context->Push();
 
@@ -118,8 +105,8 @@ void Visualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const 
 }
 
 template <Dimension D>
-void Visualization<D>::DrawCell(Onyx::RenderContext<D> *p_Context, const ivec<D> &p_Position, const f32 p_Size,
-                                const Onyx::Color &p_Color, const f32 p_Thickness) noexcept
+void IVisualization<D>::DrawCell(Onyx::RenderContext<D> *p_Context, const ivec<D> &p_Position, const f32 p_Size,
+                                 const Onyx::Color &p_Color, const f32 p_Thickness) noexcept
 {
     p_Context->Fill(p_Color);
     if constexpr (D == D2)
@@ -164,15 +151,19 @@ static void comboKenel(const char *name, KernelType &p_Type) noexcept
 {
     ImGui::Combo(name, reinterpret_cast<i32 *>(&p_Type),
                  "Spiky2\0Spiky3\0Spiky5\0Cubic Spline\0WendlandC2\0WendlandC4\0\0");
+    Onyx::UserLayer::HelpMarkerSameLine(
+        "The kernel is a function that takes a smoothing radius and a distance an returns a value from 0 to 1 that "
+        "symbolizes the influence of a particle on another at such given distance. How the kernel and its derivative "
+        "behave is crucial for the behavior of the fluid.");
 }
 
-template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings &p_Settings) noexcept
+template <Dimension D> void IVisualization<D>::RenderSettings(SimulationSettings &p_Settings) noexcept
 {
     const f32 speed = 0.2f;
     ImGui::TextWrapped(
-        "The simulation settings control general parameters for the fluid simulation. Hover over each parameter "
+        "The simulation settings control general parameters for the fluid simulation. Hover over the little (?) icon "
         "to get a brief description of its function.");
-    ImGui::TextWrapped("The settings can be exported and imported to and from YAML files located in the "
+    ImGui::TextWrapped("The settings can be exported and imported to and from .yaml files located in the "
                        "'saves/settings' folder, relative to the root of the project.");
 
     if (ImGui::Button("Load default settings"))
@@ -181,50 +172,157 @@ template <Dimension D> void Visualization<D>::RenderSettings(SimulationSettings 
     ExportWidget("Export settings", Core::GetSettingsPath(), p_Settings);
     ImportWidget("Import settings", Core::GetSettingsPath(), p_Settings);
 
-    ImGui::Text("Mouse controls:");
+    ImGui::Text("Mouse controls");
+    Onyx::UserLayer::HelpMarkerSameLine(
+        "These settings determine the influence and strength of the mouse on the fluid when you click on the screen.");
     ImGui::DragFloat("Mouse Radius", &p_Settings.MouseRadius, speed);
     ImGui::DragFloat("Mouse Force", &p_Settings.MouseForce, speed);
     ImGui::Spacing();
 
-    ImGui::Text("Particle settings:");
+    ImGui::Text("Particle settings");
     ImGui::DragFloat("Particle Radius", &p_Settings.ParticleRadius, speed * 0.1f);
+    Onyx::UserLayer::HelpMarkerSameLine("The visual radius of the particles. Although it is almost purely visual, it "
+                                        "does have an impact on wall collisions.");
+
     ImGui::DragFloat("Particle Mass", &p_Settings.ParticleMass, speed);
+    Onyx::UserLayer::HelpMarkerSameLine("The mass of the particles. This value is used to calculate the density of the "
+                                        "particles and the forces acting on them. The default of 1.0 is recommended.");
+
     ImGui::DragFloat("Particle Fast Speed", &p_Settings.FastSpeed, speed);
+    Onyx::UserLayer::HelpMarkerSameLine(
+        "Particles, when moving, will change color based on their speed. This bigger this value, "
+        "the faster a particle needs to move to reach the maximum color.");
+
     ImGui::DragFloat("Smoothing Radius", &p_Settings.SmoothingRadius, speed);
+    Onyx::UserLayer::HelpMarkerSameLine(
+        "The radius of the smoothing kernel is likely one of the most important "
+        "parameters in the simulation. It determines the range of influence a particle has upon its neighbors.");
+
     ImGui::Spacing();
 
-    ImGui::Text("Fluid settings:");
+    ImGui::Text("Fluid settings");
     ImGui::DragFloat("Target Density", &p_Settings.TargetDensity, speed * 0.1f);
+    Onyx::UserLayer::HelpMarkerSameLine("This is the density that the fluid will try to reach. The higher this value, "
+                                        "the more compressed the fluid will be.");
+
     ImGui::DragFloat("Pressure Stiffness", &p_Settings.PressureStiffness, speed);
+    Onyx::UserLayer::HelpMarkerSameLine("The stiffness of the pressure force. Lower values will make the fluid more "
+                                        "compressible, while higher values will make it more incompressible. Keep in "
+                                        "mind that too high values may introduce instabilities.");
+
     ImGui::DragFloat("Near Pressure Stiffness", &p_Settings.NearPressureStiffness, speed);
-    ImGui::Spacing();
+    Onyx::UserLayer::HelpMarkerSameLine("An additional 'near' stiffness, used as a small workaround to prevent "
+                                        "particles from clustering together. It should be a fraction of the pressure "
+                                        "stiffness.");
 
-    ImGui::Text("Viscosity settings:");
-    ImGui::DragFloat("Linear Term", &p_Settings.ViscLinearTerm, speed * 0.01f, 0.f, FLT_MAX);
-    ImGui::DragFloat("Quadratic Term", &p_Settings.ViscQuadraticTerm, speed * 0.01f, 0.f, FLT_MAX);
-    comboKenel("Viscosity kernel", p_Settings.ViscosityKType);
-
-    ImGui::Text("Environment settings:");
-    ImGui::DragFloat("Gravity", &p_Settings.Gravity, speed);
-    ImGui::DragFloat("Encase Friction", &p_Settings.EncaseFriction, speed);
-
-    ImGui::Text("Kernel settings:");
-    comboKenel("Smooth radius kernel", p_Settings.KType);
+    comboKenel("Pressure kernel", p_Settings.KType);
     comboKenel("Near pressure/density kernel", p_Settings.NearKType);
 
-    ImGui::Text("Optimizations:");
+    ImGui::Spacing();
+
+    ImGui::Text("Viscosity settings");
+    Onyx::UserLayer::HelpMarkerSameLine(
+        "The viscosity is an interactive force that tries to equalize the velocities of neighboring "
+        "particles. It is useful to prevent particles too fast moving particles from passing through each other.");
+
+    ImGui::DragFloat("Linear Term", &p_Settings.ViscLinearTerm, speed * 0.01f, 0.f, FLT_MAX);
+    Onyx::UserLayer::HelpMarkerSameLine("The linear viscotity term operates proportionally to the relative velocity "
+                                        "between two particles.");
+
+    ImGui::DragFloat("Quadratic Term", &p_Settings.ViscQuadraticTerm, speed * 0.01f, 0.f, FLT_MAX);
+    Onyx::UserLayer::HelpMarkerSameLine(
+        "The quadratic viscosity term operates proportionally to the square of the relative velocity "
+        "between two particles.");
+
+    comboKenel("Viscosity kernel", p_Settings.ViscosityKType);
+
+    ImGui::Spacing();
+
+    ImGui::Text("Environment settings");
+    ImGui::DragFloat("Gravity", &p_Settings.Gravity, speed);
+    ImGui::DragFloat("Encase Friction", &p_Settings.EncaseFriction, speed);
+    Onyx::UserLayer::HelpMarkerSameLine("How much are the particles slowed down when they collide with the walls.");
+
+    ImGui::Spacing();
+
+    ImGui::Text("Optimizations");
+    Onyx::UserLayer::HelpMarkerSameLine(
+        "The sole purpose of optimizations is to make the simulation do the same thing, but faster. This requires "
+        "writing more efficient code, or explicitly using available hardware (such as multi-threading).");
+
     ImGui::Combo("Lookup mode", reinterpret_cast<i32 *>(&p_Settings.LookupMode),
                  "Brute Force SingleThread\0Brute Force MultiTread\0Grid SingleTread\0Grid MultiTread\0\0");
+    Onyx::UserLayer::HelpMarkerSameLine(
+        "The lookup mode is one of the most important optimizations, as it affects the most expensive operation in the "
+        "simulation by far: finding neighboring particles. The brute force method mindlessly checks every particle "
+        "against every other particle, while the grid method divides the simulation space into cells and only checks "
+        "particles within the same cell or neighboring cells. You may also choose the single-threaded or "
+        "multi-threaded variants of both.");
+
     ImGui::Combo("Iteration mode", reinterpret_cast<i32 *>(&p_Settings.IterationMode), "Pairwise\0Particlewise\0\0");
+    Onyx::UserLayer::HelpMarkerSameLine(
+        "The iteration mode determines how the simulation traverses the lookup data "
+        "structure. The pairwise mode iterates over every pair of particles. Its main advantage is that it avoids "
+        "redundancy calculations. The particlewise mode iterates over every particle and calculates the forces acting "
+        "on it. This mode is more cache-friendly and can be parallelized more easily, specially in GPU-land, but it "
+        "introduces a lot of redundant operations.");
+
     if (p_Settings.UsesMultiThread())
     {
         i32 threads = static_cast<i32>(Core::GetThreadPool().GetThreadCount());
         if (ImGui::SliderInt("Worker thread count", &threads, 0, 15))
             Core::SetWorkerThreadCount(static_cast<u32>(threads));
+        Onyx::UserLayer::HelpMarkerSameLine(
+            "The number of additional threads that will be used to compute the simulation. Try to match the number of "
+            "threads with the number of cores in your CPU.");
     }
 }
 
-template struct Visualization<D2>;
-template struct Visualization<D3>;
+void Visualization<D2>::DrawMouseInfluence(Onyx::RenderContext<D2> *p_Context, const f32 p_Size,
+                                           const Onyx::Color &p_Color) noexcept
+{
+    const fvec2 mpos = p_Context->GetMouseCoordinates();
+    p_Context->Push();
+    p_Context->Fill(p_Color);
+    p_Context->Scale(p_Size);
+    p_Context->Translate(mpos);
+    p_Context->Circle(0.f, 0.f, 0.99f);
+    p_Context->Pop();
+}
+
+void Visualization<D3>::DrawParticles(Onyx::RenderContext<D3> *p_Context, const SimulationSettings &p_Settings,
+                                      const SimulationData<D3> &p_Data, const Onyx::Color &p_Outline) noexcept
+{
+    const f32 psize = 2.f * p_Settings.ParticleRadius;
+
+    const Onyx::Gradient gradient{p_Settings.Gradient};
+    for (u32 i = 0; i < p_Data.State.Positions.size(); ++i)
+    {
+        const fvec3 &pos = p_Data.State.Positions[i];
+        const fvec3 &vel = p_Data.State.Velocities[i];
+
+        const f32 speed = glm::min(p_Settings.FastSpeed, glm::length(vel));
+        const Onyx::Color color = gradient.Evaluate(speed / p_Settings.FastSpeed);
+
+        p_Context->Push();
+        if (p_Data.UnderMouseInfluence[i])
+        {
+            p_Context->OutlineWidth(0.2f);
+            p_Context->Outline(p_Outline);
+        }
+
+        p_Context->Fill(color);
+
+        p_Context->Scale(psize);
+        p_Context->Translate(pos);
+
+        p_Context->Sphere();
+
+        p_Context->Pop();
+    }
+}
+
+template struct IVisualization<D2>;
+template struct IVisualization<D3>;
 
 } // namespace Driz

@@ -121,6 +121,8 @@ Solver<D>::Solver(const SimulationSettings &p_Settings, const SimulationState<D>
         densities.resize(p_State.Positions.size(), fvec2{0.f});
     for (auto &accelerations : m_ThreadAccelerations)
         accelerations.resize(p_State.Positions.size(), fvec<D>{0.f});
+    if constexpr (D == D3)
+        Data.UnderMouseInfluence.resize(p_State.Positions.size(), 0);
 }
 
 template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
@@ -134,6 +136,8 @@ template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
         Data.State.Positions[i] = Data.StagedPositions[i] + Data.State.Velocities[i] * p_DeltaTime;
         Data.Densities[i] = fvec2{Settings.ParticleMass};
         Data.Accelerations[i] = fvec<D>{0.f};
+        if constexpr (D == D3)
+            Data.UnderMouseInfluence[i] = 0;
     }
 }
 template <Dimension D> void Solver<D>::EndStep() noexcept
@@ -163,6 +167,8 @@ template <Dimension D> void Solver<D>::AddMouseForce(const fvec<D> &p_MousePos) 
             const f32 distance = glm::sqrt(distance2);
             const f32 factor = 1.f - distance / Settings.MouseRadius;
             Data.Accelerations[i] += (factor * Settings.MouseForce / distance) * diff;
+            if constexpr (D == D3)
+                Data.UnderMouseInfluence[i] = 1;
         }
     }
 }
@@ -415,6 +421,8 @@ template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position) no
         densities.push_back(fvec2{0.f});
     for (auto &accelerations : m_ThreadAccelerations)
         accelerations.push_back(fvec<D>{0.f});
+    if constexpr (D == D3)
+        Data.UnderMouseInfluence.push_back(0);
 }
 
 template <Dimension D> void Solver<D>::encase(const u32 p_Index) noexcept
@@ -442,7 +450,10 @@ template <Dimension D> void Solver<D>::DrawBoundingBox(Onyx::RenderContext<D> *p
 }
 template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_Context) const noexcept
 {
-    Visualization<D>::DrawParticles(p_Context, Settings, Data.State);
+    if constexpr (D == D2)
+        Visualization<D2>::DrawParticles(p_Context, Settings, Data.State);
+    else
+        Visualization<D3>::DrawParticles(p_Context, Settings, Data, Onyx::Color::ORANGE);
 }
 
 template <Dimension D> u32 Solver<D>::GetParticleCount() const noexcept

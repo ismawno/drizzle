@@ -67,13 +67,13 @@ template <Dimension D> struct SimulationState
     SimArray<fvec<D>> Positions;
     SimArray<fvec<D>> Velocities;
 
-    fvec<D> Min{-30.f};
-    fvec<D> Max{30.f};
+    fvec<D> Min{-30.f + 25.f * (D - 2)};
+    fvec<D> Max{30.f - 25.f * (D - 2)};
 };
 
 using Density = fvec2;
 
-template <Dimension D> struct SimulationData
+template <Dimension D> struct ISimulationData
 {
     SimulationState<D> State;
     SimArray<fvec<D>> Accelerations;
@@ -81,4 +81,15 @@ template <Dimension D> struct SimulationData
 
     SimArray<Density> Densities; // Density and Near Density
 };
+template <Dimension D> struct SimulationData;
+
+template <> struct SimulationData<D2> : ISimulationData<D2>
+{
+};
+
+template <> struct SimulationData<D3> : ISimulationData<D3>
+{
+    SimArray<u8> UnderMouseInfluence;
+};
+
 } // namespace Driz

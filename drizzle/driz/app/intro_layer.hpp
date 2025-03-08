@@ -21,7 +21,7 @@ class IntroLayer final : public Onyx::UserLayer
     bool OnEvent(const Onyx::Event &p_Event) noexcept override;
 
     template <Dimension D> void onRender(Onyx::RenderContext<D> *p_Context, const SimulationState<D> &p_State) noexcept;
-    template <Dimension D> void updateStateAsLattice(SimulationState<D> &p_State) noexcept;
+    template <Dimension D> void updateStateAsLattice(SimulationState<D> &p_State, const uvec<D> &p_Dimensions) noexcept;
     template <Dimension D> void renderBoundingBox(SimulationState<D> &p_State) noexcept;
 
     void renderIntroSettings() noexcept;
@@ -29,9 +29,11 @@ class IntroLayer final : public Onyx::UserLayer
     Onyx::Application *m_Application;
     i32 m_Dim = 0;
 #ifndef TKIT_DEBUG
-    ivec3 m_Dimensions{60, 60, 1};
+    uvec2 m_Dimensions2{64, 64};
+    uvec3 m_Dimensions3{16, 16, 16};
 #else
-    ivec3 m_Dimensions{20, 20, 1};
+    uvec2 m_Dimensions2{16, 16};
+    uvec3 m_Dimensions3{8, 8, 8};
 #endif
     Onyx::Window *m_Window;
     Onyx::RenderContext<D2> *m_Context2;

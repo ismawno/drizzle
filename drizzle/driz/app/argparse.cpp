@@ -26,7 +26,7 @@ static std::string cliName(const char *p_Name) noexcept
 
 const ParseResult *ParseArgs(int argc, char **argv)
 {
-    argparse::ArgumentParser parser{"drizzle", "1.0", argparse::default_arguments::all};
+    argparse::ArgumentParser parser{"drizzle", DRIZ_VERSION, argparse::default_arguments::all};
     parser.add_description(
         "Drizzle is a small project I have made inspired by Sebastian Lague's fluid simulation video. It "
         "features a 2D and 3D fluid simulation using the Smoothed Particle Hydrodynamics method. The "

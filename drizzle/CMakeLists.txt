@@ -36,7 +36,8 @@ tkit_register_for_reflection(drizzle SOURCES driz/simulation/settings.hpp)
 
 target_include_directories(drizzle PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${argparse_SOURCE_DIR}/include)
 target_link_libraries(drizzle PRIVATE onyx)
-target_compile_definitions(drizzle PRIVATE DRIZ_ROOT_PATH="${DRIZ_ROOT_PATH}")
+target_compile_definitions(drizzle PRIVATE DRIZ_ROOT_PATH="${DRIZZLE_ROOT_PATH}")
+target_compile_definitions(onyx PUBLIC ONYX_SPHERE_MODEL="8-sphere.obj" ONYX_CYLINDER_MODEL="8-cylinder.obj")
 
 if (MSVC)
     tkit_configure_compile_link_options(drizzle FLAGS /W4 /WX)
