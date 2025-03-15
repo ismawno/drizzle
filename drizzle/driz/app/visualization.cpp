@@ -57,7 +57,7 @@ void IVisualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const
     {
         p_Context->Fill(false);
         p_Context->Outline(p_Color);
-        p_Context->OutlineWidth(0.02f);
+        p_Context->OutlineWidth(0.5f);
 
         const fvec2 center = 0.5f * (p_Min + p_Max);
         const fvec2 size = p_Max - p_Min;
@@ -74,23 +74,23 @@ void IVisualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const
         const fvec3 front = fvec3{0, 0, dims.z};
         const fvec3 wopa = fvec3{dims.x, dims.y, 0};
 
-        const f32 thickness = 0.2f;
-        p_Context->Line(p_Min, p_Min + right, thickness);
-        p_Context->Line(p_Min, p_Min + up, thickness);
+        const Onyx::LineOptions options{.Thickness = 0.2f, .Resolution = Core::Resolution};
+        p_Context->Line(p_Min, p_Min + right, options);
+        p_Context->Line(p_Min, p_Min + up, options);
 
-        p_Context->Line(p_Min + right, p_Min + wopa, thickness);
-        p_Context->Line(p_Min + up, p_Min + wopa, thickness);
+        p_Context->Line(p_Min + right, p_Min + wopa, options);
+        p_Context->Line(p_Min + up, p_Min + wopa, options);
 
-        p_Context->Line(p_Min + front, p_Min + front + right, thickness);
-        p_Context->Line(p_Min + front, p_Min + front + up, thickness);
+        p_Context->Line(p_Min + front, p_Min + front + right, options);
+        p_Context->Line(p_Min + front, p_Min + front + up, options);
 
-        p_Context->Line(p_Min + front + right, p_Min + front + wopa, thickness);
-        p_Context->Line(p_Min + front + up, p_Min + front + wopa, thickness);
+        p_Context->Line(p_Min + front + right, p_Min + front + wopa, options);
+        p_Context->Line(p_Min + front + up, p_Min + front + wopa, options);
 
-        p_Context->Line(p_Min, p_Min + front, thickness);
-        p_Context->Line(p_Min + right, p_Min + right + front, thickness);
-        p_Context->Line(p_Min + up, p_Min + up + front, thickness);
-        p_Context->Line(p_Min + wopa, p_Min + wopa + front, thickness);
+        p_Context->Line(p_Min, p_Min + front, options);
+        p_Context->Line(p_Min + right, p_Min + right + front, options);
+        p_Context->Line(p_Min + up, p_Min + up + front, options);
+        p_Context->Line(p_Min + wopa, p_Min + wopa + front, options);
 
         // p_Context->ScaleX(dims.x);
         // p_Context->ScaleY(dims.z);
@@ -126,22 +126,23 @@ void IVisualization<D>::DrawCell(Onyx::RenderContext<D> *p_Context, const ivec<D
         const ivec3 front = ivec3{0, 0, p_Size};
         const ivec3 wopa = ivec3{p_Size, p_Size, 0};
 
-        p_Context->Line(p_Position, p_Position + right, p_Thickness);
-        p_Context->Line(p_Position, p_Position + up, p_Thickness);
+        const Onyx::LineOptions options{.Thickness = p_Thickness, .Resolution = Core::Resolution};
+        p_Context->Line(p_Position, p_Position + right, options);
+        p_Context->Line(p_Position, p_Position + up, options);
 
-        p_Context->Line(p_Position + right, p_Position + wopa, p_Thickness);
-        p_Context->Line(p_Position + up, p_Position + wopa, p_Thickness);
+        p_Context->Line(p_Position + right, p_Position + wopa, options);
+        p_Context->Line(p_Position + up, p_Position + wopa, options);
 
-        p_Context->Line(p_Position + front, p_Position + front + right, p_Thickness);
-        p_Context->Line(p_Position + front, p_Position + front + up, p_Thickness);
+        p_Context->Line(p_Position + front, p_Position + front + right, options);
+        p_Context->Line(p_Position + front, p_Position + front + up, options);
 
-        p_Context->Line(p_Position + front + right, p_Position + front + wopa, p_Thickness);
-        p_Context->Line(p_Position + front + up, p_Position + front + wopa, p_Thickness);
+        p_Context->Line(p_Position + front + right, p_Position + front + wopa, options);
+        p_Context->Line(p_Position + front + up, p_Position + front + wopa, options);
 
-        p_Context->Line(p_Position, p_Position + front, p_Thickness);
-        p_Context->Line(p_Position + right, p_Position + right + front, p_Thickness);
-        p_Context->Line(p_Position + up, p_Position + up + front, p_Thickness);
-        p_Context->Line(p_Position + wopa, p_Position + wopa + front, p_Thickness);
+        p_Context->Line(p_Position, p_Position + front, options);
+        p_Context->Line(p_Position + right, p_Position + right + front, options);
+        p_Context->Line(p_Position + up, p_Position + up + front, options);
+        p_Context->Line(p_Position + wopa, p_Position + wopa + front, options);
     }
 }
 

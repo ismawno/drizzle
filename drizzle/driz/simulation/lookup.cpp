@@ -113,7 +113,10 @@ template <Dimension D> u32 LookupMethod<D>::DrawCells(Onyx::RenderContext<D> *p_
             const fvec<D> pos2 = fvec<D>{uniquePositions[i]} + 0.5f * Radius;
 
             p_Context->Fill(Onyx::Color::YELLOW);
-            p_Context->Line(pos1, pos2, 0.1f);
+            if constexpr (D == D2)
+                p_Context->Line(pos1, pos2, 0.1f);
+            else
+                p_Context->Line(pos1, pos2, {.Thickness = 0.1f, .Resolution = Core::Resolution});
         }
     }
     return cellClashes;
