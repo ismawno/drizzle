@@ -53,7 +53,7 @@ template <typename T> void ExportWidget(const char *p_Name, const fs::path &p_Di
         if (path.extension().empty())
             path += ".yaml";
 
-        TKit::Yaml::Serialize(path.c_str(), p_Instance);
+        TKit::Yaml::Serialize(path.string(), p_Instance);
         xport[0] = '\0';
     }
     Onyx::UserLayer::HelpMarkerSameLine("The file will be saved as a .yaml file. You do not need to include the "
@@ -75,7 +75,7 @@ template <typename T> void ImportWidget(const char *p_Name, const fs::path &p_Di
             const bool erase = ImGui::Button("X");
             ImGui::SameLine();
             if (ImGui::MenuItem(filename.c_str()))
-                p_Instance = TKit::Yaml::Deserialize<T>(path.c_str());
+                p_Instance = TKit::Yaml::Deserialize<T>(path.string());
 
             if (erase)
                 fs::remove(path);

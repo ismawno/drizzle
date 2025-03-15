@@ -18,7 +18,7 @@ static std::string cliName(const char *p_Name) noexcept
         if (std::isupper(*c) && c != p_Name && !std::isupper(c[-1]))
             result.push_back('-');
 
-        result.push_back(std::tolower(*c));
+        result.push_back(std::tolower(static_cast<i32>(*c)));
     }
 
     return result;
