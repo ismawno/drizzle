@@ -13,10 +13,10 @@ void IVisualization<D>::AdjustRenderingContext(Onyx::RenderContext<D> *p_Context
     if constexpr (D == D3)
     {
         p_Context->TranslateZAxis(-20.f);
-        p_Context->DirectionalLight(0.f, 1.f, 1.f, 0.4f);
+        p_Context->DirectionalLight(fvec3{0.f, 1.f, 1.f}, 0.4f);
     }
 
-    p_Context->ApplyCameraMovementControls(p_DeltaTime);
+    p_Context->ApplyCameraMovementControls(0.75f * p_DeltaTime);
 }
 
 template <Dimension D>
@@ -37,12 +37,11 @@ void IVisualization<D>::DrawParticles(Onyx::RenderContext<D> *p_Context, const S
         p_Context->Push();
         p_Context->Fill(color);
 
-        p_Context->Scale(psize);
         p_Context->Translate(pos);
         if constexpr (D == D2)
-            p_Context->Circle();
+            p_Context->Circle(psize);
         else
-            p_Context->Sphere();
+            p_Context->Sphere(psize, Core::Resolution);
 
         p_Context->Pop();
     }
@@ -63,9 +62,8 @@ void IVisualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const
         const fvec2 center = 0.5f * (p_Min + p_Max);
         const fvec2 size = p_Max - p_Min;
 
-        p_Context->Scale(size);
         p_Context->Translate(center);
-        p_Context->Square();
+        p_Context->Square(size);
     }
     else
     {
@@ -284,14 +282,14 @@ void Visualization<D2>::DrawMouseInfluence(Onyx::RenderContext<D2> *p_Context, c
     const fvec2 mpos = p_Context->GetMouseCoordinates();
     p_Context->Push();
     p_Context->Fill(p_Color);
-    p_Context->Scale(p_Size);
     p_Context->Translate(mpos);
-    p_Context->Circle(0.f, 0.f, 0.99f);
+    p_Context->Circle(p_Size, {.Hollowness = 0.99f});
     p_Context->Pop();
 }
 
 void Visualization<D3>::DrawParticles(Onyx::RenderContext<D3> *p_Context, const SimulationSettings &p_Settings,
-                                      const SimulationData<D3> &p_Data, const Onyx::Color &p_Outline) noexcept
+                                      const SimulationData<D3> &p_Data, const Onyx::Color &p_OutlineHighlight,
+                                      const Onyx::Color &p_OutlinePressed) noexcept
 {
     const f32 psize = 2.f * p_Settings.ParticleRadius;
 
@@ -305,18 +303,14 @@ void Visualization<D3>::DrawParticles(Onyx::RenderContext<D3> *p_Context, const 
         const Onyx::Color color = gradient.Evaluate(speed / p_Settings.FastSpeed);
 
         p_Context->Push();
-        if (p_Data.UnderMouseInfluence[i])
-        {
-            p_Context->OutlineWidth(0.2f);
-            p_Context->Outline(p_Outline);
-        }
+        if (p_Data.UnderMouseInfluence[i] == 1)
+            p_Context->Outline(p_OutlinePressed);
+        else if (p_Data.UnderMouseInfluence[i] == 2)
+            p_Context->Outline(p_OutlineHighlight);
 
         p_Context->Fill(color);
-
-        p_Context->Scale(psize);
         p_Context->Translate(pos);
-
-        p_Context->Sphere();
+        p_Context->Sphere(psize, Core::Resolution);
 
         p_Context->Pop();
     }

@@ -6,6 +6,7 @@
 #include "tkit/container/static_array.hpp"
 #include "tkit/multiprocessing/thread_pool.hpp"
 #include "tkit/multiprocessing/for_each.hpp"
+#include "onyx/draw/primitives.hpp"
 #include <filesystem>
 
 // #define DRIZ_ENABLE_INSPECTOR
@@ -41,5 +42,7 @@ struct Core
         for (u32 i = 0; i < partitions - 1; ++i)
             tasks[i]->WaitUntilFinished();
     }
+
+    static inline Onyx::Resolution Resolution = Onyx::Resolution::Medium;
 };
 } // namespace Driz

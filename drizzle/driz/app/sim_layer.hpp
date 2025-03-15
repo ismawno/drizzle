@@ -17,7 +17,7 @@ template <Dimension D> class SimLayer final : public Onyx::UserLayer
   private:
     void OnUpdate() noexcept override;
     void OnRender(VkCommandBuffer) noexcept override;
-    bool OnEvent(const Onyx::Event &p_Event) noexcept override;
+    void OnEvent(const Onyx::Event &p_Event) noexcept override;
 
     void step(bool p_Dummy = false) noexcept;
     void renderVisualizationSettings() noexcept;

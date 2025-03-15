@@ -7,6 +7,8 @@
 
 namespace Driz
 {
+static f32 s_RayDistance = 0.f;
+
 template <Dimension D>
 SimLayer<D>::SimLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
                       const SimulationState<D> &p_State) noexcept
@@ -23,6 +25,34 @@ template <Dimension D> void SimLayer<D>::OnUpdate() noexcept
         m_Solver.AddParticle(m_Context->GetMouseCoordinates());
     if (!m_Pause)
         step(m_DummyStep);
+}
+
+static f32 rayCast(const Onyx::RenderContext<D3> *p_Context, const SimulationState<D3> &p_State,
+                   const f32 p_Radius) noexcept
+{
+    const fvec3 origin = p_Context->GetMouseCoordinates(0.f);
+    const fvec3 direction = p_Context->GetMouseRayCastDirection();
+
+    f32 rayDistance = FLT_MAX;
+    f32 maxParticleDistance = 0.f;
+    for (const fvec3 &p : p_State.Positions)
+    {
+        const fvec3 op = p - origin;
+        const f32 b = glm::dot(op, direction);
+        const f32 particleDistance = glm::length2(op);
+        if (particleDistance > maxParticleDistance)
+            maxParticleDistance = particleDistance;
+
+        const f32 c = particleDistance - p_Radius * p_Radius;
+        const f32 disc = b * b - c;
+        if (disc < 0.f)
+            continue;
+        const f32 dist = b - glm::sqrt(disc);
+        if (dist < rayDistance)
+            rayDistance = dist;
+    }
+
+    return rayDistance != FLT_MAX ? rayDistance : glm::sqrt(maxParticleDistance);
 }
 
 template <Dimension D> void SimLayer<D>::OnRender(const VkCommandBuffer) noexcept
@@ -59,7 +89,7 @@ template <Dimension D> void SimLayer<D>::OnRender(const VkCommandBuffer) noexcep
 #endif
 }
 
-template <Dimension D> bool SimLayer<D>::OnEvent(const Onyx::Event &p_Event) noexcept
+template <Dimension D> void SimLayer<D>::OnEvent(const Onyx::Event &p_Event) noexcept
 {
     if constexpr (D == D2)
         if (p_Event.Type == Onyx::Event::Scrolled && !ImGui::GetIO().WantCaptureMouse)
@@ -68,7 +98,7 @@ template <Dimension D> bool SimLayer<D>::OnEvent(const Onyx::Event &p_Event) noe
             if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::LeftShift))
                 step *= 10.f;
             m_Context->ApplyCameraScalingControls(step);
-            return true;
+            return;
         }
 
     if (p_Event.Type == Onyx::Event::KeyPressed && !ImGui::GetIO().WantCaptureKeyboard)
@@ -86,8 +116,6 @@ template <Dimension D> bool SimLayer<D>::OnEvent(const Onyx::Event &p_Event) noe
         default:
             break;
         }
-
-    return false;
 }
 
 template <Dimension D> void SimLayer<D>::step(const bool p_Dummy) noexcept
@@ -96,10 +124,31 @@ template <Dimension D> void SimLayer<D>::step(const bool p_Dummy) noexcept
     m_Solver.UpdateLookup();
     m_Solver.ComputeDensities();
     m_Solver.AddPressureAndViscosity();
-    if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
+    if constexpr (D == D2)
     {
-        const fvec<D> p_MousePos = m_Context->GetMouseCoordinates();
-        m_Solver.AddMouseForce(p_MousePos);
+        if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
+        {
+            const fvec2 mpos = m_Context->GetMouseCoordinates();
+            m_Solver.AddMouseForce(mpos);
+        }
+    }
+    else
+    {
+        const fvec3 origin = m_Context->GetMouseCoordinates(0.f);
+        const fvec3 direction = m_Context->GetMouseRayCastDirection();
+        if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
+            m_Solver.AddMouseForce(origin + s_RayDistance * direction);
+        else
+        {
+            s_RayDistance = rayCast(m_Context, m_Solver.Data.State, m_Solver.Settings.ParticleRadius);
+            const fvec3 pos = origin + s_RayDistance * direction;
+            for (u32 i = 0; i < m_Solver.Data.State.Positions.size(); ++i)
+            {
+                const f32 distance2 = glm::distance2(m_Solver.Data.State.Positions[i], pos);
+                if (distance2 < m_Solver.Settings.MouseRadius * m_Solver.Settings.MouseRadius)
+                    m_Solver.Data.UnderMouseInfluence[i] = 2;
+            }
+        }
     }
 
 #ifdef DRIZ_ENABLE_INSPECTOR
@@ -121,6 +170,9 @@ template <Dimension D> void SimLayer<D>::renderVisualizationSettings() noexcept
     ImGui::Spacing();
     DisplayFrameTime(m_Application->GetDeltaTime(), Flag_DisplayHelp);
     ImGui::Spacing();
+
+    if constexpr (D == D3)
+        ResolutionEditor("Shape resolution", Core::Resolution, Flag_DisplayHelp);
 
     const u32 pcount = m_Solver.GetParticleCount();
     ImGui::Text("Particles: %u", pcount);

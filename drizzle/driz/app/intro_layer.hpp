@@ -18,7 +18,7 @@ class IntroLayer final : public Onyx::UserLayer
 
   private:
     void OnRender(VkCommandBuffer) noexcept override;
-    bool OnEvent(const Onyx::Event &p_Event) noexcept override;
+    void OnEvent(const Onyx::Event &p_Event) noexcept override;
 
     template <Dimension D> void onRender(Onyx::RenderContext<D> *p_Context, const SimulationState<D> &p_State) noexcept;
     template <Dimension D> void updateStateAsLattice(SimulationState<D> &p_State, const uvec<D> &p_Dimensions) noexcept;

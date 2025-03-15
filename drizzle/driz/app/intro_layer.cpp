@@ -62,7 +62,7 @@ void IntroLayer::onRender(Onyx::RenderContext<D> *p_Context, const SimulationSta
     Visualization<D>::DrawBoundingBox(p_Context, p_State.Min, p_State.Max, Onyx::Color::FromHexadecimal("A6B1E1"));
 }
 
-bool IntroLayer::OnEvent(const Onyx::Event &p_Event) noexcept
+void IntroLayer::OnEvent(const Onyx::Event &p_Event) noexcept
 {
     if (m_Dim == 0 && p_Event.Type == Onyx::Event::Scrolled && !ImGui::GetIO().WantCaptureMouse)
     {
@@ -70,7 +70,7 @@ bool IntroLayer::OnEvent(const Onyx::Event &p_Event) noexcept
         if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::LeftShift))
             step *= 10.f;
         m_Context2->ApplyCameraScalingControls(step);
-        return true;
+        return;
     }
 
     if (p_Event.Type == Onyx::Event::KeyPressed && !ImGui::GetIO().WantCaptureKeyboard)
@@ -82,8 +82,6 @@ bool IntroLayer::OnEvent(const Onyx::Event &p_Event) noexcept
         default:
             break;
         }
-
-    return false;
 }
 
 void IntroLayer::renderIntroSettings() noexcept
@@ -140,6 +138,7 @@ void IntroLayer::renderIntroSettings() noexcept
         }
         else
         {
+            ResolutionEditor("Shape resolution", Core::Resolution, Flag_DisplayHelp);
             ImGui::Text("Current amount: %u", m_State3.Positions.size());
             if (ImGui::DragInt3("Particles", reinterpret_cast<i32 *>(glm::value_ptr(m_Dimensions3)), 1.f, 1, INT32_MAX))
                 updateStateAsLattice<D3>(m_State3, m_Dimensions3);

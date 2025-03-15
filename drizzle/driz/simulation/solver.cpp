@@ -453,7 +453,7 @@ template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_C
     if constexpr (D == D2)
         Visualization<D2>::DrawParticles(p_Context, Settings, Data.State);
     else
-        Visualization<D3>::DrawParticles(p_Context, Settings, Data, Onyx::Color::ORANGE);
+        Visualization<D3>::DrawParticles(p_Context, Settings, Data, Onyx::Color::GREEN, Onyx::Color::ORANGE);
 }
 
 template <Dimension D> u32 Solver<D>::GetParticleCount() const noexcept

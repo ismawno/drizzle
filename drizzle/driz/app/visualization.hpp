@@ -40,7 +40,8 @@ template <> struct Visualization<D3> : IVisualization<D3>
     using IVisualization<D3>::DrawParticles;
 
     static void DrawParticles(Onyx::RenderContext<D3> *p_Context, const SimulationSettings &p_Settings,
-                              const SimulationData<D3> &p_Data, const Onyx::Color &p_Outline) noexcept;
+                              const SimulationData<D3> &p_Data, const Onyx::Color &p_OutlineHover,
+                              const Onyx::Color &p_OutlinePressed) noexcept;
 };
 
 template <typename T> void ExportWidget(const char *p_Name, const fs::path &p_DirPath, const T &p_Instance) noexcept
