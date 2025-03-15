@@ -122,7 +122,7 @@ Solver<D>::Solver(const SimulationSettings &p_Settings, const SimulationState<D>
     for (auto &accelerations : m_ThreadAccelerations)
         accelerations.resize(p_State.Positions.size(), fvec<D>{0.f});
     if constexpr (D == D3)
-        Data.UnderMouseInfluence.resize(p_State.Positions.size(), 0);
+        Data.UnderMouseInfluence.resize(p_State.Positions.size(), u8{0});
 }
 
 template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
@@ -422,7 +422,7 @@ template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position) no
     for (auto &accelerations : m_ThreadAccelerations)
         accelerations.push_back(fvec<D>{0.f});
     if constexpr (D == D3)
-        Data.UnderMouseInfluence.push_back(0);
+        Data.UnderMouseInfluence.push_back(u8{0});
 }
 
 template <Dimension D> void Solver<D>::encase(const u32 p_Index) noexcept
