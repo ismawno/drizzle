@@ -45,7 +45,7 @@ const ParseResult *ParseArgs(int argc, char **argv)
         .help("The amount of time the simulation will run for in seconds. If not "
               "specified, the simulation will run indefinitely.");
 
-    auto &group = parser.add_mutually_exclusive_group(true);
+    auto &group = parser.add_mutually_exclusive_group();
     group.add_argument("--2-dim").flag().help("Run the simulation in 2D mode.");
     group.add_argument("--3-dim").flag().help("Run the simulation in 3D mode.");
 
@@ -81,7 +81,14 @@ const ParseResult *ParseArgs(int argc, char **argv)
 
     SimulationSettings settings{};
     result->Intro = !parser.get<bool>("--no-intro");
-    const bool is2D = parser.get<bool>("--2-dim");
+    const bool noDim = !parser.get<bool>("--2-dim") && !parser.get<bool>("--3-dim");
+    if (!result->Intro && noDim)
+    {
+        std::cerr << "A dimension must be specified when skipping the intro layer.\n";
+        std::exit(EXIT_FAILURE);
+    }
+
+    const bool is2D = parser.get<bool>("--2-dim") || !parser.get<bool>("--3-dim");
     result->Dim = is2D ? D2 : D3;
 
     if (const auto path = parser.present("--settings"))
