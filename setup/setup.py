@@ -29,6 +29,16 @@ def is_macos() -> bool:
     return sys.platform.startswith("darwin")
 
 
+def get_os() -> str:
+    if is_windows():
+        return "Windows"
+    if is_linux():
+        return "Linux"
+    if is_macos():
+        return "MacOS"
+    return sys.platform
+
+
 def is_arm() -> bool:
     return platform.machine().lower() in ["arm64", "aarch64"]
 
@@ -69,7 +79,7 @@ def parse_arguments() -> Namespace:
     dependencies for my projects across different operating systems. The supported operating systems are Windows, Linux (Ubuntu, Fedora and Arch), and MacOS.
 
     WARNING: This kind of scripts are hard to test due to the vast amount of different configurations and setups.
-    I, particularly, do not have access to all of them. That is why I have provided a safe mode ('--safe') that will prompt
+    I, particularly, do not have access to all of them. That is why I have provided a safe mode ('-s', '--safe') that will prompt
     the user before executing any command. This way, the user can review the commands before they are executed. Because this
     script will attempt to install system-wide dependencies, it is recommended to run it with caution. This is especially important
     for linux operating systems, as I do not possess one to test the script on.
@@ -214,11 +224,11 @@ class VulkanVersion:
 
 
 indent = 0
-SETUP = Style.FG_BLUE + "[SETUP] " + Style.RESET + " "
+setup_label = Style.FG_BLUE + "[SETUP] " + Style.RESET + " "
 
 
 def log(msg: str, /, *args, **kwargs) -> None:
-    print(f"{SETUP}{'  ' * indent}{msg}", *args, **kwargs)
+    print(f"{setup_label}{'  ' * indent}{msg}", *args, **kwargs)
 
 
 def step(msg: str, /) -> Callable:
@@ -271,66 +281,108 @@ def exit_error(msg: str | None = None, /) -> None:
     sys.exit(1)
 
 
-args = parse_arguments()
-if args.safe and args.yes:
-    exit_error("The '-s' and '-y' flags cannot be used together.")
+def prompt(msg: str, /, *, default: bool = True) -> bool:
+    if g_args.yes:
+        return True
+    msg = (
+        setup_label
+        + Style.FG_CYAN
+        + indent * "  "
+        + (f"{msg} [Y]/N " if default else f"{msg} Y/[N] ")
+        + Style.RESET
+    )
+    while True:
+        answer = input(msg).strip().lower()
+        if answer in ["y", "yes"] or (default and answer == ""):
+            return True
+        elif answer in ["n", "no"] or (not default and answer == ""):
+            return False
 
-root = Path(__file__).parent.resolve()
 
-vulkan_version = VulkanVersion(*[int(v) for v in args.vulkan_version.split(".")])
+@step(Style.BOLD + "--Validating arguments--" + Style.RESET)
+def validate_arguments() -> None:
+    if g_args.safe and g_args.yes:
+        exit_error("The '-s' and '-y' flags cannot be used together.")
 
-if is_windows():
-    cmake_version: str = args.cmake_version
+    if not g_args.safe:
+        log(
+            Style.BOLD
+            + Style.BG_YELLOW
+            + "Safe mode is disabled. This script may execute commands without prompting the user. Safe mode can be enabled with the '-s' or '--safe' flag."
+            + Style.RESET
+        )
+        if not prompt("Do you wish to continue?"):
+            exit_error()
 
-if not is_macos() and not is_windows() and not is_linux():
-    exit_error("Unsupported operating system.")
+    log("Arguments validated.")
 
-linux_devtools = "linux-devtools"
-if is_linux():
-    distro = get_linux_distro()
 
-    if distro is None:
-        exit_error("Failed to detect Linux distribution.")
-    linux_version = get_linux_version()
+@step(Style.BOLD + "--Validating OS--" + Style.RESET)
+def validate_operating_system() -> None:
+    os = get_os()
+    log(f"Operating system: {os}")
+    if not is_macos() and not is_windows() and not is_linux():
+        exit_error(f"Unsupported operating system: {os}")
 
-    if linux_version is None:
-        exit_error("Failed to detect Linux version.")
+    if is_windows():
+        log(f"Architecture: {os_architecture()}")
+        log(f"ARM: {is_arm()}")
 
-    if distro not in ["ubuntu", "fedora", "arch"]:
-        exit_error(f"Unsupported Linux distribution: '{distro}'")
+    if is_linux():
+        global g_linux_devtools, g_linux_dependencies
 
-    if distro == "ubuntu" and linux_version != "20.04" and linux_version != "22.04":
-        exit_error(f"Unsupported Ubuntu version: '{linux_version}'")
+        log(f"Distribution: {g_linux_distro} {g_linux_version}")
+        if g_linux_distro is None:
+            exit_error("Failed to detect Linux distribution.")
 
-    if distro == "fedora" and linux_version != "36" and linux_version != "37":
-        exit_error(f"Unsupported Fedora version: '{linux_version}'")
+        if g_linux_version is None:
+            exit_error("Failed to detect Linux version.")
 
-    if distro == "ubuntu":
-        linux_devtools = "build-essential"
-        linux_dependencies = [
-            "qtbase5-dev" if linux_version == "22.04" else "qt5-default",
-            "libxcb-xinput0",
-            "libxcb-xinerama0",
-        ]
-    elif distro == "fedora":
-        linux_devtools = "Development Tools"
-        linux_dependencies = ["qt", "xinput", "libXinerama"]
-    elif distro == "arch":
-        linux_devtools = "base-devel"
-        linux_dependencies = ["qt5-base", "libxcb", "libxinerama"]
+        if g_linux_distro not in ["ubuntu", "fedora", "arch"]:
+            exit_error(f"Unsupported Linux distribution: '{g_linux_distro}'")
+
+        if (
+            g_linux_distro == "ubuntu"
+            and g_linux_version != "20.04"
+            and g_linux_version != "22.04"
+        ):
+            exit_error(f"Unsupported Ubuntu version: '{g_linux_version}'")
+
+        if (
+            g_linux_distro == "fedora"
+            and g_linux_version != "36"
+            and g_linux_version != "37"
+        ):
+            exit_error(f"Unsupported Fedora version: '{g_linux_version}'")
+
+        if g_linux_distro == "ubuntu":
+            g_linux_devtools = "build-essential"
+            g_linux_dependencies = [
+                "qtbase5-dev" if g_linux_version == "22.04" else "qt5-default",
+                "libxcb-xinput0",
+                "libxcb-xinerama0",
+            ]
+        elif g_linux_distro == "fedora":
+            g_linux_devtools = "Development Tools"
+            g_linux_dependencies = ["qt", "xinput", "libXinerama"]
+        elif g_linux_distro == "arch":
+            g_linux_devtools = "base-devel"
+            g_linux_dependencies = ["qt5-base", "libxcb", "libxinerama"]
+
+    log("Operating system validated.")
 
 
 def run_process(
-    command: str | list[str], /, *pargs, exit_on_decline: bool = True, **kwargs
+    command: str | list[str], /, *args, exit_on_decline: bool = True, **kwargs
 ) -> subprocess.CompletedProcess | None:
-    if args.safe and not prompt(
+    if g_args.safe and not prompt(
         f"The command '{command if isinstance(command, str) else ' '.join(command)}' is about to be executed. Do you wish to continue?"
     ):
         if exit_on_decline:
             exit_error()
         return None
 
-    return subprocess.run(command, *pargs, **kwargs)
+    return subprocess.run(command, *args, **kwargs)
 
 
 def run_process_success(command: str | list[str], /, *args, **kwargs) -> bool:
@@ -347,25 +399,6 @@ def run_file(path: Path | str, /) -> None:
         run_process(["xdg-open", path])
     elif is_macos():
         run_process(["open", path])
-
-
-def prompt(msg: str, /, *, default: bool = True) -> bool:
-    if args.yes:
-        return True
-    msg = (
-        SETUP
-        + Style.FG_CYAN
-        + indent * "  "
-        + (f"{msg} [Y]/N " if default else f"{msg} Y/[N] ")
-        + Style.RESET
-    )
-
-    while True:
-        answer = input(msg).strip().lower()
-        if answer in ["y", "yes"] or (default and answer == ""):
-            return True
-        elif answer in ["n", "no"] or (not default and answer == ""):
-            return False
 
 
 def prompt_to_install(dependency: str, /) -> bool:
@@ -388,12 +421,12 @@ def validate_python_version(req_major: int, req_minor: int, req_micro: int, /) -
     ):
         if current < required:
             exit_error(
-                f"Python version required: '{req_major}.{req_minor}.{req_micro}' Python version found: '{major}.{minor}.{micro}'",
+                f"Python version required: '{req_major}.{req_minor}.{req_micro}' Python version found: '{major}.{minor}.{micro}'.",
             )
         elif current > required:
-            log(f"Valid python version detected: '{major}.{minor}.{micro}'")
+            log(f"Valid python version detected: '{major}.{minor}.{micro}'.")
             return
-    log(f"Valid python version detected: '{major}.{minor}.{micro}'")
+    log(f"Valid python version detected: '{major}.{minor}.{micro}'.")
 
 
 def is_python_package_installed(package: str, /) -> bool:
@@ -483,16 +516,16 @@ def is_linux_devtools_installed() -> bool:
 
 def is_linux_package_installed(package: str, /) -> bool:
     success = False
-    if distro == "ubuntu":
+    if g_linux_distro == "ubuntu":
         success = run_process_success(["dpkg", "-l", package], capture_output=True)
 
-    elif distro == "fedora":
+    elif g_linux_distro == "fedora":
         success = run_process_success(
             ["dnf", "list", "installed", package],
             capture_output=True,
         )
 
-    elif distro == "arch":
+    elif g_linux_distro == "arch":
         success = run_process_success(
             ["pacman", "-Q", package],
             capture_output=True,
@@ -512,12 +545,12 @@ def linux_install_package(
     log(f"Installing '{package}'...")
     success = False
 
-    if distro == "ubuntu":
+    if g_linux_distro == "ubuntu":
         if ubuntu_update and not run_process_success(["sudo", "apt-get", "update"]):
             log("Failed to update apt-get")
         success = run_process_success(["sudo", "apt-get", "install", "-y", package])
 
-    if distro == "fedora":
+    if g_linux_distro == "fedora":
         success = run_process_success(
             [
                 "sudo",
@@ -527,7 +560,7 @@ def linux_install_package(
                 package,
             ]
         )
-    if distro == "arch":
+    if g_linux_distro == "arch":
         success = run_process_success(["sudo", "pacman", "-S", "--noconfirm", package])
 
     if success:
@@ -542,11 +575,11 @@ def linux_uninstall_package(package: str, /, *, group_remove: str = False) -> bo
     log(f"Uninstalling '{package}'...")
     success = False
 
-    if distro == "ubuntu":
+    if g_linux_distro == "ubuntu":
         success = run_process_success(
             ["sudo", "apt-get", "remove", "--purge", "-y", package]
         ) and run_process_success(["sudo", "apt-get", "autoremove", "-y"])
-    if distro == "fedora":
+    if g_linux_distro == "fedora":
         success = run_process_success(
             [
                 "sudo",
@@ -556,7 +589,7 @@ def linux_uninstall_package(package: str, /, *, group_remove: str = False) -> bo
                 package,
             ]
         )
-    if distro == "arch":
+    if g_linux_distro == "arch":
         success = run_process_success(
             ["sudo", "pacman", "-Rns", "--noconfirm", package]
         )
@@ -570,31 +603,33 @@ def linux_uninstall_package(package: str, /, *, group_remove: str = False) -> bo
 
 
 def try_install_linux_devtools() -> bool:
-    return linux_install_package(linux_devtools, ubuntu_update=True, group_install=True)
+    return linux_install_package(
+        g_linux_devtools, ubuntu_update=True, group_install=True
+    )
 
 
 def try_uninstall_linux_devtools() -> bool:
-    return linux_uninstall_package(linux_devtools, group_remove=True)
+    return linux_uninstall_package(g_linux_devtools, group_remove=True)
 
 
-@step(Style.BOLD + f"--Validating {linux_devtools}--" + Style.RESET)
+@step(Style.BOLD + "--Validating linux devtools--" + Style.RESET)
 def validate_linux_devtools() -> None:
 
     def install() -> None:
-        if not prompt_to_install(linux_devtools) or not try_install_linux_devtools():
+        if not prompt_to_install(g_linux_devtools) or not try_install_linux_devtools():
             exit_error()
 
     if not is_linux_devtools_installed():
         install()
 
 
-@step(Style.BOLD + f"--Uninstalling {linux_devtools}--" + Style.RESET)
+@step(Style.BOLD + "--Uninstalling linux devtools--" + Style.RESET)
 def uninstall_linux_devtools() -> None:
     if not is_linux_devtools_installed():
         return
 
-    if not prompt_to_uninstall(linux_devtools):
-        log(f"Skipping uninstallation of '{linux_devtools}'")
+    if not prompt_to_uninstall(g_linux_devtools):
+        log(f"Skipping uninstallation of '{g_linux_devtools}'")
         return
 
     try_uninstall_linux_devtools()
@@ -669,7 +704,8 @@ def is_vulkan_installed():
         result = subprocess.run([exec], capture_output=True, text=True)
         return (
             result.returncode == 0
-            and f"Vulkan Instance Version: {vulkan_version.no_micro()}" in result.stdout
+            and f"Vulkan Instance Version: {g_vulkan_version.no_micro()}"
+            in result.stdout
         )
 
     if "VULKAN_SDK" in os.environ:
@@ -721,7 +757,7 @@ def is_vulkan_installed():
     dll = (
         Path(os.environ.get("SystemRoot", "C:\\Windows")) / "System32" / "vulkan-1.dll"
     )
-    vulkan_sdk = Path("C:\\VulkanSDK") / vulkan_version.__str__()
+    vulkan_sdk = Path("C:\\VulkanSDK") / g_vulkan_version.__str__()
     if is_windows() and dll.exists() and vulkan_sdk.exists():
         log(
             f"Vulkan SDK found at '{vulkan_sdk}'. Installation validated with the presence of '{dll}'."
@@ -774,32 +810,36 @@ def extract_file(path: Path, dest: Path, /) -> None:
 def try_install_vulkan() -> bool:
     log("Installing Vulkan SDK...")
 
-    vendor = root / "vendor"
+    vendor = g_root / "vendor"
     vendor.mkdir(exist_ok=True)
     if is_macos():
         extension = (
-            "zip" if vulkan_version.minor > 3 or vulkan_version.patch > 290 else "dmg"
+            "zip"
+            if g_vulkan_version.minor > 3 or g_vulkan_version.patch > 290
+            else "dmg"
         )
-        filename = f"vulkansdk-macos-{vulkan_version}-installer.{extension}"
+        filename = f"vulkansdk-macos-{g_vulkan_version}-installer.{extension}"
         osfolder = "mac"
     elif is_windows():
         filename = (
-            f"VulkanSDK-{vulkan_version}-Installer.exe"
+            f"VulkanSDK-{g_vulkan_version}-Installer.exe"
             if not is_arm()
-            else f"InstallVulkanARM64-{vulkan_version}.exe"
+            else f"InstallVulkanARM64-{g_vulkan_version}.exe"
         )
         osfolder = "windows" if not is_arm() else "warm"
     elif is_linux():
         extension = (
             "tar.xz"
-            if vulkan_version.minor > 3 or vulkan_version.patch > 250
+            if g_vulkan_version.minor > 3 or g_vulkan_version.patch > 250
             else "tar.gz"
         )
-        filename = f"vulkansdk-linux-x86_64-{vulkan_version}.{extension}"
+        filename = f"vulkansdk-linux-x86_64-{g_vulkan_version}.{extension}"
         osfolder = "linux"
 
     download_path = vendor / filename
-    url = f"https://sdk.lunarg.com/sdk/download/{vulkan_version}/{osfolder}/{filename}"
+    url = (
+        f"https://sdk.lunarg.com/sdk/download/{g_vulkan_version}/{osfolder}/{filename}"
+    )
     if not download_path.exists():
         download_file(url, download_path)
     else:
@@ -811,10 +851,10 @@ def try_install_vulkan() -> bool:
         name = (
             "InstallVulkan"
             if not include_version
-            else f"InstallVulkan-{vulkan_version}"
+            else f"InstallVulkan-{g_vulkan_version}"
         )
         path = str(installer_path / "Contents" / "MacOS" / name)
-        vulkan_sdk = Path(f"~/VulkanSDK/{vulkan_version}").expanduser()
+        vulkan_sdk = Path(f"~/VulkanSDK/{g_vulkan_version}").expanduser()
         if not run_process_success(
             [
                 path,
@@ -847,17 +887,17 @@ def try_install_vulkan() -> bool:
             )
 
         if is_macos():
-            filepath = extract_path / f"InstallVulkan-{vulkan_version}.app"
+            filepath = extract_path / f"InstallVulkan-{g_vulkan_version}.app"
             if not filepath.exists():
-                filepath = vendor / f"InstallVulkan-{vulkan_version}.app"
+                filepath = vendor / f"InstallVulkan-{g_vulkan_version}.app"
 
             return macos_install(filepath)
 
         if is_linux():
 
-            vulkan_sdk = extract_path / vulkan_version.__str__() / "x86_64"
+            vulkan_sdk = extract_path / g_vulkan_version.__str__() / "x86_64"
             log(
-                f"The Vulkan SDK has been successfully installed for the linux distribution {distro} {linux_version} at '{vulkan_sdk}'."
+                f"The Vulkan SDK has been successfully installed for the linux distribution {g_linux_distro} {g_linux_version} at '{vulkan_sdk}'."
             )
             log("You must now setup the environment. You can do so in different ways:")
             log(
@@ -893,7 +933,7 @@ def try_install_vulkan() -> bool:
 
     if is_windows():
         log(
-            f"The Vulkan SDK installer will now run. Follow the instructions to install the SDK. Ensure the SDK binaries are installed at 'C:\\VulkanSDK\\{vulkan_version}'."
+            f"The Vulkan SDK installer will now run. Follow the instructions to install the SDK. Ensure the SDK binaries are installed at 'C:\\VulkanSDK\\{g_vulkan_version}'."
         )
         input("Press enter to begin the installation...")
         run_file(download_path)
@@ -905,7 +945,7 @@ def try_install_vulkan() -> bool:
 
 def try_uninstall_vulkan() -> bool:
     if is_macos():
-        path = Path("~/VulkanSDK").expanduser() / vulkan_version.__str__()
+        path = Path("~/VulkanSDK").expanduser() / g_vulkan_version.__str__()
 
         if not path.exists():
             log(Style.FG_YELLOW + f"Vulkan SDK not found at '{path}'." + Style.RESET)
@@ -928,7 +968,7 @@ def try_uninstall_vulkan() -> bool:
 
     if is_linux():
         if not run_process_success(
-            ["rm", "-rf", str(root / "vendor" / "vulkan-extract")]
+            ["rm", "-rf", str(g_root / "vendor" / "vulkan-extract")]
         ):
             log("Failed to remove the extracted Vulkan SDK.")
             return False
@@ -937,7 +977,7 @@ def try_uninstall_vulkan() -> bool:
         return True
 
     if is_windows():
-        vulkan_sdk = Path("C:\\VulkanSDK") / vulkan_version.__str__()
+        vulkan_sdk = Path("C:\\VulkanSDK") / g_vulkan_version.__str__()
         vulkan_uninstall = vulkan_sdk / "Bin" / "uninstall.exe"
         if not vulkan_uninstall.exists():
             log(
@@ -969,7 +1009,7 @@ def validate_vulkan() -> None:
             ):
                 exit_error()
 
-        for dep in linux_dependencies:
+        for dep in g_linux_dependencies:
             if not is_linux_package_installed(dep):
                 install_dependency(dep)
 
@@ -990,7 +1030,7 @@ def uninstall_vulkan() -> None:
 
             linux_uninstall_package(dependency)
 
-        for dep in linux_dependencies:
+        for dep in g_linux_dependencies:
             if is_linux_package_installed(dep):
                 try_uninstall_dependency(dep)
 
@@ -1096,11 +1136,11 @@ def try_install_cmake() -> bool:
 
     if is_windows():
         log("Installing CMake...")
-        vendor = root / "vendor"
+        vendor = g_root / "vendor"
         vendor.mkdir(exist_ok=True)
         arch = "i386" if os_architecture() == "x86" else os_architecture()
-        installer_url = f"https://github.com/Kitware/CMake/releases/download/v{cmake_version}/cmake-{cmake_version}-windows-{arch}.msi"
-        installer_path = vendor / f"cmake-{cmake_version}-windows-{arch}.msi"
+        installer_url = f"https://github.com/Kitware/CMake/releases/download/v{g_cmake_version}/cmake-{g_cmake_version}-windows-{arch}.msi"
+        installer_path = vendor / f"cmake-{g_cmake_version}-windows-{arch}.msi"
 
         log(
             f"Downloading CMake installer from '{installer_url}' into '{installer_path}'"
@@ -1187,42 +1227,58 @@ def uninstall_cmake() -> None:
     try_uninstall_cmake()
 
 
+if is_linux():
+    g_linux_distro = get_linux_distro()
+    g_linux_version = get_linux_version()
+    g_linux_devtools = None
+    g_linux_dependencies = None
+
+g_args = parse_arguments()
+g_root = Path(__file__).parent.resolve()
+
+g_vulkan_version = VulkanVersion(*[int(v) for v in g_args.vulkan_version.split(".")])
+if is_windows():
+    g_cmake_version: str = g_args.cmake_version
+
 validate_python_version(3, 10, 0)
-if not args.uninstall_python_packages:
+validate_arguments()
+validate_operating_system()
+
+if not g_args.uninstall_python_packages:
     validate_python_packages("requests", "tqdm")
 else:
     uninstall_python_packages("requests", "tqdm")
 
 
-if not args.uninstall:
-    if is_linux() and args.linux_devtools:
+if not g_args.uninstall:
+    if is_linux() and g_args.g_linux_devtools:
         validate_linux_devtools()
 
-    if is_macos() and args.xcode_command_line_tools:
+    if is_macos() and g_args.xcode_command_line_tools:
         validate_xcode_command_line_tools()
 
-    if args.vulkan:
+    if g_args.vulkan:
         validate_vulkan()
 
-    if is_macos() and args.brew:
+    if is_macos() and g_args.brew:
         validate_homebrew()
 
-    if args.cmake:
+    if g_args.cmake:
         validate_cmake()
 else:
-    if is_linux() and args.linux_devtools:
+    if is_linux() and g_args.g_linux_devtools:
         uninstall_linux_devtools()
 
-    if is_macos() and args.xcode_command_line_tools:
+    if is_macos() and g_args.xcode_command_line_tools:
         uninstall_xcode_command_line_tools()
 
-    if args.vulkan:
+    if g_args.vulkan:
         uninstall_vulkan()
 
-    if is_macos() and args.brew:
+    if is_macos() and g_args.brew:
         uninstall_homebrew()
 
-    if args.cmake:
+    if g_args.cmake:
         uninstall_cmake()
 
 exit_ok()
