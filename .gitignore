@@ -7,6 +7,7 @@ imgui.ini
 traces/
 saves/
 scripts/
+setup/vendor/
 
 # Prerequisites
 *.d
