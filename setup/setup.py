@@ -448,6 +448,7 @@ def validate_python_packages(*packages: str) -> None:
 @step(Style.BOLD + "--Uninstalling python packages--" + Style.RESET)
 def uninstall_python_packages(*packages: str) -> None:
 
+    uninstalled = False
     for package in packages:
         if not is_python_package_installed(package):
             continue
@@ -455,7 +456,15 @@ def uninstall_python_packages(*packages: str) -> None:
         if not prompt_to_uninstall(package):
             log(f"Skipping uninstallation of '{package}'")
             continue
-        try_uninstall_python_package(package)
+        uninstalled = try_uninstall_python_package(package) or uninstalled
+
+    if uninstalled:
+        log(
+            Style.FG_YELLOW
+            + "As one or more required python packages were uninstalled, this script will now terminate."
+            + Style.RESET
+        )
+        exit_ok()
 
 
 def is_linux_devtools_installed() -> bool:
