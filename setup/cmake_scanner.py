@@ -2,6 +2,34 @@ from pathlib import Path
 from argparse import ArgumentParser, Namespace
 from configparser import ConfigParser
 
+import sys
+
+
+class Style:
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+
+    FG_RED = "\033[31m"
+    FG_GREEN = "\033[32m"
+    FG_YELLOW = "\033[33m"
+    FG_BLUE = "\033[34m"
+    FG_CYAN = "\033[36m"
+
+    BG_YELLOW = "\033[43m"
+
+
+def exit_ok(msg: str, /) -> None:
+    print(scanner_label + Style.FG_GREEN + msg + Style.RESET)
+    sys.exit()
+
+
+def exit_error(msg: str, /) -> None:
+    print(
+        scanner_label + Style.FG_RED + Style.BOLD + f"Error: {msg}" + Style.RESET,
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
 
 def parse_arguments() -> Namespace:
     desc = """
@@ -83,134 +111,128 @@ def parse_arguments() -> Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
-    args = parse_arguments()
-    hint: str = args.hint
-    cmake_path: Path = args.path
-    strip_preffix: bool = not args.keep_preffixes
-    preffixes: list[str] = args.preffixes
-    lower_case: bool = not args.keep_case
-    dyphen_separator: bool = not args.keep_underscore
+def log(msg: str, /, *pargs, **kwargs) -> None:
+    if args.verbose:
+        print(scanner_label + msg, *pargs, **kwargs)
 
-    def log(*pargs, **kwargs) -> None:
-        if args.verbose:
-            print(*pargs, **kwargs)
 
-    def create_custom_varname(
-        cmake_varname: str, /, *, override_strip_preffix: bool = False
-    ) -> str:
-        custom_varname = cmake_varname
-        if strip_preffix and not override_strip_preffix:
-            for preffix in preffixes:
-                if custom_varname.startswith(preffix):
-                    custom_varname = custom_varname.removeprefix(preffix)
-        if lower_case:
-            custom_varname = custom_varname.lower()
-        if dyphen_separator:
-            custom_varname = custom_varname.replace("_", "-")
-        return custom_varname
+def create_custom_varname(
+    cmake_varname: str, /, *, override_strip_preffix: bool = False
+) -> str:
+    custom_varname = cmake_varname
+    if strip_preffix and not override_strip_preffix:
+        for preffix in preffixes:
+            if custom_varname.startswith(preffix):
+                custom_varname = custom_varname.removeprefix(preffix)
+    if lower_case:
+        custom_varname = custom_varname.lower()
+    if dyphen_separator:
+        custom_varname = custom_varname.replace("_", "-")
+    return custom_varname
 
-    def process_option(content: list[str]) -> tuple[str, str, str | bool]:
-        cmake_varname, val = content
-        log(f"    Detected option '{cmake_varname}' with default value '{val}'")
 
-        custom_varname = create_custom_varname(cmake_varname)
+def process_option(content: list[str]) -> tuple[str, str, str | bool]:
+    cmake_varname, val = content
+    log(f"    Detected option '{cmake_varname}' with default value '{val}'.")
 
-        if val == "ON":
-            val = True
-        elif val == "OFF":
-            val = False
+    custom_varname = create_custom_varname(cmake_varname)
 
-        return cmake_varname, custom_varname, val
+    if val == "ON":
+        val = True
+    elif val == "OFF":
+        val = False
 
-    contents = []
-    for cmake_file in cmake_path.rglob(args.cmake_name):
-        log(
-            f"Scanning file at '{cmake_file}'. Looking for lines starting with '{hint}'..."
-        )
-        with open(cmake_file, "r") as f:
-            options = [
-                process_option(
-                    content.removeprefix(f"{hint}(")
-                    .removesuffix(")")
-                    .replace('"', "")
-                    .split(" ")
-                )
-                for content in f.read().splitlines()
-                if content.startswith(hint)
-            ]
-            contents.extend(options)
-        if not options:
-            log("    Nothing found...")
+    return cmake_varname, custom_varname, val
 
-    contents = {content[0]: (content[1], content[2]) for content in contents}
-    unique_varnames = {}
 
-    log("")
-    for cmake_varname, (custom_varname, val) in contents.items():
-        if custom_varname not in unique_varnames:
-            unique_varnames[custom_varname] = cmake_varname
-            continue
-        log(
-            f"Warning: Found name clash with '{custom_varname}'. Trying to resolve by restoring preffixes..."
-        )
-        if not strip_preffix:
-            raise ValueError(
-                f"Name clash with '{custom_varname}' that was not caused by preffix stripping. Aborting..."
+scanner_label = Style.FG_BLUE + "[SCANNER]" + Style.RESET + " "
+args = parse_arguments()
+hint: str = args.hint
+cmake_path: Path = args.path
+strip_preffix: bool = not args.keep_preffixes
+preffixes: list[str] = args.preffixes
+lower_case: bool = not args.keep_case
+dyphen_separator: bool = not args.keep_underscore
+
+contents = []
+for cmake_file in cmake_path.rglob(args.cmake_name):
+    log(f"Scanning file at '{cmake_file}'. Looking for lines starting with '{hint}'...")
+    with open(cmake_file, "r") as f:
+        options = [
+            process_option(
+                content.removeprefix(f"{hint}(")
+                .removesuffix(")")
+                .replace('"', "")
+                .split(" ")
             )
-        other_cmake_varname = unique_varnames[custom_varname]
-        contents[other_cmake_varname] = (
-            create_custom_varname(other_cmake_varname, override_strip_preffix=True),
-            contents[other_cmake_varname][1],
+            for content in f.read().splitlines()
+            if content.startswith(hint)
+        ]
+        contents.extend(options)
+    if not options:
+        log("    Nothing found...")
+
+contents = {content[0]: (content[1], content[2]) for content in contents}
+unique_varnames = {}
+
+for cmake_varname, (custom_varname, val) in contents.items():
+    if custom_varname not in unique_varnames:
+        unique_varnames[custom_varname] = cmake_varname
+        continue
+    log(
+        Style.FG_YELLOW
+        + f"Warning: Found name clash with '{custom_varname}'. Trying to resolve by restoring preffixes..."
+        + Style.RESET
+    )
+    if not strip_preffix:
+        exit_error(
+            f"Name clash with '{custom_varname}' that was not caused by preffix stripping. Aborting..."
         )
-        contents[cmake_varname] = (
-            create_custom_varname(cmake_varname, override_strip_preffix=True),
-            contents[cmake_varname][1],
-        )
-        log("Resolved!")
-
-    path = Path(__file__).parent
-    cfg = ConfigParser(allow_no_value=True)
-    cfg.read(path / "build.ini")
-
-    sections = {sc: dict(cfg[sc]) for sc in cfg.sections()}
-    cfg.clear()
-
-    cfg.add_section("default-values")
-    cfg.set(
-        "default-values",
-        ";This section format goes as follows: <lowercase-cmake-option> = <lowercase-custom-formatted-option>: <default-value>",
+    other_cmake_varname = unique_varnames[custom_varname]
+    contents[other_cmake_varname] = (
+        create_custom_varname(other_cmake_varname, override_strip_preffix=True),
+        contents[other_cmake_varname][1],
     )
-    for cmake_varname, (custom_varname, val) in contents.items():
-        cmake_varname = cmake_varname.lower()
-        cfg["default-values"][cmake_varname] = (
-            f"{custom_varname}: {val}"
-            if "default-values" not in sections
-            or cmake_varname not in sections["default-values"]
-            else sections["default-values"][cmake_varname]
-        )
+    contents[cmake_varname] = (
+        create_custom_varname(cmake_varname, override_strip_preffix=True),
+        contents[cmake_varname][1],
+    )
+    log(Style.FG_GREEN + "Name clash resolved!" + Style.RESET)
 
-    cfg.set(
-        "default-values",
-        ";You can override default values by creating new sections as follows:",
-    )
-    cfg.set(
-        "default-values", ";[<lowercase-cmake-option>.<value-that-triggers-override>]"
-    )
-    cfg.set(
-        "default-values", ";<lowercase-custom-formatted-option> = <new-default-value>"
+root = Path(__file__).parent
+cfg = ConfigParser(allow_no_value=True)
+cfg.read(root / "build.ini")
+
+sections = {sc: dict(cfg[sc]) for sc in cfg.sections()}
+cfg.clear()
+
+cfg.add_section("default-values")
+cfg.set(
+    "default-values",
+    ";This section format goes as follows: <lowercase-cmake-option> = <lowercase-custom-formatted-option>: <default-value>",
+)
+for cmake_varname, (custom_varname, val) in contents.items():
+    cmake_varname = cmake_varname.lower()
+    cfg["default-values"][cmake_varname] = (
+        f"{custom_varname}: {val}"
+        if "default-values" not in sections
+        or cmake_varname not in sections["default-values"]
+        else sections["default-values"][cmake_varname]
     )
 
-    for section, contents in sections.items():
-        if section == "default-values":
-            continue
-        cfg.add_section(section)
-        for option, value in contents.items():
-            cfg[section][option] = value
+cfg.set(
+    "default-values",
+    ";You can override default values by creating new sections as follows:",
+)
+cfg.set("default-values", ";[<lowercase-cmake-option>.<value-that-triggers-override>]")
+cfg.set("default-values", ";<lowercase-custom-formatted-option> = <new-default-value>")
 
-    with open(path / "build.ini", "w") as f:
-        cfg.write(f)
+for section, contents in sections.items():
+    if section == "default-values":
+        continue
+    cfg.add_section(section)
+    for option, value in contents.items():
+        cfg[section][option] = value
 
-
-if __name__ == "__main__":
-    main()
+with open(root / "build.ini", "w") as f:
+    cfg.write(f)
