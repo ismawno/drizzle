@@ -18,8 +18,8 @@ class Style:
     BG_YELLOW = "\033[43m"
 
 
-def exit_ok(msg: str, /) -> None:
-    print(scanner_label + Style.FG_GREEN + msg + Style.RESET)
+def exit_ok() -> None:
+    print(scanner_label + Style.FG_GREEN + "Success!" + Style.RESET)
     sys.exit()
 
 
@@ -236,3 +236,5 @@ for section, contents in sections.items():
 
 with open(root / "build.ini", "w") as f:
     cfg.write(f)
+
+exit_ok()
