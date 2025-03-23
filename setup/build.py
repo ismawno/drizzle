@@ -224,6 +224,7 @@ for argname, argvalue in parser_args_dict.items():
         cmake_args[f"-D{cmake_varname.upper()}"] = "ON" if default else "OFF"
 
 cmake_args = [f"{argname}={argvalue}" for argname, argvalue in cmake_args.items()]
+cmake_args.append(f"-DTOOLKIT_PYTHON_EXECUTABLE={sys.executable}")
 build_path.mkdir(exist_ok=True, parents=True)
 
 log("Running CMake with the following arguments:")
