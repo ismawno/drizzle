@@ -17,6 +17,43 @@ import tarfile
 import re
 
 
+class Style:
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+
+    FG_RED = "\033[31m"
+    FG_GREEN = "\033[32m"
+    FG_YELLOW = "\033[33m"
+    FG_BLUE = "\033[34m"
+    FG_CYAN = "\033[36m"
+
+    BG_YELLOW = "\033[43m"
+
+
+def exit_ok() -> None:
+    log(Style.FG_GREEN + "Success!" + Style.RESET)
+    sys.exit()
+
+
+def exit_restart() -> None:
+    log("Re-run the script for changes to take effect.")
+    sys.exit()
+
+
+def exit_error(msg: str | None = None, /) -> None:
+    if msg is not None:
+        log(Style.FG_RED + Style.BOLD + f"Error: {msg}" + Style.RESET, file=sys.stderr)
+    else:
+        log(
+            Style.FG_RED
+            + Style.BOLD
+            + f"Installation failed, likely because a particular step failed or the user declined a prompt."
+            + Style.RESET,
+            file=sys.stderr,
+        )
+    sys.exit(1)
+
+
 def is_windows() -> bool:
     return sys.platform.startswith("win")
 
@@ -73,7 +110,7 @@ def get_linux_version() -> str | None:
     return None
 
 
-def parse_arguments() -> Namespace:
+def parse_arguments() -> tuple[Namespace, list[str]]:
     desc = """
     This is a general installation scripts designed to download and install various recurring
     dependencies for my projects across different operating systems. The supported operating systems are Windows, Linux (Ubuntu, Fedora and Arch), and MacOS.
@@ -147,6 +184,12 @@ def parse_arguments() -> Namespace:
         default=False,
         help="Uninstall python packages needed by this script.",
     )
+    parser.add_argument(
+        "--build-script",
+        type=Path,
+        default=None,
+        help="Path to the build script to run after the setup. If provided, unknown arguments will be passed to the build script. Default is None.",
+    )
 
     parser.add_argument(
         "--vulkan-version",
@@ -162,48 +205,7 @@ def parse_arguments() -> Namespace:
             help="The CMake version to install. This setting is only applicable to Windows. In other OS, the latest version is installed through a package manager. Default is '3.21.3'.",
         )
 
-    return parser.parse_args()
-
-
-class Style:
-    RESET = "\033[0m"
-    BOLD = "\033[1m"
-
-    FG_BLACK = "\033[30m"
-    FG_RED = "\033[31m"
-    FG_GREEN = "\033[32m"
-    FG_YELLOW = "\033[33m"
-    FG_BLUE = "\033[34m"
-    FG_MAGENTA = "\033[35m"
-    FG_CYAN = "\033[36m"
-    FG_WHITE = "\033[37m"
-
-    FG_BRIGHT_BLACK = "\033[90m"
-    FG_BRIGHT_RED = "\033[91m"
-    FG_BRIGHT_GREEN = "\033[92m"
-    FG_BRIGHT_YELLOW = "\033[93m"
-    FG_BRIGHT_BLUE = "\033[94m"
-    FG_BRIGHT_MAGENTA = "\033[95m"
-    FG_BRIGHT_CYAN = "\033[96m"
-    FG_BRIGHT_WHITE = "\033[97m"
-
-    BG_BLACK = "\033[40m"
-    BG_RED = "\033[41m"
-    BG_GREEN = "\033[42m"
-    BG_YELLOW = "\033[43m"
-    BG_BLUE = "\033[44m"
-    BG_MAGENTA = "\033[45m"
-    BG_CYAN = "\033[46m"
-    BG_WHITE = "\033[47m"
-
-    BG_BRIGHT_BLACK = "\033[100m"
-    BG_BRIGHT_RED = "\033[101m"
-    BG_BRIGHT_GREEN = "\033[102m"
-    BG_BRIGHT_YELLOW = "\033[103m"
-    BG_BRIGHT_BLUE = "\033[104m"
-    BG_BRIGHT_MAGENTA = "\033[105m"
-    BG_BRIGHT_CYAN = "\033[106m"
-    BG_BRIGHT_WHITE = "\033[107m"
+    return parser.parse_known_args()
 
 
 @dataclass
@@ -224,7 +226,7 @@ class VulkanVersion:
 
 
 indent = 0
-setup_label = Style.FG_BLUE + "[SETUP] " + Style.RESET + " "
+setup_label = Style.FG_BLUE + "[SETUP]" + Style.RESET + " "
 
 
 def log(msg: str, /, *args, **kwargs) -> None:
@@ -257,30 +259,6 @@ def pop_indent() -> None:
     indent -= 1
 
 
-def exit_ok() -> None:
-    log(Style.FG_GREEN + "Success!" + Style.RESET)
-    sys.exit()
-
-
-def exit_restart() -> None:
-    log("Re-run the script for changes to take effect.")
-    sys.exit()
-
-
-def exit_error(msg: str | None = None, /) -> None:
-    if msg is not None:
-        log(Style.FG_RED + Style.BOLD + f"Error: {msg}" + Style.RESET, file=sys.stderr)
-    else:
-        log(
-            Style.FG_RED
-            + Style.BOLD
-            + f"Installation failed, likely because a particular step failed or the user declined a prompt."
-            + Style.RESET,
-            file=sys.stderr,
-        )
-    sys.exit(1)
-
-
 def prompt(msg: str, /, *, default: bool = True) -> bool:
     if g_args.yes:
         return True
@@ -303,6 +281,16 @@ def prompt(msg: str, /, *, default: bool = True) -> bool:
 def validate_arguments() -> None:
     if g_args.safe and g_args.yes:
         exit_error("The '-s' and '-y' flags cannot be used together.")
+
+    if g_args.build_script is None and g_unknown:
+        exit_error(
+            f"Unknown arguments were detected: '{' '.join(g_unknown)}'. Note that you may only provide unknown arguments when a build script is provided. The unknown arguments will be forwarded to the build script."
+        )
+
+    if g_unknown:
+        log(
+            f"Unknown arguments detected: '{' '.join(g_unknown)}'. These will be forwarded to the build script at '{g_args.build_script}'."
+        )
 
     if not g_args.safe:
         log(
@@ -339,21 +327,21 @@ def validate_operating_system() -> None:
             exit_error("Failed to detect Linux version.")
 
         if g_linux_distro not in ["ubuntu", "fedora", "arch"]:
-            exit_error(f"Unsupported Linux distribution: '{g_linux_distro}'")
+            exit_error(f"Unsupported Linux distribution: '{g_linux_distro}'.")
 
         if (
             g_linux_distro == "ubuntu"
             and g_linux_version != "20.04"
             and g_linux_version != "22.04"
         ):
-            exit_error(f"Unsupported Ubuntu version: '{g_linux_version}'")
+            exit_error(f"Unsupported Ubuntu version: '{g_linux_version}'.")
 
         if (
             g_linux_distro == "fedora"
             and g_linux_version != "36"
             and g_linux_version != "37"
         ):
-            exit_error(f"Unsupported Fedora version: '{g_linux_version}'")
+            exit_error(f"Unsupported Fedora version: '{g_linux_version}'.")
 
         if g_linux_distro == "ubuntu":
             g_linux_devtools = "build-essential"
@@ -391,6 +379,11 @@ def run_process_success(command: str | list[str], /, *args, **kwargs) -> bool:
 
 
 def run_file(path: Path | str, /) -> None:
+    if g_args.safe and not prompt(
+        f"The file '{path}' is about to be executed. Do you wish to continue?"
+    ):
+        exit_error()
+
     if isinstance(path, Path):
         path = str(path.resolve())
     if is_windows():
@@ -441,10 +434,10 @@ def is_python_package_installed(package: str, /) -> bool:
 def try_install_python_package(package: str, /) -> bool:
     log(f"Installing python package '{package}'...")
     if not run_process_success([sys.executable, "-m", "pip", "install", package]):
-        log(f"Failed to install '{package}'")
+        log(f"Failed to install '{package}'.")
         return False
 
-    log(f"Successfully installed '{package}'")
+    log(f"Successfully installed '{package}'.")
     return True
 
 
@@ -453,10 +446,10 @@ def try_uninstall_python_package(package: str, /) -> bool:
     if not run_process_success(
         [sys.executable, "-m", "pip", "uninstall", "-y", package]
     ):
-        log(f"Failed to uninstall '{package}'")
+        log(f"Failed to uninstall '{package}'.")
         return False
 
-    log(f"Successfully uninstalled '{package}'")
+    log(f"Successfully uninstalled '{package}'.")
     return True
 
 
@@ -487,7 +480,7 @@ def uninstall_python_packages(*packages: str) -> None:
             continue
 
         if not prompt_to_uninstall(package):
-            log(f"Skipping uninstallation of '{package}'")
+            log(f"Skipping uninstallation of '{package}'.")
             continue
         uninstalled = try_uninstall_python_package(package) or uninstalled
 
@@ -510,7 +503,7 @@ def is_linux_devtools_installed() -> bool:
             log(Style.FG_YELLOW + f"'{tool}' not found." + Style.RESET)
             installed = False
         else:
-            log(f"'{tool}' found at '{path}'")
+            log(f"'{tool}' found at '{path}'.")
     return installed
 
 
@@ -564,10 +557,10 @@ def linux_install_package(
         success = run_process_success(["sudo", "pacman", "-S", "--noconfirm", package])
 
     if success:
-        log(f"Successfully installed '{package}'")
+        log(f"Successfully installed '{package}'.")
         return True
 
-    log(f"Failed to install '{package}'")
+    log(f"Failed to install '{package}'.")
     return False
 
 
@@ -595,10 +588,10 @@ def linux_uninstall_package(package: str, /, *, group_remove: str = False) -> bo
         )
 
     if success:
-        log(f"Successfully uninstalled '{package}'")
+        log(f"Successfully uninstalled '{package}'.")
         return True
 
-    log(f"Failed to uninstall '{package}'")
+    log(f"Failed to uninstall '{package}'.")
     return False
 
 
@@ -629,7 +622,7 @@ def uninstall_linux_devtools() -> None:
         return
 
     if not prompt_to_uninstall(g_linux_devtools):
-        log(f"Skipping uninstallation of '{g_linux_devtools}'")
+        log(f"Skipping uninstallation of '{g_linux_devtools}'.")
         return
 
     try_uninstall_linux_devtools()
@@ -960,7 +953,7 @@ def try_uninstall_vulkan() -> bool:
             return False
 
         if not run_process_success(["rm", "-rf", str(path)]):
-            log(f"Failed to remove the Vulkan SDK at '{path}'")
+            log(f"Failed to remove the Vulkan SDK at '{path}'.")
             return False
 
         log(f"Successfully uninstalled Vulkan SDK at '{path}'.")
@@ -1025,7 +1018,7 @@ def uninstall_vulkan() -> None:
 
         def try_uninstall_dependency(dependency: str, /) -> None:
             if not prompt_to_uninstall(dependency):
-                log(f"Skipping uninstallation of '{dependency}'")
+                log(f"Skipping uninstallation of '{dependency}'.")
                 return
 
             linux_uninstall_package(dependency)
@@ -1050,7 +1043,7 @@ def is_homebrew_installed() -> bool:
         log(Style.FG_YELLOW + "Homebrew not found." + Style.RESET)
         return False
 
-    log(f"Homebrew found at '{brew_path}'")
+    log(f"Homebrew found at '{brew_path}'.")
     return True
 
 
@@ -1186,7 +1179,7 @@ def try_uninstall_cmake() -> bool:
             return False
 
         output = result.stdout
-        log(f"Query result: '{output}'")
+        log(f"Query result: '{output}'.")
 
         guid = re.match(r"\{[0-9A-Fa-f\-]+\}", output)
         if guid is None:
@@ -1196,12 +1189,12 @@ def try_uninstall_cmake() -> bool:
             return False
 
         guid = guid.group()
-        log(f"CMake found with guid: '{guid}'")
+        log(f"CMake found with guid: '{guid}'.")
         if not run_process_success(f"msiexec /x {guid}"):
-            log(f"Failed to uninstall CMake with guid: '{guid}'")
+            log(f"Failed to uninstall CMake with guid: '{guid}'.")
             return False
 
-        log(f"Successfully uninstalled CMake with guid: '{guid}'")
+        log(f"Successfully uninstalled CMake with guid: '{guid}'.")
         return True
 
     return False
@@ -1227,13 +1220,33 @@ def uninstall_cmake() -> None:
     try_uninstall_cmake()
 
 
+@step(Style.BOLD + "--Executing build script--" + Style.RESET)
+def execute_build_script() -> None:
+    build_script: Path = g_args.build_script.resolve()
+    if not build_script.exists():
+        exit_error(f"Build script not found at '{build_script}'.")
+
+    if not prompt(
+        f"Build script provided at '{build_script}'. Do you wish to exexcute it?"
+    ):
+        exit_error()
+
+    if build_script.suffix == ".py":
+        cmd = [sys.executable, str(build_script), *g_unknown]
+    else:
+        cmd = [str(build_script), *g_unknown]
+
+    if not run_process(cmd):
+        exit_error(f"Failed to execute build script at '{build_script}'.")
+
+
 if is_linux():
     g_linux_distro = get_linux_distro()
     g_linux_version = get_linux_version()
     g_linux_devtools = None
     g_linux_dependencies = None
 
-g_args = parse_arguments()
+g_args, g_unknown = parse_arguments()
 g_root = Path(__file__).parent.resolve()
 
 g_vulkan_version = VulkanVersion(*[int(v) for v in g_args.vulkan_version.split(".")])
@@ -1280,5 +1293,8 @@ else:
 
     if g_args.cmake:
         uninstall_cmake()
+
+if g_args.build_script is not None:
+    execute_build_script()
 
 exit_ok()
