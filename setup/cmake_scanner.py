@@ -1,34 +1,7 @@
 from pathlib import Path
 from argparse import ArgumentParser, Namespace
 from configparser import ConfigParser
-
-import sys
-
-
-class Style:
-    RESET = "\033[0m"
-    BOLD = "\033[1m"
-
-    FG_RED = "\033[31m"
-    FG_GREEN = "\033[32m"
-    FG_YELLOW = "\033[33m"
-    FG_BLUE = "\033[34m"
-    FG_CYAN = "\033[36m"
-
-    BG_YELLOW = "\033[43m"
-
-
-def exit_ok() -> None:
-    print(scanner_label + Style.FG_GREEN + "Success!" + Style.RESET)
-    sys.exit()
-
-
-def exit_error(msg: str, /) -> None:
-    print(
-        scanner_label + Style.FG_RED + Style.BOLD + f"Error: {msg}" + Style.RESET,
-        file=sys.stderr,
-    )
-    sys.exit(1)
+from convoy import Convoy
 
 
 def parse_arguments() -> Namespace:
@@ -111,11 +84,6 @@ def parse_arguments() -> Namespace:
     return parser.parse_args()
 
 
-def log(msg: str, /, *pargs, **kwargs) -> None:
-    if args.verbose:
-        print(scanner_label + msg, *pargs, **kwargs)
-
-
 def create_custom_varname(
     cmake_varname: str, /, *, override_strip_preffix: bool = False
 ) -> str:
@@ -133,7 +101,9 @@ def create_custom_varname(
 
 def process_option(content: list[str]) -> tuple[str, str, str | bool]:
     cmake_varname, val = content
-    log(f"    Detected option '{cmake_varname}' with default value '{val}'.")
+    Convoy.verbose(
+        f"    Detected option <bold>{cmake_varname}</bold> with default value <bold>{val}</bold>."
+    )
 
     custom_varname = create_custom_varname(cmake_varname)
 
@@ -145,8 +115,10 @@ def process_option(content: list[str]) -> tuple[str, str, str | bool]:
     return cmake_varname, custom_varname, val
 
 
-scanner_label = Style.FG_BLUE + "[SCANNER]" + Style.RESET + " "
+Convoy.log_label = "SCANNER"
 args = parse_arguments()
+Convoy.is_verbose = args.verbose
+
 hint: str = args.hint
 cmake_path: Path = args.path
 strip_preffix: bool = not args.keep_preffixes
@@ -156,7 +128,9 @@ dyphen_separator: bool = not args.keep_underscore
 
 contents = []
 for cmake_file in cmake_path.rglob(args.cmake_name):
-    log(f"Scanning file at '{cmake_file}'. Looking for lines starting with '{hint}'...")
+    Convoy.verbose(
+        f"Scanning file at <underline>{cmake_file}</underline>. Looking for lines starting with <bold>{hint}</bold>..."
+    )
     with open(cmake_file, "r") as f:
         options = [
             process_option(
@@ -170,7 +144,7 @@ for cmake_file in cmake_path.rglob(args.cmake_name):
         ]
         contents.extend(options)
     if not options:
-        log("    Nothing found...")
+        Convoy.verbose("    Nothing found...")
 
 contents = {content[0]: (content[1], content[2]) for content in contents}
 unique_varnames = {}
@@ -179,14 +153,12 @@ for cmake_varname, (custom_varname, val) in contents.items():
     if custom_varname not in unique_varnames:
         unique_varnames[custom_varname] = cmake_varname
         continue
-    log(
-        Style.FG_YELLOW
-        + f"Warning: Found name clash with '{custom_varname}'. Trying to resolve by restoring preffixes..."
-        + Style.RESET
+    Convoy.verbose(
+        f"<fyellow>Warning: Found name clash with <bold>{custom_varname}</bold>. Trying to resolve by restoring preffixes..."
     )
     if not strip_preffix:
-        exit_error(
-            f"Name clash with '{custom_varname}' that was not caused by preffix stripping. Aborting..."
+        Convoy.exit_error(
+            f"Name clash with <bold>{custom_varname}</bold> that was not caused by preffix stripping. Aborting..."
         )
     other_cmake_varname = unique_varnames[custom_varname]
     contents[other_cmake_varname] = (
@@ -197,7 +169,7 @@ for cmake_varname, (custom_varname, val) in contents.items():
         create_custom_varname(cmake_varname, override_strip_preffix=True),
         contents[cmake_varname][1],
     )
-    log(Style.FG_GREEN + "Name clash resolved!" + Style.RESET)
+    Convoy.verbose("<fgreen>Name clash resolved!")
 
 root = Path(__file__).parent
 cfg = ConfigParser(allow_no_value=True)
@@ -237,4 +209,4 @@ for section, contents in sections.items():
 with open(root / "build.ini", "w") as f:
     cfg.write(f)
 
-exit_ok()
+Convoy.exit_ok()

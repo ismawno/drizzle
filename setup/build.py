@@ -1,36 +1,10 @@
 from pathlib import Path
 from argparse import ArgumentParser, Namespace
 from configparser import ConfigParser
+from convoy import Convoy
 
 import subprocess
-import os
 import sys
-
-
-class Style:
-    RESET = "\033[0m"
-    BOLD = "\033[1m"
-
-    FG_RED = "\033[31m"
-    FG_GREEN = "\033[32m"
-    FG_YELLOW = "\033[33m"
-    FG_BLUE = "\033[34m"
-    FG_CYAN = "\033[36m"
-
-    BG_YELLOW = "\033[43m"
-
-
-def exit_ok(msg: str, /) -> None:
-    print(build_label + Style.FG_GREEN + msg + Style.RESET)
-    sys.exit()
-
-
-def exit_error(msg: str, /) -> None:
-    print(
-        build_label + Style.FG_RED + Style.BOLD + f"Error: {msg}" + Style.RESET,
-        file=sys.stderr,
-    )
-    sys.exit(1)
 
 
 def try_convert_bool(val: str, /) -> bool | str:
@@ -47,7 +21,9 @@ def load_build_ini() -> ConfigParser:
     root = Path(__file__).parent
     path = root / "build.ini"
     if not path.exists():
-        exit_error(f"No 'build.ini' file found in '{root}'")
+        Convoy.exit_error(
+            f"No configuration file found at <underline>{root}</underline>."
+        )
 
     with open(path) as f:
         cfg.read_file(f)
@@ -60,8 +36,8 @@ def parse_default_values(cfg: ConfigParser, /) -> dict[str, tuple[str, str | boo
     for cmake_varname, kv in cfg["default-values"].items():
         custom_varname, val = kv.split(": ")
         if custom_varname in cmake_vname_map:
-            exit_error(
-                f"Name mismatch! Variable '{custom_varname}' already exists in the 'cmake_vname_map' dictionary"
+            Convoy.exit_error(
+                f"Name mismatch: Variable <bold>{custom_varname}</bold> already exists. Custom variable names must be unique."
             )
 
         cmake_vname_map[cmake_varname] = (custom_varname, try_convert_bool(val))
@@ -139,28 +115,20 @@ def parse_arguments(
     return parser.parse_known_args(), custom_vname_map
 
 
-def log(msg: str, /, *pargs, **kwargs) -> None:
-    if args.verbose:
-        print(build_label + msg, *pargs, **kwargs)
-
-
-def run_process_success(*args, **kwargs) -> bool:
-    return subprocess.run(*args, **kwargs).returncode == 0
-
-
-build_label = Style.FG_BLUE + "[BUILD]" + Style.RESET + " "
+Convoy.log_label = "BUILD"
 cfg = load_build_ini()
 cmake_vname_map = parse_default_values(cfg)
 (args, unknown), custom_vname_map = parse_arguments(cmake_vname_map)
+Convoy.is_verbose = args.verbose
 
 if args.build_command is None and unknown:
-    exit_error(
-        f"Unknown arguments were detected: '{' '.join(unknown)}'. Note that you may only provide unknown arguments when a build command is provided. The unknown arguments will be forwarded to the build command."
+    Convoy.exit_error(
+        f"Unknown arguments were detected: <bold>{' '.join(unknown)}</bold>. Note that you may only provide unknown arguments when a build command is provided. The unknown arguments will be forwarded to the build command."
     )
 
 if unknown:
-    log(
-        f"Unknown arguments detected: '{' '.join(unknown)}'. These will be forwarded to the build command: '{args.build_command}'."
+    Convoy.verbose(
+        f"Unknown arguments detected: <bold>{' '.join(unknown)}</bold>. These will be forwarded to the build command: <bold>{args.build_command}</bold>."
     )
 
 build_path: Path = args.build.resolve()
@@ -177,8 +145,8 @@ for argname, argvalue in parser_args_dict.items():
     else:
         nargvalue = parser_args_dict[f"no_{argname}"]
         if argvalue and nargvalue:
-            exit_error(
-                f"Cannot set both '{argname}' and 'no_{argname}' to True. Please choose one"
+            Convoy.exit_error(
+                f"Cannot set both <bold>{argname}</bold> and <bold>no_{argname}</bold> to True. Please choose one."
             )
         if argvalue:
             value = "True"
@@ -196,7 +164,7 @@ for argname, argvalue in parser_args_dict.items():
         custom_varname = custom_varname.replace("-", "_")
         if custom_varname not in custom_vname_map:
             raise ValueError(
-                f"Default value override '{custom_varname}' was not found in the 'default-values' section"
+                f"Default value override <bold>{custom_varname}</bold> was not found in the <bold>default-values</bold> section."
             )
         new_value = (
             custom_vname_map[custom_varname][0],
@@ -227,32 +195,35 @@ cmake_args = [f"{argname}={argvalue}" for argname, argvalue in cmake_args.items(
 cmake_args.append(f"-DTOOLKIT_PYTHON_EXECUTABLE={sys.executable}")
 build_path.mkdir(exist_ok=True, parents=True)
 
-log("Running CMake with the following arguments:")
+Convoy.verbose("Running <bold>CMake</bold> with the following arguments:")
 for arg in cmake_args:
-    log(f"    {arg}")
+    Convoy.verbose(f"    {arg}")
 
-os.chdir(build_path)
-if not run_process_success(
+if not Convoy.run_process_success(
     ["cmake", str(source_path)] + cmake_args,
     stdout=subprocess.DEVNULL if not args.verbose else None,
+    cwd=build_path,
 ):
-    exit_error("Failed to execute CMake command.")
+    Convoy.exit_error("Failed to execute <bold>CMake</bold> command.")
 
 if args.build_command is not None:
-    os.chdir(build_path)
-
     bcmd: list[str] = args.build_command.split(" ")
-    log(f"Running build command: '{args.build_command} {' '.join(unknown)}'")
-    if not run_process_success(
+    Convoy.verbose(
+        f"Running build command: <bold>{args.build_command} {' '.join(unknown)}"
+    )
+    if not Convoy.run_process_success(
         bcmd + unknown,
         stdout=subprocess.DEVNULL if not args.verbose else None,
+        cwd=build_path,
     ):
-        exit_error(f"Failed to execute build command: '{args.build_command}'")
+        Convoy.exit_error(
+            f"Failed to execute build command: <bold>{args.build_command}"
+        )
 
-    exit_ok(
-        f"Success! Build files were generated and the project compiled successfully. You may found the build files at '{build_path}', along with the compiled binaries."
+    Convoy.exit_ok(
+        f"Build files were generated and the project compiled successfully. You may found the build files at <underline>{build_path}</underline>, along with the compiled binaries."
     )
 
-exit_ok(
-    f"Success! Build files were generated successfully. You may found the build files at '{build_path}'. As no build command was provided, the project must be compiled manually. You may do so with 'make' if you are using a Unix-like system or Visual Studio if you are using Windows."
+Convoy.exit_ok(
+    f"Build files were generated successfully. You may found the build files at <underline>{build_path}</underline>. As no build command was provided, the project must be compiled manually. You may do so with <bold>make</bold> if you are using a unix-like system or <bold>Visual Studio</bold> if you are using Windows."
 )
