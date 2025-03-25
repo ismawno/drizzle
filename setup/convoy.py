@@ -197,6 +197,7 @@ class _MetaConvoy(type):
     def exit_ok(self, msg: str | None = None, /) -> None:
         if msg is not None:
             self.log(f"<fgreen>{msg}</fgreen>")
+
         self.__exit(0)
 
     def exit_error(
