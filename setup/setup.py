@@ -686,16 +686,16 @@ def uninstall_xcode_command_line_tools() -> None:
 
 
 def is_vulkan_installed(version: VulkanVersion, /):
-    def check_vulkaninfo() -> bool:
-        exec = shutil.which("vulkaninfo")
-        if exec is None:
-            return False
+    # def check_vulkaninfo() -> bool:
+    #     exec = shutil.which("vulkaninfo")
+    #     if exec is None:
+    #         return False
 
-        result = subprocess.run([exec], capture_output=True, text=True)
-        return (
-            result.returncode == 0
-            and f"Vulkan Instance Version: {version.no_micro()}" in result.stdout
-        )
+    #     result = subprocess.run([exec], capture_output=True, text=True)
+    #     return (
+    #         result.returncode == 0
+    #         and f"Vulkan Instance Version: {version.no_micro()}" in result.stdout
+    #     )
 
     if "VULKAN_SDK" in os.environ:
         Convoy.log(
@@ -707,13 +707,13 @@ def is_vulkan_installed(version: VulkanVersion, /):
         "<fyellow><bold>Vulkan SDK</bold> environment variable ('VULKAN_SDK') not found."
     )
 
-    if check_vulkaninfo():
-        Convoy.log(
-            f"<bold>Vulkaninfo</bold> found at <underline>{shutil.which('vulkaninfo')}</underline>."
-        )
-        return True
+    # if check_vulkaninfo():
+    #     Convoy.log(
+    #         f"<bold>Vulkaninfo</bold> found at <underline>{shutil.which('vulkaninfo')}</underline>."
+    #     )
+    #     return True
 
-    Convoy.log("<bold>Vulkaninfo</bold> not found.")
+    # Convoy.log("<bold>Vulkaninfo</bold> not found.")
 
     if Convoy.is_macos and Path("/usr/local/lib/libvulkan.dylib").exists():
         Convoy.log(
