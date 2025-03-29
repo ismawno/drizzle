@@ -252,11 +252,11 @@ class _MetaConvoy(type):
 
         if isinstance(path, Path):
             path = str(path.resolve())
-        if self.is_windows():
+        if self.is_windows:
             os.startfile(path)
-        elif self.is_linux():
+        elif self.is_linux:
             self.run_process(["xdg-open", path])
-        elif self.is_macos():
+        elif self.is_macos:
             self.run_process(["open", path])
 
     def __exit(self, code: int, /) -> None:
