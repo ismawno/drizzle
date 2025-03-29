@@ -988,7 +988,7 @@ def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
             return False
 
         Convoy.log(
-            f"<bold>Vulkan SDK</bold> maintenance tool found at <underline>{vulkan_uninstall}</underline>."
+            f"<bold>Vulkan SDK</bold> maintenance tool found at <underline>{vulkan_uninstall}</underline>. Select <bold>Remove all components</bold> to uninstall the SDK."
         )
         Convoy.run_file(vulkan_uninstall)
         Convoy.empty_prompt(
@@ -1121,6 +1121,9 @@ def try_uninstall_visual_studio() -> bool:
     Convoy.log("Uninstalling <bold>Visual Studio</bold>...")
     installer_path = look_for_visual_studio_installer()
     if installer_path is not None:
+        Convoy.log(
+            "In the uninstaller, select the <bold>More</bold> dropdown and then the <bold>Uninstall</bold> option."
+        )
         Convoy.run_file(installer_path)
         Convoy.empty_prompt(
             "Press enter to continue once the uninstallation is complete..."
