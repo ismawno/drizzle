@@ -22,6 +22,11 @@ def parse_arguments() -> tuple[Namespace, list[str]]:
     This is a general installation scripts designed to download and install various recurring
     dependencies for my projects across different operating systems. The supported operating systems are Windows, Linux (Ubuntu, Fedora and Arch), and MacOS.
 
+    This script will generate an 'install-list.txt' so that when passing the '--uninstall' flag, only the dependencies installed by this script are removed.
+    This is to prevent the removal of other dependencies that may have been installed manually.
+
+    If python packages required by these scripts are also to be uninstalled, use the '--uninstall-python-packages' flag once all other dependencies have been uninstalled.
+
     WARNING: This kind of scripts are hard to test due to the vast amount of different configurations and setups.
     I, particularly, do not have access to all of them. That is why I have provided a safe mode ('-s', '--safe') that will prompt
     the user before executing any command. This way, the user can review the commands before they are executed. Because this
@@ -48,6 +53,7 @@ def parse_arguments() -> tuple[Namespace, list[str]]:
     if Convoy.is_linux:
         parser.add_argument(
             "--linux-devtools",
+            dest="manage_linux_devtools",
             action="store_true",
             default=False,
             help="Install or uninstall Linux development tools, such as 'build-essential' on Ubuntu, 'Development Tools' on Fedora, or 'base-devel' on Arch.",
@@ -55,26 +61,29 @@ def parse_arguments() -> tuple[Namespace, list[str]]:
     if Convoy.is_macos:
         parser.add_argument(
             "--xcode-command-line-tools",
-            "--xcode-clt",
+            dest="manage_xcode_command_line_tools",
             action="store_true",
             default=False,
             help="Install or uninstall the Xcode Command Line Tools.",
         )
         parser.add_argument(
             "--brew",
+            dest="manage_brew",
             action="store_true",
             default=False,
             help="Install or uninstall 'Homebrew'.",
         )
 
     parser.add_argument(
-        "--vulkan",
+        "--vulkan-sdk",
+        dest="manage_vulkan_sdk",
         action="store_true",
         default=False,
         help="Install or uninstall the Vulkan SDK.",
     )
     parser.add_argument(
         "--cmake",
+        dest="manage_cmake",
         action="store_true",
         default=False,
         help="Install or uninstall CMake.",
@@ -92,10 +101,24 @@ def parse_arguments() -> tuple[Namespace, list[str]]:
         help="Uninstall python packages needed by this script.",
     )
     parser.add_argument(
+        "--ignore-install-list",
+        action="store_true",
+        default=False,
+        help="Ignore the installation list when uninstalling, and uninstall only the dependencies explicitly marked by command line. The installation list is a temp file that keeps track of the dependencies installed by this script, so that when uninstalling, only those dependencies are removed.",
+    )
+    parser.add_argument(
         "--build-script",
         type=Path,
         default=None,
         help="Path to the build script to run after the setup. If provided, unknown arguments will be passed to the build script. Default is None.",
+    )
+    parser.add_argument(
+        "-f",
+        "--force",
+        "--force-install",
+        action="store_true",
+        default=False,
+        help="Force the installation of dependencies without checking if they are already installed.",
     )
 
     parser.add_argument(
@@ -106,6 +129,19 @@ def parse_arguments() -> tuple[Namespace, list[str]]:
     )
     if Convoy.is_windows:
         parser.add_argument(
+            "--visual-studio",
+            dest="manage_visual_studio",
+            action="store_true",
+            default=False,
+            help="Install or uninstall Visual Studio Community Edition.",
+        )
+        parser.add_argument(
+            "--visual-studio-version",
+            type=str,
+            default="17",
+            help="The Visual Studio version to install. Default is '17'.",
+        )
+        parser.add_argument(
             "--cmake-version",
             type=str,
             default="3.21.3",
@@ -115,7 +151,7 @@ def parse_arguments() -> tuple[Namespace, list[str]]:
     return parser.parse_known_args()
 
 
-@dataclass
+@dataclass(frozen=True)
 class VulkanVersion:
     major: int
     minor: int
@@ -154,7 +190,45 @@ def step(msg: str, /) -> Callable:
 def validate_arguments() -> None:
     if g_args.safe and g_args.yes:
         Convoy.exit_error(
-            "The <bold>-s</bold> and <bold>-y</bold> flags cannot be used together."
+            "The <bold>--safe</bold> and <bold>--yes</bold> flags cannot be used together."
+        )
+
+    if (
+        not g_args.uninstall
+        and not g_args.uninstall_python_packages
+        and g_args.ignore_install_list
+    ):
+        Convoy.exit_error(
+            "The <bold>--ignore-install-list</bold> flag can only be used with the <bold>--uninstall*</bold> flags."
+        )
+
+    def explicit_mark() -> list[str]:
+        present = []
+        for key, value in vars(g_args).items():
+            if key.startswith("manage_") and value:
+                present.append(f"--{key[7:].replace('_', '-')}")
+        return present
+
+    if g_args.uninstall and not g_args.ignore_install_list and explicit_mark():
+        explicit = explicit_mark()
+        Convoy.exit_error(
+            f"Found explicitly marked dependencies: <bold>{' '.join(explicit)}</bold>. The <bold>--ignore-install-list</bold> flag must be used when explicitly marking dependencies for uninstallation. Otherwise, the installation list will be used to determine the dependencies to uninstall."
+        )
+
+    if g_args.uninstall_python_packages and (g_args.uninstall or explicit_mark()):
+        explicit = explicit_mark()
+        error = (
+            f"Foud explicitly marked dependencies: <bold>{' '.join(explicit)}</bold>. "
+            if explicit
+            else ""
+        )
+        Convoy.exit_error(
+            f"{error}Some python packages are required by this script to install/uninstall certain dependencies. You may not attempt to uninstall those packages while trying to install/uninstall other dependencies at the same time."
+        )
+
+    if g_args.force and g_args.uninstall:
+        Convoy.exit_error(
+            "The <bold>--force</bold> flag cannot be used with the <bold>--uninstall</bold> flag. The former is only used to force installations."
         )
 
     if g_args.uninstall and g_args.build_script is not None:
@@ -241,7 +315,7 @@ def validate_operating_system() -> None:
 
 def prompt_to_install(dependency: str, /) -> bool:
     return Convoy.prompt(
-        f"<bold>{dependency}</bold> not found. Do you wish to install?"
+        f"<bold>{dependency}</bold> marked for installation. Do you wish to continue?"
     )
 
 
@@ -249,6 +323,51 @@ def prompt_to_uninstall(dependency: str, /) -> bool:
     return Convoy.prompt(
         f"<bold>{dependency}</bold> marked for uninstallation. Do you wish to continue?"
     )
+
+
+@dataclass(frozen=True)
+class InstallList:
+    dependencies: list[str]
+
+    def has_dependency(self, dependency: str, /) -> bool:
+        for dep in self.dependencies:
+            if dependency.startswith(dep):
+                return True
+        return False
+
+    def packages(self, kind: str, /) -> list[str]:
+        return [
+            dep.split(": ")[1].strip("\n")
+            for dep in self.dependencies
+            if dep.startswith(f"{kind}-package: ")
+        ]
+
+    def find_version(self, dependency: str, /) -> str | None:
+        for dep in self.dependencies:
+            if dep.startswith(f"{dependency} = "):
+                return dep.split(" = ")[1]
+        return None
+
+
+def read_install_list() -> InstallList:
+    path = g_root / "install-list.txt"
+    if not path.exists():
+        Convoy.exit_error(
+            f"Cannot proceed with uninstallation: Install list not found at <underline>{path}</underline>. This may be because this script has not installed anything yet, or you have deleted the file. If the latter is the case, you may uninstall dependencies manually by specifying them through the command line and entering <bold>--ignore-install-list</bold>."
+        )
+
+    with open(path, "r") as f:
+        return InstallList(f.readlines())
+
+
+def write_install_list(dependency: str, /) -> None:
+    path = g_root / "install-list.txt"
+
+    exists = path.exists()
+    with open(path, "r+" if exists else "w") as f:
+        text = f.read() if exists else ""
+        if dependency not in text:
+            f.write(f"{dependency}\n")
 
 
 @step("--Validating python version--")
@@ -290,6 +409,7 @@ def try_install_python_package(package: str, /) -> bool:
         Convoy.log(f"Failed to install <bold>{package}</bold>.")
         return False
 
+    write_install_list(f"python-package: {package}")
     Convoy.log(f"Successfully installed <bold>{package}</bold>.")
     return True
 
@@ -306,14 +426,23 @@ def try_uninstall_python_package(package: str, /) -> bool:
     return True
 
 
+def must_install(dependency: str, exists: bool, /) -> bool:
+    if not exists or not g_args.force:
+        return not exists
+
+    Convoy.log(f"Forcing <bold>{dependency}</bold> installation.")
+    return True
+
+
 @step("--Validating python packages--")
 def validate_python_packages(*packages: str) -> None:
 
     needs_restart = False
     for package in packages:
-        exists = is_python_package_installed(package)
-        needs_restart = needs_restart or not exists
-        if not exists and (
+        must = must_install(package, is_python_package_installed(package))
+
+        needs_restart = needs_restart or must
+        if must and (
             not prompt_to_install(package) or not try_install_python_package(package)
         ):
             Convoy.exit_error()
@@ -322,7 +451,7 @@ def validate_python_packages(*packages: str) -> None:
         Convoy.log(
             "Packages were installed. Re-run the script for the changes to take effect."
         )
-        Convoy.exit_ok()
+        Convoy.exit_ok("<bold>RE-RUN REQUIRED</bold>.")
 
     Convoy.log("All python packages found.")
 
@@ -419,6 +548,7 @@ def linux_install_package(
         )
 
     if success:
+        write_install_list(f"linux-package: {package}")
         Convoy.log(f"Successfully installed <bold>{package}</bold>.")
         return True
 
@@ -474,7 +604,7 @@ def validate_linux_devtools() -> None:
         if not prompt_to_install(g_linux_devtools) or not try_install_linux_devtools():
             Convoy.exit_error()
 
-    if not is_linux_devtools_installed():
+    if must_install(g_linux_devtools, is_linux_devtools_installed()):
         install()
 
 
@@ -508,6 +638,7 @@ def try_install_xcode_command_line_tools() -> bool:
         Convoy.log("<fyellow>Failed to install <bold>Xcode Command Line Tools</bold>.")
         return False
 
+    write_install_list("xcode-command-line-tools")
     Convoy.log("Successfully installed <bold>Xcode Command Line Tools</bold>.")
     return True
 
@@ -536,7 +667,9 @@ def validate_xcode_command_line_tools() -> None:
         ):
             Convoy.exit_error()
 
-    if not is_xcode_command_line_tools_installed():
+    if must_install(
+        "Xcode Command Line Tools", is_xcode_command_line_tools_installed()
+    ):
         install()
 
 
@@ -552,7 +685,7 @@ def uninstall_xcode_command_line_tools() -> None:
     try_uninstall_xcode_command_line_tools()
 
 
-def is_vulkan_installed():
+def is_vulkan_installed(version: VulkanVersion, /):
     def check_vulkaninfo() -> bool:
         exec = shutil.which("vulkaninfo")
         if exec is None:
@@ -561,8 +694,7 @@ def is_vulkan_installed():
         result = subprocess.run([exec], capture_output=True, text=True)
         return (
             result.returncode == 0
-            and f"Vulkan Instance Version: {g_vulkan_version.no_micro()}"
-            in result.stdout
+            and f"Vulkan Instance Version: {version.no_micro()}" in result.stdout
         )
 
     if "VULKAN_SDK" in os.environ:
@@ -614,7 +746,7 @@ def is_vulkan_installed():
     dll = (
         Path(os.environ.get("SystemRoot", "C:\\Windows")) / "System32" / "vulkan-1.dll"
     )
-    vulkan_sdk = Path("C:\\VulkanSDK") / g_vulkan_version.__str__()
+    vulkan_sdk = Path("C:\\VulkanSDK") / version.__str__()
     if Convoy.is_windows and dll.exists() and vulkan_sdk.exists():
         Convoy.log(
             f"<bold>Vulkan SDK</bold> found at <underline>{vulkan_sdk}</underline>. Installation validated with the presence of <underline>{dll}</underline>."
@@ -629,16 +761,20 @@ def is_vulkan_installed():
     return False
 
 
-def download_file(url: str, path: Path, /) -> None:
+def download_file(url: str, dest: Path, /) -> None:
     import requests
     from tqdm import tqdm
 
-    response = requests.get(url, stream=True, allow_redirects=True)
+    Convoy.log(
+        f"Downloading <underline>{url}</underline> into <underline>{dest}</underline>..."
+    )
+    headers = {"User-Agent": "Mozilla/5.0"}
+    response = requests.get(url, stream=True, headers=headers, allow_redirects=True)
     total = int(response.headers.get("content-length", 0))
     one_kb = 1024
 
-    with open(path, "wb") as f, tqdm(
-        desc=path.name,
+    with open(dest, "wb") as f, tqdm(
+        desc=dest.name,
         total=total,
         unit="MiB",
         unit_scale=True,
@@ -652,6 +788,9 @@ def download_file(url: str, path: Path, /) -> None:
 def extract_file(path: Path, dest: Path, /) -> None:
     dest.mkdir(exist_ok=True)
 
+    Convoy.log(
+        f"Extracting <underline>{path}</underline> into <underline>{dest}</underline>..."
+    )
     if path.suffix == ".zip":
         with zipfile.ZipFile(path, "r") as zip_ref:
             zip_ref.extractall(dest)
@@ -662,39 +801,29 @@ def extract_file(path: Path, dest: Path, /) -> None:
             tar_ref.extractall(dest)
 
 
-def try_install_vulkan() -> bool:
+def try_install_vulkan(version: VulkanVersion, /) -> bool:
     Convoy.log("Installing <bold>Vulkan SDK</bold>...")
 
     vendor = g_root / "vendor"
     vendor.mkdir(exist_ok=True)
     if Convoy.is_macos:
-        extension = (
-            "zip"
-            if g_vulkan_version.minor > 3 or g_vulkan_version.patch > 290
-            else "dmg"
-        )
-        filename = f"vulkansdk-macos-{g_vulkan_version}-installer.{extension}"
+        extension = "zip" if version.minor > 3 or version.patch > 290 else "dmg"
+        filename = f"vulkansdk-macos-{version}-installer.{extension}"
         osfolder = "mac"
     elif Convoy.is_windows:
         filename = (
-            f"VulkanSDK-{g_vulkan_version}-Installer.exe"
+            f"VulkanSDK-{version}-Installer.exe"
             if not Convoy.is_arm
-            else f"InstallVulkanARM64-{g_vulkan_version}.exe"
+            else f"InstallVulkanARM64-{version}.exe"
         )
         osfolder = "windows" if not Convoy.is_arm else "warm"
     elif Convoy.is_linux:
-        extension = (
-            "tar.xz"
-            if g_vulkan_version.minor > 3 or g_vulkan_version.patch > 250
-            else "tar.gz"
-        )
-        filename = f"vulkansdk-linux-x86_64-{g_vulkan_version}.{extension}"
+        extension = "tar.xz" if version.minor > 3 or version.patch > 250 else "tar.gz"
+        filename = f"vulkansdk-linux-x86_64-{version}.{extension}"
         osfolder = "linux"
 
     download_path = vendor / filename
-    url = (
-        f"https://sdk.lunarg.com/sdk/download/{g_vulkan_version}/{osfolder}/{filename}"
-    )
+    url = f"https://sdk.lunarg.com/sdk/download/{version}/{osfolder}/{filename}"
     if not download_path.exists():
         download_file(url, download_path)
     else:
@@ -703,13 +832,9 @@ def try_install_vulkan() -> bool:
         )
 
     def macos_install(installer_path: Path, /, *, include_version: bool = True) -> bool:
-        name = (
-            "InstallVulkan"
-            if not include_version
-            else f"InstallVulkan-{g_vulkan_version}"
-        )
+        name = "InstallVulkan" if not include_version else f"InstallVulkan-{version}"
         path = str(installer_path / "Contents" / "MacOS" / name)
-        vulkan_sdk = Path(f"~/VulkanSDK/{g_vulkan_version}").expanduser()
+        vulkan_sdk = Path(f"~/VulkanSDK/{version}").expanduser()
         if not Convoy.run_process_success(
             [
                 path,
@@ -728,6 +853,7 @@ def try_install_vulkan() -> bool:
             )
             return False
 
+        write_install_list(f"vulkan-sdk = {version}")
         Convoy.log(
             f"Successfully ran the <bold>Vulkan SDK</bold> installer at <underline>{path}</underline>. The SDK is installed at <underline>{vulkan_sdk}</underline>."
         )
@@ -744,15 +870,16 @@ def try_install_vulkan() -> bool:
             )
 
         if Convoy.is_macos:
-            filepath = extract_path / f"InstallVulkan-{g_vulkan_version}.app"
+            filepath = extract_path / f"InstallVulkan-{version}.app"
             if not filepath.exists():
-                filepath = vendor / f"InstallVulkan-{g_vulkan_version}.app"
+                filepath = vendor / f"InstallVulkan-{version}.app"
 
             return macos_install(filepath)
 
         if Convoy.is_linux:
 
-            vulkan_sdk = extract_path / g_vulkan_version.__str__() / "x86_64"
+            write_install_list(f"vulkan-sdk = {version}")
+            vulkan_sdk = extract_path / version.__str__() / "x86_64"
             Convoy.log(
                 f"The <bold>Vulkan SDK</bold> has been successfully installed for the linux distribution <bold>{g_linux_distro} {g_linux_version}</bold> at <underline>{vulkan_sdk}</underline>."
             )
@@ -797,8 +924,9 @@ def try_install_vulkan() -> bool:
         return True
 
     if Convoy.is_windows:
+        write_install_list(f"vulkan-sdk = {version}")
         Convoy.log(
-            f"The <bold>Vulkan SDK</bold> installer will now run. Follow the instructions to install the SDK. Ensure the SDK binaries are installed at <underline>C:\\VulkanSDK\\{g_vulkan_version}</underline>."
+            f"The <bold>Vulkan SDK</bold> installer will now run. Follow the instructions to install the SDK. Ensure the SDK binaries are installed at <underline>C:\\VulkanSDK\\{version}</underline>."
         )
         input("Press enter to begin the installation...")
         Convoy.run_file(download_path)
@@ -808,9 +936,9 @@ def try_install_vulkan() -> bool:
     return False
 
 
-def try_uninstall_vulkan() -> bool:
+def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
     if Convoy.is_macos:
-        path = Path("~/VulkanSDK").expanduser() / g_vulkan_version.__str__()
+        path = Path("~/VulkanSDK").expanduser() / version.__str__()
 
         if not path.exists():
             Convoy.log(
@@ -850,7 +978,7 @@ def try_uninstall_vulkan() -> bool:
         return True
 
     if Convoy.is_windows:
-        vulkan_sdk = Path("C:\\VulkanSDK") / g_vulkan_version.__str__()
+        vulkan_sdk = Path("C:\\VulkanSDK") / version.__str__()
         vulkan_uninstall = vulkan_sdk / "Bin" / "uninstall.exe"
         if not vulkan_uninstall.exists():
             Convoy.log(
@@ -877,7 +1005,8 @@ def try_uninstall_vulkan() -> bool:
 
 
 @step("--Validating Vulkan SDK--")
-def validate_vulkan() -> None:
+def validate_vulkan(version: VulkanVersion, /) -> None:
+    Convoy.log(f"Requested version: <bold>{version}</bold>.")
     if Convoy.is_linux:
 
         def install_dependency(dependency: str, /) -> None:
@@ -887,38 +1016,135 @@ def validate_vulkan() -> None:
                 Convoy.exit_error()
 
         for dep in g_linux_dependencies:
-            if not is_linux_package_installed(dep):
+            if must_install(dep, is_linux_package_installed(dep)):
                 install_dependency(dep)
 
-    if not is_vulkan_installed() and (
-        not prompt_to_install("Vulkan SDK") or not try_install_vulkan()
+    if must_install("Vulkan SDK", is_vulkan_installed(version)) and (
+        not prompt_to_install("Vulkan SDK") or not try_install_vulkan(version)
     ):
         Convoy.exit_error()
 
 
+def uninstall_linux_dependencies(dependencies: list[str] | None = None, /) -> None:
+    if dependencies is None:
+        dependencies = g_linux_dependencies
+
+    def try_uninstall_dependency(dependency: str, /) -> None:
+        if not prompt_to_uninstall(dependency):
+            Convoy.log(f"Skipping uninstallation of <bold>{dependency}</bold>.")
+            return
+
+        linux_uninstall_package(dependency)
+
+    for dep in dependencies:
+        if is_linux_package_installed(dep):
+            try_uninstall_dependency(dep)
+
+
 @step("--Uninstalling Vulkan SDK--")
-def uninstall_vulkan() -> None:
-    if Convoy.is_linux:
+def uninstall_vulkan(version: VulkanVersion, /) -> None:
+    Convoy.log(f"Requested version: <bold>{version}</bold>.")
+    if Convoy.is_linux and g_args.ignore_install_list:
+        uninstall_linux_dependencies()
 
-        def try_uninstall_dependency(dependency: str, /) -> None:
-            if not prompt_to_uninstall(dependency):
-                Convoy.log(f"Skipping uninstallation of <bold>{dependency}</bold>.")
-                return
-
-            linux_uninstall_package(dependency)
-
-        for dep in g_linux_dependencies:
-            if is_linux_package_installed(dep):
-                try_uninstall_dependency(dep)
-
-    if not is_vulkan_installed():
+    if not is_vulkan_installed(version):
         return
 
     if not prompt_to_uninstall("Vulkan SDK"):
         Convoy.log("Skipping uninstallation of <bold>Vulkan SDK</bold>")
         return
 
-    try_uninstall_vulkan()
+    try_uninstall_vulkan(version)
+
+
+def is_visual_studio_installed(version: str, /) -> bool:
+    for p in g_vs_paths:
+        path = p / "Microsoft Visual Studio" / g_vs_year_map[version]
+        if path.exists():
+            Convoy.log(
+                f"<bold>Visual Studio</bold> found at <underline>{path}</underline>."
+            )
+            return True
+        Convoy.log(
+            f"<fyellow><bold>Visual Studio</bold> not found at <underline>{path}</underline>."
+        )
+
+    return False
+
+
+def look_for_visual_studio_installer() -> Path | None:
+    Convoy.log("Looking for <bold>Visual Studio Installer</bold>...")
+    for p in g_vs_paths:
+        path = p / "Microsoft Visual Studio" / "Installer" / "setup.exe"
+        if path.exists():
+            Convoy.log(
+                f"<bold>Visual Studio Installer</bold> found at <underline>{path}</underline>."
+            )
+            return path
+
+        Convoy.log(
+            f"<fyellow><bold>Visual Studio Installer</bold> not found at <underline>{path}</underline>."
+        )
+    return None
+
+
+def try_install_visual_studio(version: str, /) -> bool:
+    Convoy.log("Installing <bold>Visual Studio</bold>...")
+
+    def install() -> None:
+        write_install_list(f"visual-studio = {version}")
+        input("Press enter to begin the installation...")
+        Convoy.run_file(installer_path)
+        input("Press enter to continue once the installation is complete...")
+
+    installer_path = look_for_visual_studio_installer()
+    if installer_path is not None:
+        install()
+        return True
+
+    url = f"https://aka.ms/vs/{version}/release/vs_installer.exe"
+    installer_path = g_root / "vs_installer.exe"
+
+    download_file(url, installer_path)
+    Convoy.log(
+        "The <bold>Visual Studio installer</bold> will now run. Follow the instructions to install the IDE. Make sure C/C++ and Desktop development with C++ workloads are selected."
+    )
+    install()
+    return True
+
+
+def try_uninstall_visual_studio() -> bool:
+    Convoy.log("Uninstalling <bold>Visual Studio</bold>...")
+    installer_path = look_for_visual_studio_installer()
+    if installer_path is not None:
+        input("Press enter to begin the uninstallation...")
+        Convoy.run_file(installer_path)
+        input("Press enter to continue once the uninstallation is complete...")
+        return True
+
+    return False
+
+
+@step("--Validating Visual Studio--")
+def validate_visual_studio(version: str, /) -> None:
+    Convoy.log(f"Requested version: <bold>{version} ({g_vs_year_map[version]})</bold>.")
+    if must_install("Visual Studio", is_visual_studio_installed(version)) and (
+        not prompt_to_install("Visual Studio") or not try_install_visual_studio(version)
+    ):
+        Convoy.exit_error()
+
+
+@step("--Uninstalling Visual Studio--")
+def uninstall_visual_studio(version: str, /) -> None:
+    Convoy.log(f"Requested version: <bold>{version} ({g_vs_year_map[version]})</bold>.")
+    if not is_visual_studio_installed(version):
+        return
+
+    if not prompt_to_uninstall("Visual Studio"):
+        Convoy.log("Skipping uninstallation of <bold>Visual Studio</bold>")
+        return
+
+    try_uninstall_visual_studio()
 
 
 def is_homebrew_installed() -> bool:
@@ -943,6 +1169,7 @@ def try_install_homebrew() -> bool:
         Convoy.log("<fyellow>Failed to install <bold>Homebrew</bold>.")
         return False
 
+    write_install_list("homebrew")
     Convoy.log("Successfully installed <bold>Homebrew</bold>.")
     return True
 
@@ -964,7 +1191,7 @@ def try_uninstall_homebrew() -> bool:
 
 @step("--Validating Homebrew--")
 def validate_homebrew() -> None:
-    if not is_homebrew_installed() and (
+    if must_install("Homebrew", is_homebrew_installed()) and (
         not prompt_to_install("Homebrew") or not try_install_homebrew()
     ):
         Convoy.exit_error()
@@ -992,7 +1219,7 @@ def is_cmake_installed() -> bool:
     return True
 
 
-def try_install_cmake() -> bool:
+def try_install_cmake(version: str | None = None, /) -> bool:
     if Convoy.is_macos:
         Convoy.log("<bold>Homebrew</bold> is needed to install <bold>CMake</bold>.")
         if is_homebrew_installed() and not (
@@ -1005,6 +1232,7 @@ def try_install_cmake() -> bool:
             Convoy.log("<fyellow>Failed to install <bold>CMake</bold>.")
             return False
 
+        write_install_list("cmake")
         Convoy.log("Successfully installed <bold>CMake</bold>.")
         return True
 
@@ -1016,13 +1244,14 @@ def try_install_cmake() -> bool:
         vendor = g_root / "vendor"
         vendor.mkdir(exist_ok=True)
         arch = "i386" if Convoy.architecure == "x86" else Convoy.architecure
-        installer_url = f"https://github.com/Kitware/CMake/releases/download/v{g_cmake_version}/cmake-{g_cmake_version}-windows-{arch}.msi"
-        installer_path = vendor / f"cmake-{g_cmake_version}-windows-{arch}.msi"
+        installer_url = f"https://github.com/Kitware/CMake/releases/download/v{version}/cmake-{version}-windows-{arch}.msi"
+        installer_path = vendor / f"cmake-{version}-windows-{arch}.msi"
 
-        Convoy.log(
-            f"Downloading <bold>CMake</bold> installer from <underline>{installer_url}</underline> into <underline>{installer_path}</underline>"
-        )
+        # Convoy.log(
+        #     f"Downloading <bold>CMake</bold> installer from <underline>{installer_url}</underline> into <underline>{installer_path}</underline>"
+        # )
         download_file(installer_url, installer_path)
+        write_install_list(f"cmake = {version}")
         Convoy.log(
             "The <bold>CMake</bold> installer will now run. Please follow the instructions and make sure the <bold>CMake</bold> executable is added to Path."
         )
@@ -1089,9 +1318,12 @@ def try_uninstall_cmake() -> bool:
 
 
 @step("--Validating CMake--")
-def validate_cmake() -> None:
-    if not is_cmake_installed() and (
-        not prompt_to_install("CMake") or not try_install_cmake()
+def validate_cmake(version: str | None = None, /) -> None:
+    if Convoy.is_windows:
+        Convoy.log(f"Requested version: <bold>{version}</bold>.")
+
+    if must_install("CMake", is_cmake_installed()) and (
+        not prompt_to_install("CMake") or not try_install_cmake(version)
     ):
         Convoy.exit_error()
 
@@ -1132,63 +1364,139 @@ def execute_build_script() -> None:
         )
 
 
+Convoy.log_label = "SETUP"
+g_root = Path(__file__).parent.resolve()
+g_args, g_unknown = parse_arguments()
+validate_arguments()
+Convoy.all_yes = g_args.yes
+Convoy.safe = g_args.safe
+
+install_list = (
+    read_install_list()
+    if (g_args.uninstall or g_args.uninstall_python_packages)
+    and not g_args.ignore_install_list
+    else None
+)
 if Convoy.is_linux:
     g_linux_distro = Convoy.linux_distro()
     g_linux_version = Convoy.linux_version()
     g_linux_devtools = None
     g_linux_dependencies = None
 
-g_args, g_unknown = parse_arguments()
-Convoy.log_label = "SETUP"
-Convoy.all_yes = g_args.yes
-Convoy.safe = g_args.safe
-
-g_root = Path(__file__).parent.resolve()
-
-g_vulkan_version = VulkanVersion(*[int(v) for v in g_args.vulkan_version.split(".")])
 if Convoy.is_windows:
-    g_cmake_version: str = g_args.cmake_version
+    g_vs_year_map = {
+        "10": "2010",
+        "11": "2012",
+        "12": "2013",
+        "14": "2015",
+        "15": "2017",
+        "16": "2019",
+        "17": "2022",
+    }
+    if g_args.visual_studio_version not in g_vs_year_map:
+        Convoy.exit_error(
+            f"Unsupported <bold>Visual Studio</bold> version: {g_args.visual_studio_version}"
+        )
+    g_vs_paths = [Path("C:\\Program Files"), Path("C:\\Program Files (x86)")]
 
 validate_python_version(3, 10, 0)
-validate_arguments()
 validate_operating_system()
 
 if not g_args.uninstall_python_packages:
     validate_python_packages("requests", "tqdm")
-else:
+elif g_args.ignore_install_list:
     uninstall_python_packages("requests", "tqdm")
+else:
+    packages = install_list.packages("python")
+    if not packages:
+        Convoy.log("<fyellow>No python packages found installed by this script.")
+        Convoy.exit_ok()
+    uninstall_python_packages(*packages)
 
 
 if not g_args.uninstall:
-    if Convoy.is_linux and g_args.g_linux_devtools:
+    if Convoy.is_linux and g_args.manage_linux_devtools:
         validate_linux_devtools()
 
-    if Convoy.is_macos and g_args.xcode_command_line_tools:
+    if Convoy.is_macos and g_args.manage_xcode_command_line_tools:
         validate_xcode_command_line_tools()
 
-    if g_args.vulkan:
-        validate_vulkan()
+    if g_args.manage_vulkan_sdk:
+        version = VulkanVersion(*[int(v) for v in g_args.vulkan_version.split(".")])
+        validate_vulkan(version)
 
-    if Convoy.is_macos and g_args.brew:
+    if Convoy.is_macos and g_args.manage_brew:
         validate_homebrew()
 
-    if g_args.cmake:
-        validate_cmake()
-else:
-    if Convoy.is_linux and g_args.g_linux_devtools:
+    if g_args.manage_cmake:
+        validate_cmake(g_args.cmake_version if Convoy.is_windows else None)
+
+    if Convoy.is_windows and g_args.manage_visual_studio:
+        validate_visual_studio()
+
+elif g_args.ignore_install_list:
+    if Convoy.is_linux and g_args.manage_linux_devtools:
         uninstall_linux_devtools()
 
-    if Convoy.is_macos and g_args.xcode_command_line_tools:
+    if Convoy.is_macos and g_args.manage_xcode_command_line_tools:
         uninstall_xcode_command_line_tools()
 
-    if g_args.vulkan:
-        uninstall_vulkan()
+    if g_args.manage_vulkan_sdk:
+        version = VulkanVersion(*[int(v) for v in g_args.vulkan_version.split(".")])
+        uninstall_vulkan(version)
 
-    if Convoy.is_macos and g_args.brew:
+    if Convoy.is_macos and g_args.manage_brew:
         uninstall_homebrew()
 
-    if g_args.cmake:
+    if g_args.manage_cmake:
         uninstall_cmake()
+
+    if Convoy.is_windows and g_args.manage_visual_studio:
+        uninstall_visual_studio(g_args.visual_studio_version)
+else:
+    packages = install_list.packages("linux")
+    if Convoy.is_linux and packages:
+        uninstall_linux_dependencies(packages)
+    elif Convoy.is_linux:
+        Convoy.log("<fyellow>No linux packages found installed by this script.")
+
+    if Convoy.is_macos and install_list.has_dependency("xcode-command-line-tools"):
+        uninstall_xcode_command_line_tools()
+    elif Convoy.is_macos:
+        Convoy.log(
+            "<fyellow><bold>XCode Command Line Tools</bold> were not installed by this script."
+        )
+
+    if install_list.has_dependency("vulkan-sdk"):
+        while True:
+            version = install_list.find_version("vulkan-sdk")
+            if version is None:
+                break
+            version = VulkanVersion(*[int(v) for v in version.split(".")])
+            uninstall_vulkan(version)
+    else:
+        Convoy.log("<fyellow><bold>Vulkan SDK</bold> was not installed by this script")
+
+    if Convoy.is_macos and install_list.has_dependency("homebrew"):
+        uninstall_homebrew()
+    elif Convoy.is_macos:
+        Convoy.log("<fyellow><bold>Homebrew</bold> was not installed by this script.")
+
+    if install_list.has_dependency("cmake"):
+        uninstall_cmake()
+    else:
+        Convoy.log("<fyellow><bold>CMake</bold> was not installed by this script.")
+
+    if Convoy.is_windows and install_list.has_dependency("visual-studio"):
+        while True:
+            version = install_list.find_version("visual_studio")
+            if version is None:
+                break
+            uninstall_visual_studio(version)
+    elif Convoy.is_windows:
+        Convoy.log(
+            "<fyellow><bold>Visual Studio</bold> was not installed by this script."
+        )
 
 if g_args.build_script is not None:
     execute_build_script()
