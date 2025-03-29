@@ -747,7 +747,12 @@ def is_vulkan_installed(version: VulkanVersion, /):
         Path(os.environ.get("SystemRoot", "C:\\Windows")) / "System32" / "vulkan-1.dll"
     )
     vulkan_sdk = Path("C:\\VulkanSDK") / version.__str__()
-    if Convoy.is_windows and dll.exists() and vulkan_sdk.exists():
+    if (
+        Convoy.is_windows
+        and dll.exists()
+        and vulkan_sdk.exists()
+        and any(vulkan_sdk.iterdir())
+    ):
         Convoy.log(
             f"<bold>Vulkan SDK</bold> found at <underline>{vulkan_sdk}</underline>. Installation validated with the presence of <underline>{dll}</underline>."
         )
@@ -764,6 +769,11 @@ def is_vulkan_installed(version: VulkanVersion, /):
 def download_file(url: str, dest: Path, /) -> None:
     import requests
     from tqdm import tqdm
+
+    if dest.exists():
+        Convoy.log(
+            f"<underline>{url}</underline> already downloaded. To trigger a re-download, delete the file at <underline>{dest}</underline>."
+        )
 
     Convoy.log(
         f"Downloading <underline>{url}</underline> into <underline>{dest}</underline>..."
@@ -787,6 +797,11 @@ def download_file(url: str, dest: Path, /) -> None:
 
 def extract_file(path: Path, dest: Path, /) -> None:
     dest.mkdir(exist_ok=True)
+
+    if dest.exists():
+        Convoy.log(
+            f"<underline>{path}</underline> already extracted. To trigger a re-extraction, delete the file/folder at <underline>{dest}</underline>."
+        )
 
     Convoy.log(
         f"Extracting <underline>{path}</underline> into <underline>{dest}</underline>..."
@@ -824,12 +839,7 @@ def try_install_vulkan(version: VulkanVersion, /) -> bool:
 
     download_path = vendor / filename
     url = f"https://sdk.lunarg.com/sdk/download/{version}/{osfolder}/{filename}"
-    if not download_path.exists():
-        download_file(url, download_path)
-    else:
-        Convoy.log(
-            f"<underline>{filename}</underline> already downloaded. To trigger a re-download, delete the file at <underline>{download_path}</underline>."
-        )
+    download_file(url, download_path)
 
     def macos_install(installer_path: Path, /, *, include_version: bool = True) -> bool:
         name = "InstallVulkan" if not include_version else f"InstallVulkan-{version}"
@@ -861,13 +871,7 @@ def try_install_vulkan(version: VulkanVersion, /) -> bool:
 
     if filename.endswith(("zip", "tar.gz", "tar.xz")):
         extract_path = vendor / "vulkan-extract"
-
-        if not extract_path.exists():
-            extract_file(download_path, extract_path)
-        else:
-            Convoy.log(
-                f"<underline>{extract_path}</underline> already extracted. To trigger a re-extraction, delete the folder."
-            )
+        extract_file(download_path, extract_path)
 
         if Convoy.is_macos:
             filepath = extract_path / f"InstallVulkan-{version}.app"
@@ -940,18 +944,20 @@ def try_install_vulkan(version: VulkanVersion, /) -> bool:
 def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
     if Convoy.is_macos:
         path = Path("~/VulkanSDK").expanduser() / version.__str__()
+        uninstall = path / "uninstall.sh"
 
-        if not path.exists():
+        if not uninstall.exists():
             Convoy.log(
-                f"<fyellow><bold>Vulkan SDK</bold> not found at <underline>{path}</underline>."
+                f"<fyellow><bold>Vulkan SDK</bold> not found at <underline>{uninstall}</underline>."
             )
             return False
 
-        Convoy.log(f"<bold>Vulkan SDK</bold> found at <underline>{path}</underline>.")
-
-        if not Convoy.run_process_success(["sudo", str(path / "uninstall.sh")]):
+        Convoy.log(
+            f"<bold>Vulkan SDK</bold> uninstaller found at <underline>{uninstall}</underline>."
+        )
+        if not Convoy.run_process_success(["sudo", str(uninstall)]):
             Convoy.log(
-                f"Failed to run the <bold>Vulkan SDK</bold> uninstaller at <underline>{path / 'uninstall.sh'}</underline>"
+                f"Failed to run the <bold>Vulkan SDK</bold> uninstaller at <underline>{uninstall}</underline>"
             )
             return False
 
@@ -962,7 +968,7 @@ def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
             return False
 
         Convoy.log(
-            f"Successfully uninstalled <bold>Vulkan SDK</bold> at <underline>{path}</underline>."
+            f"Successfully uninstalled the <bold>Vulkan SDK</bold> at <underline>{path}</underline>."
         )
         return True
 
@@ -995,7 +1001,7 @@ def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
             "Press enter to continue once the uninstallation is complete..."
         )
 
-        if vulkan_sdk.exists():
+        if vulkan_sdk.exists() and any(vulkan_sdk.iterdir()):
             Convoy.log(
                 f"<fyellow>The <bold>Vulkan SDK</bold> folder was not removed by the maintenance tool. Uninstallation failed..."
             )
@@ -1063,7 +1069,7 @@ def uninstall_vulkan(version: VulkanVersion, /) -> None:
 def is_visual_studio_installed(version: str, /) -> bool:
     for p in g_vs_paths:
         path = p / "Microsoft Visual Studio" / g_vs_year_map[version]
-        if path.exists():
+        if path.exists() and any(path.iterdir()):
             Convoy.log(
                 f"<bold>Visual Studio</bold> found at <underline>{path}</underline>."
             )
@@ -1255,9 +1261,6 @@ def try_install_cmake(version: str | None = None, /) -> bool:
         installer_url = f"https://github.com/Kitware/CMake/releases/download/v{version}/cmake-{version}-windows-{arch}.msi"
         installer_path = vendor / f"cmake-{version}-windows-{arch}.msi"
 
-        # Convoy.log(
-        #     f"Downloading <bold>CMake</bold> installer from <underline>{installer_url}</underline> into <underline>{installer_path}</underline>"
-        # )
         download_file(installer_url, installer_path)
         write_install_list(f"cmake = {version}")
         Convoy.log(
