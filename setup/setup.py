@@ -1441,7 +1441,7 @@ if not g_args.uninstall:
         validate_cmake(g_args.cmake_version if Convoy.is_windows else None)
 
     if Convoy.is_windows and g_args.manage_visual_studio:
-        validate_visual_studio()
+        validate_visual_studio(g_args.visual_studio_version)
 
 elif g_args.ignore_install_list:
     if Convoy.is_linux and g_args.manage_linux_devtools:
