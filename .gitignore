@@ -9,6 +9,7 @@ saves/
 scripts/
 setup/vendor/
 setup/install-list.txt
+__pycache__/
 
 # Prerequisites
 *.d
