@@ -8,6 +8,7 @@ traces/
 saves/
 scripts/
 setup/vendor/
+setup/install-list.txt
 
 # Prerequisites
 *.d
