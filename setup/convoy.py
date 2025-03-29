@@ -216,9 +216,9 @@ class _MetaConvoy(type):
             return True
 
         msg = _Style.format(
-            f"{self.__log_label}{'  '*self.__indent}<fcyan>{msg} [Y]/N "
+            f"{self.__log_label}{'  '*self.__indent}<fcyan>{msg} <bold>[Y]</bold>/N "
             if default
-            else f"{msg} Y/[N] "
+            else f"{self.__log_label}{'  '*self.__indent}<fcyan>{msg} Y/<bold>[N]</bold> "
         )
 
         while True:
@@ -227,6 +227,9 @@ class _MetaConvoy(type):
                 return True
             elif answer in ["n", "no"] or (not default and answer == ""):
                 return False
+
+    def empty_prompt(self, msg: str, /) -> None:
+        input(_Style.format(f"{self.__log_label}{'  '*self.__indent}<fcyan>{msg}"))
 
     def run_process(
         self, command: str | list[str], /, *args, exit_on_decline: bool = True, **kwargs

@@ -928,9 +928,10 @@ def try_install_vulkan(version: VulkanVersion, /) -> bool:
         Convoy.log(
             f"The <bold>Vulkan SDK</bold> installer will now run. Follow the instructions to install the SDK. Ensure the SDK binaries are installed at <underline>C:\\VulkanSDK\\{version}</underline>."
         )
-        input("Press enter to begin the installation...")
         Convoy.run_file(download_path)
-        input("Press enter to continue once the installation is complete...")
+        Convoy.empty_prompt(
+            "Press enter to continue once the installation is complete..."
+        )
         return True
 
     return False
@@ -989,9 +990,10 @@ def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
         Convoy.log(
             f"<bold>Vulkan SDK</bold> maintenance tool found at <underline>{vulkan_uninstall}</underline>."
         )
-        input("Press enter to begin the uninstallation...")
         Convoy.run_file(vulkan_uninstall)
-        input("Press enter to continue once the uninstallation is complete...")
+        Convoy.empty_prompt(
+            "Press enter to continue once the uninstallation is complete..."
+        )
 
         if vulkan_sdk.exists():
             Convoy.log(
@@ -1094,9 +1096,10 @@ def try_install_visual_studio(version: str, /) -> bool:
 
     def install() -> None:
         write_install_list(f"visual-studio = {version}")
-        input("Press enter to begin the installation...")
         Convoy.run_file(installer_path)
-        input("Press enter to continue once the installation is complete...")
+        Convoy.empty_prompt(
+            "Press enter to continue once the installation is complete..."
+        )
 
     installer_path = look_for_visual_studio_installer()
     if installer_path is not None:
@@ -1118,9 +1121,10 @@ def try_uninstall_visual_studio() -> bool:
     Convoy.log("Uninstalling <bold>Visual Studio</bold>...")
     installer_path = look_for_visual_studio_installer()
     if installer_path is not None:
-        input("Press enter to begin the uninstallation...")
         Convoy.run_file(installer_path)
-        input("Press enter to continue once the uninstallation is complete...")
+        Convoy.empty_prompt(
+            "Press enter to continue once the uninstallation is complete..."
+        )
         return True
 
     return False
@@ -1256,9 +1260,10 @@ def try_install_cmake(version: str | None = None, /) -> bool:
         Convoy.log(
             "The <bold>CMake</bold> installer will now run. Please follow the instructions and make sure the <bold>CMake</bold> executable is added to Path."
         )
-        input("Press enter to begin the installation...")
         Convoy.run_file(installer_path)
-        input("Press enter to continue once the installation is complete...")
+        Convoy.empty_prompt(
+            "Press enter to continue once the installation is complete..."
+        )
         return True
 
 
