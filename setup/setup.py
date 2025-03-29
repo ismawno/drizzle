@@ -992,24 +992,10 @@ def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
         input("Press enter to begin the uninstallation...")
         Convoy.run_file(vulkan_uninstall)
         input("Press enter to continue once the uninstallation is complete...")
-        all_yes = Convoy.all_yes
-        Convoy.all_yes = False
 
-        if not Convoy.prompt("Did the uninstallation go through?"):
-            Convoy.all_yes = all_yes
+        if vulkan_sdk.exists():
             Convoy.log(
-                "<fyellow>Uninstallation of <bold>Vulkan SDK</bold> was not successful."
-            )
-            return False
-
-        Convoy.all_yes = all_yes
-
-        Convoy.log(
-            f"Removing <bold>Vulkan SDK</bold> folder at <underline>{vulkan_sdk}</underline>..."
-        )
-        if not Convoy.run_process_success(["rmdir", "/s", "/q", str(vulkan_sdk)]):
-            Convoy.log(
-                f"<fyellow>Failed to remove the <bold>Vulkan SDK</bold> folder at <underline>{vulkan_sdk}</underline>."
+                f"<fyellow>The <bold>Vulkan SDK</bold> folder was not removed by the maintenance tool. Uninstallation failed..."
             )
             return False
 
