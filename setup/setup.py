@@ -979,22 +979,37 @@ def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
 
     if Convoy.is_windows:
         vulkan_sdk = Path("C:\\VulkanSDK") / version.__str__()
-        vulkan_uninstall = vulkan_sdk / "Bin" / "uninstall.exe"
+        vulkan_uninstall = vulkan_sdk / "maintenancetool.exe"
         if not vulkan_uninstall.exists():
             Convoy.log(
-                f"<fyellow><bold>Vulkan SDK</bold> uninstaller not found at <underline>{vulkan_uninstall}</underline>."
+                f"<fyellow><bold>Vulkan SDK</bold> maintenance tool not found at <underline>{vulkan_uninstall}</underline>."
             )
             return False
 
-        if not Convoy.run_process_success([str(vulkan_uninstall)]):
+        Convoy.log(
+            f"<bold>Vulkan SDK</bold> maintenance tool found at <underline>{vulkan_uninstall}</underline>."
+        )
+        input("Press enter to begin the uninstallation...")
+        Convoy.run_file(vulkan_uninstall)
+        input("Press enter to continue once the uninstallation is complete...")
+        all_yes = Convoy.all_yes
+        Convoy.all_yes = False
+
+        if not Convoy.prompt("Did the uninstallation go through?"):
+            Convoy.all_yes = all_yes
             Convoy.log(
-                f"<fyellow>Failed to run the <bold>Vulkan SDK</bold> uninstaller at <underline>{vulkan_uninstall}</underline>."
+                "<fyellow>Uninstallation of <bold>Vulkan SDK</bold> was not successful."
             )
             return False
 
+        Convoy.all_yes = all_yes
+
+        Convoy.log(
+            f"Removing <bold>Vulkan SDK</bold> folder at <underline>{vulkan_sdk}</underline>..."
+        )
         if not Convoy.run_process_success(["rmdir", "/s", "/q", str(vulkan_sdk)]):
             Convoy.log(
-                f"<fyellow>Failed to remove the <bold>Vulkan SDK</bold> at <underline>{vulkan_sdk}</underline>."
+                f"<fyellow>Failed to remove the <bold>Vulkan SDK</bold> folder at <underline>{vulkan_sdk}</underline>."
             )
             return False
 
