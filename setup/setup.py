@@ -926,7 +926,7 @@ def try_install_vulkan(version: VulkanVersion, /) -> bool:
     if Convoy.is_windows:
         write_install_list(f"vulkan-sdk = {version}")
         Convoy.log(
-            f"The <bold>Vulkan SDK</bold> installer will now run. Follow the instructions to install the SDK. Ensure the SDK binaries are installed at <underline>C:\\VulkanSDK\\{version}</underline>."
+            f"The <bold>Vulkan SDK</bold> installer will now run. Follow the instructions to install the SDK. You will only need the <bold>Vulkan SDK Core</bold> (no need to tick any checks). Ensure the SDK binaries are installed at <underline>C:\\VulkanSDK\\{version}</underline>."
         )
         Convoy.run_file(download_path)
         Convoy.empty_prompt(
