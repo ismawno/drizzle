@@ -1187,17 +1187,14 @@ def try_install_visual_studio(version: str, /) -> bool:
 def try_uninstall_visual_studio() -> bool:
     Convoy.log("Uninstalling <bold>Visual Studio</bold>...")
     installer_path = look_for_visual_studio_installer()
-    if installer_path is not None:
-        Convoy.log(
-            "In the uninstaller, select the <bold>More</bold> dropdown and then the <bold>Uninstall</bold> option."
-        )
-        Convoy.run_file(installer_path)
-        Convoy.empty_prompt(
-            "Press any key to continue once the uninstallation is complete..."
-        )
-        return True
+    if installer_path is None or not Convoy.run_process_success(
+        [str(installer_path), "/uninstall"]
+    ):
+        Convoy.log("<fyellow>Failed to uninstall <bold>Visual Studio</bold>.")
+        return False
 
-    return False
+    Convoy.log("Successfully uninstalled <bold>Visual Studio</bold>.")
+    return True
 
 
 @step("--Validating Visual Studio--")
