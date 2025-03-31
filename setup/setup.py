@@ -1174,7 +1174,7 @@ def try_install_visual_studio(version: str, /) -> bool:
         install()
         return True
 
-    url = f"https://aka.ms/vs/{version}/vs_community.exe"
+    url = f"https://aka.ms/vs/{version}/release/vs_community.exe"
     installer_path = g_root / "vendor" / "vs_installer.exe"
     download_file(url, installer_path)
     Convoy.log(
