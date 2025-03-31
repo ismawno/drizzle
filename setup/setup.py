@@ -789,7 +789,7 @@ def is_vulkan_installed(version: VulkanVersion, /):
     return False
 
 
-def download_file(url: str, dest: Path, /) -> None:
+def download_file(url: str, dest: Path, /, *, redirected: bool = False) -> None:
     import requests
     from tqdm import tqdm
 
@@ -804,6 +804,12 @@ def download_file(url: str, dest: Path, /) -> None:
     )
     headers = {"User-Agent": "Mozilla/5.0"}
     response = requests.get(url, stream=True, headers=headers, allow_redirects=True)
+    if redirected:
+        for resp in response.history:
+            Convoy.log(f"Redirected to: {resp.url}")
+        if response.history:
+            response = resp
+
     total = int(response.headers.get("content-length", 0))
     one_kb = 1024
 
@@ -1173,10 +1179,10 @@ def try_install_visual_studio(version: str, /) -> bool:
         install()
         return True
 
-    url = f"https://aka.ms/vs/{version}/release/vs_installer.exe"
-    installer_path = g_root / "vs_installer.exe"
+    url = f"https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&channel=Release&version=VS{g_vs_year_map[version]}&source=VSLandingPage&cid=2030&passive=false"
+    installer_path = g_root / "vendor" / "vs_installer.exe"
 
-    download_file(url, installer_path)
+    download_file(url, installer_path, redirected=True)
     Convoy.log(
         "The <bold>Visual Studio installer</bold> will now run. Follow the instructions to install the IDE. Make sure C/C++ and Desktop development with C++ workloads are selected."
     )
