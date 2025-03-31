@@ -1363,7 +1363,7 @@ def try_uninstall_cmake() -> bool:
         output: str = result.stdout
         Convoy.log(f"Query result: <bold>{output}</bold>.")
 
-        guid = re.match(r"\{([a-fA-F0-9\-]+)\}", output.replace("\n", ""))
+        guid = re.match(r".*\{([a-fA-F0-9\-]+)\}", output.replace("\n", ""))
         if guid is None:
             Convoy.log(
                 "<fyellow>Failed to find <bold>CMake</bold>'s guid in the query result."
