@@ -1130,7 +1130,7 @@ def uninstall_vulkan(version: VulkanVersion, /) -> None:
 
 def is_visual_studio_installed(version: str, /) -> bool:
     for p in g_vs_paths:
-        path = p / "Microsoft Visual Studio" / g_vs_year_map[version]
+        path = p / "Microsoft Visual Studio" / g_vs_year_map[version] / "Community"
         if path.exists() and any(path.iterdir()):
             Convoy.log(
                 f"<bold>Visual Studio</bold> found at <underline>{path}</underline>."
@@ -1162,26 +1162,48 @@ def look_for_visual_studio_installer() -> Path | None:
 def try_install_visual_studio(version: str, /) -> bool:
     Convoy.log("Installing <bold>Visual Studio</bold>...")
 
-    def install() -> None:
+    def install(commands: list[str], /) -> bool:
+        if not Convoy.run_process_success(commands):
+            Convoy.log("<fyellow>Failed to install <bold>Visual Studio</bold>.")
+            return False
+
         write_install_list(f"visual-studio = {version}")
-        Convoy.run_file(installer_path)
-        Convoy.empty_prompt(
-            "Press any key to continue once the installation is complete..."
-        )
+        Convoy.log("Successfully installed <bold>Visual Studio</bold>.")
+        return True
 
     installer_path = look_for_visual_studio_installer()
     if installer_path is not None:
-        install()
-        return True
+        return install(
+            [
+                str(installer_path),
+                "install",
+                "--norestart",
+                "--passive",
+                "--add",
+                "Microsoft.VisualStudio.Workload.NativeDesktop",
+                "--includeRecommended",
+                "--productId",
+                "Microsoft.VisualStudio.Product.Community",
+                "--channelUri",
+                f"https://aka.ms/vs/{version}/release/channel",
+            ]
+        )
 
     url = f"https://aka.ms/vs/{version}/release/vs_community.exe"
-    installer_path = g_root / "vendor" / "vs_installer.exe"
+    installer_path = g_root / "vendor" / "vs_community.exe"
     download_file(url, installer_path)
-    Convoy.log(
-        "The <bold>Visual Studio installer</bold> will now run. Follow the instructions to install the IDE. Make sure C/C++ and Desktop development with C++ workloads are selected."
+
+    return install(
+        [
+            str(installer_path),
+            "--wait",
+            "--norestart",
+            "--passive",
+            "--add",
+            "Microsoft.VisualStudio.Workload.NativeDesktop",
+            "--includeRecommended",
+        ]
     )
-    install()
-    return True
 
 
 def try_uninstall_visual_studio() -> bool:
