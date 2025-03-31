@@ -1176,7 +1176,7 @@ def try_install_visual_studio(version: str, /) -> bool:
 
     url = f"https://aka.ms/vs/{version}/vs_community.exe"
     installer_path = g_root / "vendor" / "vs_installer.exe"
-    download_file(url, installer_path, redirected=True)
+    download_file(url, installer_path)
     Convoy.log(
         "The <bold>Visual Studio installer</bold> will now run. Follow the instructions to install the IDE. Make sure C/C++ and Desktop development with C++ workloads are selected."
     )
