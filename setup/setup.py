@@ -698,7 +698,7 @@ def is_vulkan_installed(version: VulkanVersion, /):
     #     if exec is None:
     #         return False
 
-    #     result = subprocess.run([exec], capture_output=True, text=True)
+    #     result = Convoy.run_process([exec], capture_output=True, text=True)
     #     return (
     #         result.returncode == 0
     #         and f"Vulkan Instance Version: {version.no_micro()}" in result.stdout
@@ -899,7 +899,7 @@ def try_install_vulkan(version: VulkanVersion, /) -> bool:
             ]
         ):
             Convoy.log(
-                f"Failed to run the <bold>Vulkan SDK</bold> installer at <underline>{path}</underline>."
+                f"<fyellow>Failed to run the <bold>Vulkan SDK</bold> installer at <underline>{path}</underline>."
             )
             return False
 
@@ -1353,7 +1353,7 @@ def try_uninstall_cmake() -> bool:
         cmd_query = (
             "wmic product where \"name like '%CMake%'\" get Name, IdentifyingNumber"
         )
-        result = subprocess.run(
+        result = Convoy.run_process(
             cmd_query, shell=True, stdout=subprocess.PIPE, text=True
         )
         if result.returncode != 0:
@@ -1363,18 +1363,18 @@ def try_uninstall_cmake() -> bool:
         output = result.stdout
         Convoy.log(f"Query result: <bold>{output}</bold>.")
 
-        guid = re.match(r"\{[0-9A-Fa-f\-]+\}", output)
+        guid = re.match(r"\{(.*?)\}", output)
         if guid is None:
             Convoy.log(
-                f"Failed to find <bold>CMake</bold>'s guid in the query result. Pattern used: <bold>{guid}</bold>"
+                "<fyellow>Failed to find <bold>CMake</bold>'s guid in the query result."
             )
             return False
 
-        guid = guid.group()
+        guid = guid.group(1)
         Convoy.log(f"<bold>CMake</bold> found with guid: <bold>{guid}</bold>.")
         if not Convoy.run_process_success(f"msiexec /x {guid}"):
             Convoy.log(
-                f"Failed to uninstall <bold>CMake</bold> with guid: <bold>{guid}</bold>."
+                f"<fyellow>Failed to uninstall <bold>CMake</bold> with guid: <bold>{guid}</bold>."
             )
             return False
 
