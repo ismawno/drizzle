@@ -357,6 +357,7 @@ def read_install_list() -> InstallList:
             f"Cannot proceed with uninstallation: Install list not found at <underline>{path}</underline>. This may be because this script has not installed anything yet, or you have deleted the file. If the latter is the case, you may uninstall dependencies manually by specifying them through the command line and entering <bold>--ignore-install-list</bold>."
         )
 
+    Convoy.log(f"Install list found at <underline>{path}</underline>.")
     with open(path, "r") as f:
         return InstallList(f.readlines())
 
