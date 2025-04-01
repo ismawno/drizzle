@@ -1128,26 +1128,14 @@ def uninstall_vulkan(version: VulkanVersion, /) -> None:
     try_uninstall_vulkan(version)
 
 
-def is_visual_studio_installed(version: str, /) -> bool:
-    for p in g_vs_paths:
-        path = p / "Microsoft Visual Studio" / g_vs_year_map[version] / "Community"
-        if path.exists() and any(path.iterdir()):
-            Convoy.log(
-                f"<bold>Visual Studio</bold> found at <underline>{path}</underline>."
-            )
-            return True
-        Convoy.log(
-            f"<fyellow><bold>Visual Studio</bold> not found at <underline>{path}</underline>."
-        )
-
-    return False
-
-
-def look_for_visual_studio_installer() -> Path | None:
+def look_for_visual_studio_installer(file: Path | str | None = None, /) -> Path | None:
     Convoy.log("Looking for <bold>Visual Studio Installer</bold>...")
     for p in g_vs_paths:
-        path = p / "Microsoft Visual Studio" / "Installer" / "setup.exe"
-        if path.exists():
+        path = p / "Microsoft Visual Studio" / "Installer"
+        if file is not None:
+            path /= file
+
+        if path.exists() and (file is not None or any(path.iterdir())):
             Convoy.log(
                 f"<bold>Visual Studio Installer</bold> found at <underline>{path}</underline>."
             )
@@ -1159,19 +1147,75 @@ def look_for_visual_studio_installer() -> Path | None:
     return None
 
 
+def is_visual_studio_installed(version: str, /) -> bool:
+    for p in g_vs_paths:
+        path = p / "Microsoft Visual Studio" / g_vs_year_map[version]
+        installations = ["Community", "Professional", "Enterprise", "BuildTools"]
+        for install in installations:
+            subpath = path / install
+            if subpath.exists() and any(subpath.iterdir()):
+                Convoy.log(
+                    f"<bold>Visual Studio</bold> found at <underline>{subpath}</underline>."
+                )
+                break
+        else:
+            Convoy.log(
+                f"<fyellow><bold>Visual Studio</bold> not found at <underline>{path}</underline>."
+            )
+            continue
+        break
+    else:
+        return False
+
+    vswhere = look_for_visual_studio_installer("vswhere.exe")
+    if vswhere is None:
+        return False
+
+    result = Convoy.run_process(
+        [
+            str(vswhere),
+            "-version",
+            f"[{version},{version}.1)",
+            "-latest",
+            "-products",
+            "*",
+            "-requires",
+            "Microsoft.VisualStudio.Workload.NativeDesktop",
+        ],
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    if result.returncode != 0:
+        Convoy.log(
+            "<fyellow>Failed to query <bold>Visual Studio</bold> installations with <bold>vswhere.exe</bold>."
+        )
+    output = result.stdout
+    if "instanceid" not in output.lower():
+        Convoy.log(
+            "<fyellow>No valid <bold>Visual Studio</bold> installations found with <bold>vswhere.exe</bold>."
+        )
+        return False
+
+    Convoy.log("A valid <bold>Visual Studio</bold> installation was found.")
+    return True
+
+
 def try_install_visual_studio(version: str, /) -> bool:
     Convoy.log("Installing <bold>Visual Studio</bold>...")
 
-    def install(commands: list[str], /) -> bool:
+    def install(commands: list[str], /, *, kind: str) -> bool:
         if not Convoy.run_process_success(commands):
             Convoy.log("<fyellow>Failed to install <bold>Visual Studio</bold>.")
             return False
 
-        write_install_list(f"visual-studio = {version}")
+        write_install_list(f"visual-studio-{kind} = {version}")
         Convoy.log("Successfully installed <bold>Visual Studio</bold>.")
         return True
 
-    installer_path = look_for_visual_studio_installer()
+    installer_path = look_for_visual_studio_installer("setup.exe")
+    if installer_path is None:
+        installer_path = look_for_visual_studio_installer("vs_installer.exe")
+
     if installer_path is not None:
         return install(
             [
@@ -1186,7 +1230,8 @@ def try_install_visual_studio(version: str, /) -> bool:
                 "Microsoft.VisualStudio.Product.Community",
                 "--channelUri",
                 f"https://aka.ms/vs/{version}/release/channel",
-            ]
+            ],
+            kind="partial",
         )
 
     url = f"https://aka.ms/vs/{version}/release/vs_community.exe"
@@ -1202,21 +1247,53 @@ def try_install_visual_studio(version: str, /) -> bool:
             "--add",
             "Microsoft.VisualStudio.Workload.NativeDesktop",
             "--includeRecommended",
-        ]
+        ],
+        kind="full",
     )
 
 
-def try_uninstall_visual_studio() -> bool:
+def try_uninstall_visual_studio(kind: str, version: str | None = None, /) -> bool:
     Convoy.log("Uninstalling <bold>Visual Studio</bold>...")
-    installer_path = look_for_visual_studio_installer()
-    if installer_path is None or not Convoy.run_process_success(
-        [str(installer_path), "/uninstall"]
-    ):
-        Convoy.log("<fyellow>Failed to uninstall <bold>Visual Studio</bold>.")
+    installer_path = look_for_visual_studio_installer("setup.exe")
+    if installer_path is None:
+        installer_path = look_for_visual_studio_installer("vs_installer.exe")
+    if installer_path is None:
+        Convoy.log("<fyellow> Failed to uninstall <bold>Visual Studio</bold>.")
         return False
 
-    Convoy.log("Successfully uninstalled <bold>Visual Studio</bold>.")
-    return True
+    if kind == "full" and Convoy.run_process_success(
+        [str(installer_path), "/uninstall"]
+    ):
+        Convoy.log("Successfully uninstalled <bold>Visual Studio</bold>.")
+        return True
+
+    if version is None:
+        Convoy.exit_error(
+            "Version must be provided for a partial uninstallation of <bold>Visual Studio</bold>."
+        )
+
+    if kind == "partial" and Convoy.run_process_success(
+        [
+            str(installer_path),
+            "modify",
+            "--norestart",
+            "--passive",
+            "--remove",
+            "Microsoft.VisualStudio.Workload.NativeDesktop",
+            "--includeRecommended",
+            "--productId",
+            "Microsoft.VisualStudio.Product.Community",
+            "--channelUri",
+            f"https://aka.ms/vs/{version}/release/channel",
+        ]
+    ):
+        Convoy.log(
+            f"Successfully uninstalled the <bold>Native Desktop</bold> subset features for <bold>Visual Studio Community {g_vs_year_map[version]}</bold>. Please, keep in mind that this operation, in case the <bold>Native Desktop</bold> features were the only ones installed in your <bold>Visual Studio Community {g_vs_year_map[version]}</bold> installation, may have left you with an empty <bold>Visual Studio Community {g_vs_year_map[version]}</bold> shell. If that is the case, you may want to remove it from the <bold>Visual Studio Installer</bold>."
+        )
+        return True
+
+    Convoy.log("<fyellow>Failed to uninstall <bold>Visual Studio</bold>.")
+    return False
 
 
 @step("--Validating Visual Studio--")
@@ -1229,7 +1306,7 @@ def validate_visual_studio(version: str, /) -> None:
 
 
 @step("--Uninstalling Visual Studio--")
-def uninstall_visual_studio(version: str, /) -> None:
+def uninstall_visual_studio(kind: str, version: str | None = None, /) -> None:
     Convoy.log(f"Requested version: <bold>{version} ({g_vs_year_map[version]})</bold>.")
     if not is_visual_studio_installed(version):
         return
@@ -1238,7 +1315,7 @@ def uninstall_visual_studio(version: str, /) -> None:
         Convoy.log("<fyellow>Skipping uninstallation of <bold>Visual Studio</bold>")
         return
 
-    try_uninstall_visual_studio()
+    try_uninstall_visual_studio(kind, version)
 
 
 def is_homebrew_installed() -> bool:
@@ -1532,7 +1609,12 @@ elif g_args.ignore_install_list:
         uninstall_cmake()
 
     if Convoy.is_windows and g_args.manage_visual_studio:
-        uninstall_visual_studio(g_args.visual_studio_version)
+        if Convoy.prompt(
+            "Do you wish to fully uninstall <bold>Visual Studio</bold>? A full uninstallation will remove all components of <bold>Visual Studio</bold>. A partial uninstallation will only remove the <bold>Native Desktop</bold> workload that this project requires."
+        ):
+            uninstall_visual_studio("full")
+        else:
+            uninstall_visual_studio("partial", g_args.visual_studio_version)
 
     if Convoy.is_linux and g_args.manage_linux_devtools:
         uninstall_linux_devtools()
@@ -1555,10 +1637,11 @@ else:
     else:
         Convoy.log("<fyellow><bold>CMake</bold> was not installed by this script.")
 
-    if Convoy.is_windows and install_list.has_dependency("visual-studio"):
-        for version in install_list.find_versions("visual-studio"):
-            uninstall_visual_studio(version)
-
+    if Convoy.is_windows and install_list.has_dependency("visual-studio-full"):
+        uninstall_visual_studio("full")
+    elif Convoy.is_windows and install_list.has_dependency("visual-studio-partial"):
+        for version in install_list.find_versions("visual-studio-partial"):
+            uninstall_visual_studio("partial", version)
     elif Convoy.is_windows:
         Convoy.log(
             "<fyellow><bold>Visual Studio</bold> was not installed by this script."
