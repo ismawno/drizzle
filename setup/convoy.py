@@ -2,6 +2,7 @@ import sys
 import platform
 import subprocess
 import os
+import ctypes
 
 from time import perf_counter
 from pathlib import Path
@@ -153,6 +154,12 @@ class _MetaConvoy(type):
     def log_label(self) -> str:
         return self.__log_label
 
+    @property
+    def is_admin(self) -> bool:
+        if self.is_windows:
+            return ctypes.windll.shell32.IsUserAnAdmin() != 0
+        return os.geteuid() == 0
+
     @log_label.setter
     def log_label(self, msg: str, /) -> None:
         self.__log_label = self.__create_log_label(msg)
@@ -249,7 +256,7 @@ class _MetaConvoy(type):
 
     def run_file(self, path: Path | str, /) -> None:
         if self.safe and not self.prompt(
-            f"The file '{path}' is about to be executed. Do you wish to continue?"
+            f"The file at <underline>{path}</underline> is about to be executed. Do you wish to continue?"
         ):
             self.exit_declined()
 

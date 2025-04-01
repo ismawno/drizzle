@@ -256,6 +256,11 @@ def validate_arguments() -> None:
 
 @step("--Validating OS--")
 def validate_operating_system() -> None:
+    if not Convoy.is_admin:
+        Convoy.log(
+            "<fyellow>Warning: This script may require administrative privileges, but it is not running with them."
+        )
+
     os = Convoy.operating_system
     Convoy.log(f"Operating system: {os}")
     if not Convoy.is_macos and not Convoy.is_windows and not Convoy.is_linux:
@@ -989,14 +994,26 @@ def try_install_vulkan(version: VulkanVersion, /) -> bool:
         return unmount()
 
     if Convoy.is_windows:
+        if not Convoy.run_process_success(
+            [
+                str(download_path),
+                "--root",
+                str(Path("C:\\VulkanSDK") / str(version)),
+                "--accept-licenses",
+                "--default-answer",
+                "--confirm-command",
+                "install",
+                "com.lunarg.vulkan.core",
+                "com.lunarg.vulkan.usr",
+            ]
+        ):
+            Convoy.log(
+                f"<fyellow>Failed to run the <bold>Vulkan SDK</bold> installer at <underline>{download_path}</underline>."
+            )
+            return False
+
         write_install_list(f"vulkan-sdk = {version}")
-        Convoy.log(
-            f"The <bold>Vulkan SDK</bold> installer will now run. Follow the instructions to install the SDK. You will only need the <bold>Vulkan SDK Core</bold> (no need to tick any checks). Ensure the SDK binaries are installed at <underline>C:\\VulkanSDK\\{version}</underline>."
-        )
-        Convoy.run_file(download_path)
-        Convoy.empty_prompt(
-            "Press any key to continue once the installation is complete..."
-        )
+        Convoy.log("Successfully installed the <bold>Vulkan SDK</bold>.")
         return True
 
     return False
@@ -1005,6 +1022,39 @@ def try_install_vulkan(version: VulkanVersion, /) -> bool:
 def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
     if Convoy.is_macos:
         path = Path("~/VulkanSDK").expanduser() / str(version)
+
+        def remove_folder() -> bool:
+            if not path.exists():
+                return True
+            if not Convoy.run_process_success(["sudo", "rm", "-rf", str(path)]):
+                Convoy.log(
+                    f"<fyellow>Failed to remove the <bold>Vulkan SDK</bold> at <underline>{path}</underline>."
+                )
+                return False
+
+            Convoy.log(
+                f"Successfully removed the <bold>Vulkan SDK</bold> at <underline>{path}</underline>."
+            )
+            return True
+
+        maintenance = (
+            path / "MaintenanceTool.app" / "Contents" / "MacOS" / "MaintenanceTool"
+        )
+        if not maintenance.exists():
+            Convoy.log(
+                f"<fyellow><bold>Vulkan SDK</bold> maintenance tool not found at <underline>{maintenance}</underline>."
+            )
+        elif Convoy.run_process_success(
+            ["sudo", str(maintenance), "--confirm-command", "purge"]
+        ):
+            Convoy.log(
+                f"Successfully uninstalled the <bold>Vulkan SDK</bold> at <underline>{path}</underline>."
+            )
+            return remove_folder()
+
+        Convoy.log(
+            "<fyellow>Failed to uninstall the <bold>Vulkan SDK</bold> using the maintenance tool. Trying with the uninstaller script."
+        )
         uninstall = path / "uninstall.sh"
 
         if not uninstall.exists():
@@ -1022,16 +1072,7 @@ def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
             )
             return False
 
-        if not Convoy.run_process_success(["sudo", "rm", "-rf", str(path)]):
-            Convoy.log(
-                f"<fyellow>Failed to remove the <bold>Vulkan SDK</bold> at <underline>{path}</underline>."
-            )
-            return False
-
-        Convoy.log(
-            f"Successfully uninstalled the <bold>Vulkan SDK</bold> at <underline>{path}</underline>."
-        )
-        return True
+        return remove_folder()
 
     if Convoy.is_linux:
         if not Convoy.run_process_success(
@@ -1055,12 +1096,15 @@ def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
             return False
 
         Convoy.log(
-            f"<bold>Vulkan SDK</bold> maintenance tool found at <underline>{vulkan_uninstall}</underline>. Select <bold>Remove all components</bold> to uninstall the SDK."
+            f"<bold>Vulkan SDK</bold> maintenance tool found at <underline>{vulkan_uninstall}</underline>."
         )
-        Convoy.run_file(vulkan_uninstall)
-        Convoy.empty_prompt(
-            "Press any key to continue once the uninstallation is complete..."
-        )
+        if not Convoy.run_process_success(
+            [str(vulkan_uninstall), "--confirm-command", "purge"]
+        ):
+            Convoy.log(
+                f"<fyellow>Failed to uninstall <bold>Vulkan SDK</bold> using the maintenance tool at <underline>{vulkan_uninstall}</underline>. Ensure this script is running with administrator privileges."
+            )
+            return False
 
         if vulkan_sdk.exists() and any(vulkan_sdk.iterdir()):
             Convoy.log(
@@ -1416,14 +1460,14 @@ def try_install_cmake(version: str | None = None, /) -> bool:
         installer_path = vendor / f"cmake-{version}-windows-{arch}.msi"
 
         download_file(installer_url, installer_path)
+        if not Convoy.run_process(
+            f"msiexec /i {installer_path} ALLUSERS=1 ADD_CMAKE_TO_PATH=System /qn"
+        ):
+            Convoy.log("<fyellow>Failed to install <bold>CMake</bold>.")
+            return False
+
         write_install_list(f"cmake = {version}")
-        Convoy.log(
-            "The <bold>CMake</bold> installer will now run. Please follow the instructions and make sure the <bold>CMake</bold> executable is added to Path."
-        )
-        Convoy.run_file(installer_path)
-        Convoy.empty_prompt(
-            "Press any key to continue once the installation is complete..."
-        )
+        Convoy.log("Successfully installed <bold>CMake</bold>.")
         return True
 
 
