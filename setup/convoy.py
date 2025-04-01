@@ -115,6 +115,16 @@ class _MetaConvoy(type):
 
         self.__log_label = ""
         self.__indent = 0
+        if self.is_windows:
+            kernel32 = ctypes.windll.kernel32
+            hstdout = kernel32.GetStdHandle(-11)
+            mode = ctypes.c_ulong()
+            if not kernel32.GetConsoleMode(hstdout, ctypes.byref(mode)):
+                self.exit_error("Failed to get console mode.")
+
+            new_mode = mode.value | 11
+            if not kernel32.SetConsoleMode(hstdout, new_mode):
+                self.exit_error("Failed to set console mode.")
 
     @property
     def is_windows(self) -> bool:
