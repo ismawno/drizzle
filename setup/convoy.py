@@ -122,7 +122,7 @@ class _MetaConvoy(type):
             if not kernel32.GetConsoleMode(hstdout, ctypes.byref(mode)):
                 self.exit_error("Failed to get console mode.")
 
-            new_mode = mode.value | 11
+            new_mode = mode.value | 0x0004
             if not kernel32.SetConsoleMode(hstdout, new_mode):
                 self.exit_error("Failed to set console mode.")
 
