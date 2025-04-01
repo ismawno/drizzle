@@ -1352,7 +1352,10 @@ def validate_visual_studio(version: str, /) -> None:
 
 @step("--Uninstalling Visual Studio--")
 def uninstall_visual_studio(kind: str, version: str | None = None, /) -> None:
-    Convoy.log(f"Requested version: <bold>{version} ({g_vs_year_map[version]})</bold>.")
+    if version is not None:
+        Convoy.log(
+            f"Requested version: <bold>{version} ({g_vs_year_map[version]})</bold>."
+        )
     if not is_visual_studio_installed(version):
         return
 
