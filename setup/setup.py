@@ -258,7 +258,7 @@ def validate_arguments() -> None:
 def validate_operating_system() -> None:
     if not Convoy.is_admin:
         Convoy.log(
-            "<fyellow><bold>Warning</bold>: This script may require administrative privileges, specially when installing the <bold>Vulkan SDK</bold> or <bold>CMake</bold> on Windows. You may consider execute this script from an elevated terminal."
+            "<fyellow><bold>Warning</bold>: This script may require administrative privileges, specially when installing the <bold>Vulkan SDK</bold> or <bold>CMake</bold> on Windows. You may consider executing this script from an elevated terminal."
         )
 
     os = Convoy.operating_system
