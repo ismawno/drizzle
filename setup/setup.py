@@ -1192,7 +1192,10 @@ def look_for_visual_studio_installer(file: Path | str | None = None, /) -> Path 
     return None
 
 
-def is_visual_studio_installed(version: str, /) -> bool:
+def is_visual_studio_installed(version: str | None = None, /) -> bool:
+    if version is None:
+        return look_for_visual_studio_installer() is not None
+
     for p in g_vs_paths:
         path = p / "Microsoft Visual Studio" / g_vs_year_map[version]
         installations = ["Community", "Professional", "Enterprise", "BuildTools"]
