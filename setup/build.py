@@ -61,14 +61,14 @@ def parse_arguments(
     parser = ArgumentParser(description=desc)
     parser.add_argument(
         "-b",
-        "--build",
+        "--build-path",
         default=Path("build"),
         type=Path,
         help="The location directory where the project will be built. Default is 'build'.",
     )
     parser.add_argument(
         "-s",
-        "--source",
+        "--source-path",
         default=Path("."),
         type=Path,
         help="The location directory where the source files are found (where the root CMakeLists.txt is). Default is the curent directory",
@@ -131,8 +131,8 @@ if unknown:
         f"Unknown arguments detected: <bold>{' '.join(unknown)}</bold>. These will be forwarded to the build command: <bold>{args.build_command}</bold>."
     )
 
-build_path: Path = args.build.resolve()
-source_path: Path = args.source.resolve()
+build_path: Path = args.build_path.resolve()
+source_path: Path = args.source_path.resolve()
 
 parser_args_dict = vars(args)
 for argname, argvalue in parser_args_dict.items():
