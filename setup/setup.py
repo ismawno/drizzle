@@ -259,9 +259,11 @@ def validate_operating_system() -> None:
     if not Convoy.is_admin and not Convoy.is_macos:
         Convoy.exit_error(
             "This script requires administrative privileges to run. Execute it "
-            + "using the <bold>sudo</bold> keyword."
-            if not Convoy.is_windows
-            else "using an elevated shell."
+            + (
+                "using the <bold>sudo</bold> keyword."
+                if not Convoy.is_windows
+                else "using an elevated shell."
+            )
         )
     elif Convoy.is_admin and Convoy.is_macos:
         Convoy.exit_error(
