@@ -1223,7 +1223,7 @@ def is_visual_studio_installed(version: str | None = None, /) -> bool:
         [
             str(vswhere),
             "-version",
-            f"[{version},{version}.1)",
+            f"[{version},{int(version) + 1})",
             "-latest",
             "-products",
             "*",
