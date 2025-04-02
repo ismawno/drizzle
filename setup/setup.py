@@ -253,7 +253,7 @@ def validate_arguments() -> None:
 
     if g_unknown:
         Convoy.log(
-            f"Unknown arguments detected: <bold>{' '.join(g_unknown)}</bold>. These will be forwarded to the build script at <underline>{g_args.build_script}</underline>."
+            f"Unknown arguments detected: <bold>{' '.join(g_unknown)}</bold>. These will be forwarded to the build script at <underline>{g_args.build_script.resolve()}</underline>."
         )
 
     if not g_args.safe:
