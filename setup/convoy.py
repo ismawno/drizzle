@@ -228,6 +228,9 @@ class _MetaConvoy(type):
     def exit_declined(self) -> None:
         self.exit_error("Operation declined by user.")
 
+    def exit_restart(self) -> None:
+        self.exit_ok("<bold>RE-RUN REQUIRED</bold>.")
+
     def prompt(self, msg: str, /, *, default: bool = True) -> bool:
         if self.all_yes:
             return True
