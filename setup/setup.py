@@ -423,10 +423,10 @@ def validate_python_version(req_major: int, req_minor: int, req_micro: int, /) -
 
 def is_python_package_installed(package: str, /) -> bool:
     if importlib.util.find_spec(package) is None:
-        Convoy.log(f"<fyellow>Package <bold>{package}</bold> not found")
+        Convoy.log(f"<fyellow>Package <bold>{package}</bold> not found.")
         return False
 
-    Convoy.log(f"Package <bold>{package}</bold> found")
+    Convoy.log(f"Package <bold>{package}</bold> found.")
     return True
 
 
