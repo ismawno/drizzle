@@ -18,10 +18,10 @@ for %%c in (python python3 python2 py) do (
     )
 )
 
-echo Valid python executable found. Runnnig setup...
 
 :found
 if defined found (
+    echo Valid python executable found. Runnnig setup...
     %found% setup.py -s --uninstall
 ) else (
     echo Python is required to run the setup.
