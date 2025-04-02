@@ -226,6 +226,16 @@ def validate_arguments() -> None:
             f"{error}Some python packages are required by this script to install/uninstall certain dependencies. You may not attempt to uninstall those packages while trying to install/uninstall other dependencies at the same time."
         )
 
+    if not explicit_mark() and (not g_args.uninstall or g_args.ignore_install_list):
+        if not g_args.ignore_install_list:
+            Convoy.log(
+                "<fyellow>No explicit dependencies marked to install. Use the command line arguments to specify them."
+            )
+        else:
+            Convoy.log(
+                "<fyellow>When using the <bold>--ignore-install-list</bold> argument, dependencies to uninstall must be marked explicitly."
+            )
+
     if g_args.force and g_args.uninstall:
         Convoy.exit_error(
             "The <bold>--force</bold> flag cannot be used with the <bold>--uninstall</bold> flag. The former is only used to force installations."
