@@ -193,6 +193,7 @@ for argname, argvalue in parser_args_dict.items():
 
 cmake_args = [f"{argname}={argvalue}" for argname, argvalue in cmake_args.items()]
 cmake_args.append(f"-DTOOLKIT_PYTHON_EXECUTABLE={sys.executable}")
+cmake_args.append("-DCMAKE_POLICY_VERSION_MINIMUM=3.5")
 build_path.mkdir(exist_ok=True, parents=True)
 
 Convoy.verbose("Running <bold>CMake</bold> with the following arguments:")
