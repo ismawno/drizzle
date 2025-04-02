@@ -1114,7 +1114,7 @@ def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
             [str(vulkan_uninstall), "--confirm-command", "purge"]
         ):
             Convoy.log(
-                f"<fyellow>Failed to uninstall <bold>Vulkan SDK</bold> using the maintenance tool at <underline>{vulkan_uninstall}</underline>. Ensure this script is running with administrator privileges."
+                f"<fyellow>Failed to uninstall <bold>Vulkan SDK</bold> using the maintenance tool at <underline>{vulkan_uninstall}</underline>."
             )
             return False
 
