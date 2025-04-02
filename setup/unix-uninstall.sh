@@ -17,6 +17,8 @@ if [ -z "$working_python" ]; then
     exit 1
 fi
 
+echo "Valid python executable found. Running setup..."
+
 SOURCE=${BASH_SOURCE[0]}
 while [ -L "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
   DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
