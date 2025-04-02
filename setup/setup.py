@@ -256,12 +256,16 @@ def validate_arguments() -> None:
 
 @step("--Validating OS--")
 def validate_operating_system() -> None:
-    if not Convoy.is_admin:
+    if not Convoy.is_admin and not Convoy.is_macos:
         Convoy.exit_error(
             "This script requires administrative privileges to run. Execute it "
             + "using the <bold>sudo</bold> keyword."
             if not Convoy.is_windows
             else "using an elevated shell."
+        )
+    elif Convoy.is_admin and Convoy.is_macos:
+        Convoy.exit_error(
+            "This script must not be explicitly executed with administrative privileges on MacOS (no <bold>sudo</bold> keyword). Such privileges will be requested when necessary. This is because <bold>Homebrew</bold> commands do not support administrative privileges."
         )
 
     os = Convoy.operating_system
@@ -653,7 +657,7 @@ def try_install_xcode_command_line_tools() -> bool:
 def try_uninstall_xcode_command_line_tools() -> bool:
     Convoy.log("Uninstalling <bold>Xcode Command Line Tools</bold>...")
     if not Convoy.run_process_success(
-        ["rm", "-rf", "/Library/Developer/CommandLineTools"]
+        ["sudo", "rm", "-rf", "/Library/Developer/CommandLineTools"]
     ):
         Convoy.log(
             "<fyellow>Failed to uninstall <bold>Xcode Command Line Tools</bold>."
@@ -889,6 +893,7 @@ def try_install_vulkan(version: VulkanVersion, /) -> bool:
         vulkan_sdk = Path(f"~/VulkanSDK/{version}").expanduser()
         if not Convoy.run_process_success(
             [
+                "sudo",
                 path,
                 "--root",
                 str(vulkan_sdk),
@@ -1021,7 +1026,7 @@ def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
         def remove_folder() -> bool:
             if not path.exists():
                 return True
-            if not Convoy.run_process_success(["rm", "-rf", str(path)]):
+            if not Convoy.run_process_success(["sudo", "rm", "-rf", str(path)]):
                 Convoy.log(
                     f"<fyellow>Failed to remove the <bold>Vulkan SDK</bold> at <underline>{path}</underline>."
                 )
@@ -1040,7 +1045,7 @@ def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
                 f"<fyellow><bold>Vulkan SDK</bold> maintenance tool not found at <underline>{maintenance}</underline>."
             )
         elif Convoy.run_process_success(
-            [str(maintenance), "--confirm-command", "purge"]
+            ["sudo", str(maintenance), "--confirm-command", "purge"]
         ):
             Convoy.log(
                 f"Successfully uninstalled the <bold>Vulkan SDK</bold> at <underline>{path}</underline>."
@@ -1061,7 +1066,7 @@ def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
         Convoy.log(
             f"<bold>Vulkan SDK</bold> uninstaller found at <underline>{uninstall}</underline>."
         )
-        if not Convoy.run_process_success([str(uninstall)]):
+        if not Convoy.run_process_success(["sudo", "/bin/bash", str(uninstall)]):
             Convoy.log(
                 f"<fyellow>Failed to run the <bold>Vulkan SDK</bold> uninstaller at <underline>{uninstall}</underline>"
             )
@@ -1071,7 +1076,7 @@ def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
 
     if Convoy.is_linux:
         if not Convoy.run_process_success(
-            ["rm", "-rf", str(g_root / "vendor" / "vulkan-extract")]
+            ["sudo", "rm", "-rf", str(g_root / "vendor" / "vulkan-extract")]
         ):
             Convoy.log(
                 "<fyellow>Failed to remove the extracted <bold>Vulkan SDK</bold>."
