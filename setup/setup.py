@@ -1120,9 +1120,8 @@ def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
 
         if vulkan_sdk.exists() and any(vulkan_sdk.iterdir()):
             Convoy.log(
-                f"<fyellow>The <bold>Vulkan SDK</bold> folder was not removed by the maintenance tool. Uninstallation failed..."
+                f"<fyellow>The <bold>Vulkan SDK</bold> folder at <underline>{vulkan_sdk}</underline> is still detected. Check if it is empty to confirm the uninstallation."
             )
-            return False
 
         Convoy.log(
             f"Successfully uninstalled <bold>Vulkan SDK</bold> at <underline>{vulkan_sdk}</underline>."
