@@ -1,6 +1,11 @@
 from pathlib import Path
 from argparse import ArgumentParser, Namespace
 from configparser import ConfigParser
+
+import sys
+
+sys.path.append(str(Path(__file__).parent.parent))
+
 from convoy import Convoy
 
 

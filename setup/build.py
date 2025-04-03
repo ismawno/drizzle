@@ -1,10 +1,13 @@
 from pathlib import Path
 from argparse import ArgumentParser, Namespace
 from configparser import ConfigParser
-from convoy import Convoy
 
 import subprocess
 import sys
+
+sys.path.append(str(Path(__file__).parent.parent))
+
+from convoy import Convoy
 
 
 def try_convert_bool(val: str, /) -> bool | str:

@@ -2,7 +2,6 @@ from argparse import ArgumentParser, Namespace
 from pathlib import Path
 from dataclasses import dataclass
 from collections.abc import Callable
-from convoy import Convoy
 
 import sys
 import os
@@ -15,6 +14,10 @@ import zipfile
 import tarfile
 
 import re
+
+sys.path.append(str(Path(__file__).parent.parent))
+
+from convoy import Convoy
 
 
 def parse_arguments() -> tuple[Namespace, list[str]]:
