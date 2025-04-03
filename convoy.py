@@ -59,7 +59,7 @@ class _Style:
     BG_BRIGHT_WHITE = "\033[107m"
 
     @staticmethod
-    def format(text: str, /) -> str:
+    def format(text: str, /, *, void: bool = False) -> str:
         translator = _Style.__create_format_dict()
         styles = set()
 
@@ -69,12 +69,14 @@ class _Style:
             for key, value in translator.items():
                 if segment.startswith(key):
                     styles.add(value)
-                    formatted += segment.replace(key, value, 1)
+                    formatted += segment.replace(key, value if not void else "", 1)
                     break
                 if segment.startswith(f"/{key}"):
                     styles.remove(value)
                     formatted += segment.replace(
-                        f"/{key}", f"{_Style.RESET}{''.join(styles)}", 1
+                        f"/{key}",
+                        f"{_Style.RESET}{''.join(styles)}" if not void else "",
+                        1,
                     )
                     break
             else:
@@ -115,16 +117,19 @@ class _MetaConvoy(type):
 
         self.__log_label = ""
         self.__indent = 0
+        self.__no_colors = False
         if self.is_windows:
             kernel32 = ctypes.windll.kernel32
             hstdout = kernel32.GetStdHandle(-11)
             mode = ctypes.c_ulong()
             if not kernel32.GetConsoleMode(hstdout, ctypes.byref(mode)):
-                self.exit_error("Failed to get console mode.")
+                self.__no_colors = True
+                self.log("Failed to get console mode. Text colors will be disabled.")
 
             new_mode = mode.value | 0x0004
             if not kernel32.SetConsoleMode(hstdout, new_mode):
-                self.exit_error("Failed to set console mode.")
+                self.__no_colors = True
+                self.log("Failed to set console mode. Text colors will be disabled.")
 
     @property
     def is_windows(self) -> bool:
@@ -202,14 +207,14 @@ class _MetaConvoy(type):
 
     def log(self, msg: str, /, *args, **kwargs) -> None:
         print(
-            _Style.format(f"{self.__log_label}{'  '*self.__indent}{msg}"),
+            self.__format(f"{self.__log_label}{'  '*self.__indent}{msg}"),
             *args,
             **kwargs,
         )
 
     def verbose(self, msg: str, /, *args, **kwargs) -> None:
         if self.is_verbose:
-            print(_Style.format(f"{self.__log_label}{msg}"), *args, **kwargs)
+            print(self.__format(f"{self.__log_label}{msg}"), *args, **kwargs)
 
     def exit_ok(self, msg: str | None = None, /) -> None:
         if msg is not None:
@@ -235,7 +240,7 @@ class _MetaConvoy(type):
         if self.all_yes:
             return True
 
-        msg = _Style.format(
+        msg = self.__format(
             f"{self.__log_label}{'  '*self.__indent}<fcyan>{msg} <bold>[Y]</bold>/N "
             if default
             else f"{self.__log_label}{'  '*self.__indent}<fcyan>{msg} Y/<bold>[N]</bold> "
@@ -249,7 +254,7 @@ class _MetaConvoy(type):
                 return False
 
     def empty_prompt(self, msg: str, /) -> None:
-        input(_Style.format(f"{self.__log_label}{'  '*self.__indent}<fcyan>{msg}"))
+        input(self.__format(f"{self.__log_label}{'  '*self.__indent}<fcyan>{msg}"))
 
     def run_process(
         self, command: str | list[str], /, *args, exit_on_decline: bool = True, **kwargs
@@ -281,6 +286,9 @@ class _MetaConvoy(type):
             self.run_process(["xdg-open", path])
         elif self.is_macos:
             self.run_process(["open", path])
+
+    def __format(self, text: str, /) -> str:
+        return _Style.format(text, void=self.__no_colors)
 
     def __exit(self, code: int, /) -> None:
         elapsed = perf_counter() - self.__t1
