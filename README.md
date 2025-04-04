@@ -65,7 +65,7 @@ Double click on the [win-uninstall.bat](https://github.com/ismawno/drizzle/blob/
 
 ### Unix systems
 
-Execute the `bash` script [unix-uninstall.sh](https://github.com/ismawno/drizzle/blob/main/setup/unix-uninstall.sh) script to begin uninstallation. All the dependencies that were explicitly installed by [unix-install.sh](https://github.com/ismawno/drizzle/blob/main/setup/unix-install.sh) will be removed.
+Execute the `bash` script [unix-uninstall.sh](https://github.com/ismawno/drizzle/blob/main/setup/unix-uninstall.sh) to begin uninstallation. All the dependencies that were explicitly installed by [unix-install.sh](https://github.com/ismawno/drizzle/blob/main/setup/unix-install.sh) will be removed.
 
 ## Versioning
 
