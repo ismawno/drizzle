@@ -43,6 +43,6 @@ struct Core
             tasks[i]->WaitUntilFinished();
     }
 
-    static inline Onyx::Resolution Resolution = Onyx::Resolution::Medium;
+    static inline Onyx::Resolution Resolution = Onyx::Resolution::VeryLow;
 };
 } // namespace Driz

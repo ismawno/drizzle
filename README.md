@@ -4,7 +4,12 @@ Drizzle is a small fluid simulator written in C++ inspired by [Sebastian Lague's
 
 This project is also a little bit of a testbed for me to try some libraries I am developing, such as [Toolkit](https://github.com/ismawno/toolkit), [Vulkit](https://github.com/ismawno/vulkit) or [Onyx](https://github.com/ismawno/onyx), to see how they perform in a real project, and features such as SIMD or GPGPU that I plan to add eventually. It will also serve as a warm-up for a full physics engine I plan to develop in the future.
 
-![2D Wave](./.github/gifs/wave-2D.gif)
+<p align="center">
+  <img src="./.github/gifs/wave-2D.gif" width="45%" />
+  &nbsp;&nbsp;
+  <img src="./.github/gifs/grab-3D.gif" width="45%" />
+</p>
+
 
 ## Pending features
 
