@@ -1,6 +1,6 @@
 # Drizzle
 
-Drizzle is a small fluid simulator written in C++ inspired by [Sebastian Lague's](https://www.youtube.com/watch?v=rSKMYc1CQHE) fluid simulator video. It uses Smooth Particle Hydrodynamics (SPH) to simulate the fluid behaviour, and is designed to be simple and performance oriented. It features both 2D and 3D simulations.
+Drizzle is a small fluid simulator written in C++ inspired by [Sebastian Lague's](https://www.youtube.com/watch?v=rSKMYc1CQHE) fluid simulator video. It uses Smooth Particle Hydrodynamics (SPH) to simulate the fluid behaviour, and is meant to be simple and performance oriented. It features both 2D and 3D simulations.
 
 This project is also a little bit of a testbed for me to try some libraries I am developing, such as [Toolkit](https://github.com/ismawno/toolkit), [Vulkit](https://github.com/ismawno/vulkit) or [Onyx](https://github.com/ismawno/onyx), to see how they perform in a real project, and features such as SIMD or GPGPU that I plan to add eventually. It will also serve as a warm-up for a full physics engine I plan to develop in the future.
 
