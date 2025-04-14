@@ -81,6 +81,9 @@ class _Style:
                     break
             else:
                 formatted += segment
+        if void:
+            return formatted
+
         return formatted + _Style.RESET
 
     @staticmethod

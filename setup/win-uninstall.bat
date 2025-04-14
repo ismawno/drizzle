@@ -9,6 +9,7 @@ if %errorLevel% neq 0 (
 setlocal enabledelayedexpansion
 
 set "found="
+set "script_dir=%~dp0"
 
 for %%c in (python python3 python2 py) do (
     echo Checking python executable: '%%c'
@@ -22,7 +23,7 @@ for %%c in (python python3 python2 py) do (
 :found
 if defined found (
     echo Valid python executable found. Runnnig setup...
-    %found% setup.py -s --uninstall
+    %found% %script_dir%setup.py -s --uninstall
 ) else (
     echo Python is required to run the setup.
     exit /b 1
