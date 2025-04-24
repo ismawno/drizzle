@@ -164,10 +164,10 @@ for argname, argvalue in parser_args_dict.items():
     if not isinstance(argvalue, bool):
         value = argvalue
     else:
-        nargvalue = parser_args_dict[f"no_{argname}"]
+        nargvalue = parser_args_dict[f"no-{argname}"]
         if argvalue and nargvalue:
             Convoy.exit_error(
-                f"Cannot set both <bold>{argname}</bold> and <bold>no_{argname}</bold> to True. Please choose one."
+                f"Cannot set both <bold>{argname}</bold> and <bold>no-{argname}</bold> to True. Please choose one."
             )
         if argvalue:
             value = "True"
