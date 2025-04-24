@@ -259,7 +259,7 @@ if gitconfig.exists():
             continue
 
         if Convoy.run_process_success(
-            ["git", "config", "--global", "-add", "safe.directory", str(dep)]
+            ["git", "config", "--global", "--add", "safe.directory", str(dep)]
         ):
             Convoy.verbose(
                 f"Marked <bold>{dep}</bold> as safe to git. This is required for CMake to work properly in some specific cases."
