@@ -229,7 +229,7 @@ if refetch is not None and deps_path.exists():
 
     if not refetch:
         Convoy.verbose("Removing all dependencies to force CMake to re-fetch them...")
-        shutil.rmtree(deps_path)
+        shutil.rmtree(deps_path, onexc=on_error if Convoy.is_windows else None)
     else:
         for dep in refetch:
             for thingy in ["build", "src", "subbuild"]:
