@@ -206,13 +206,14 @@ cmake_args = [f"{argname}={argvalue}" for argname, argvalue in cmake_args.items(
 cmake_args.append(f"-DTOOLKIT_PYTHON_EXECUTABLE={sys.executable}")
 cmake_args.append("-DCMAKE_POLICY_VERSION_MINIMUM=3.5")
 build_path.mkdir(exist_ok=True, parents=True)
+deps_path = build_path / "_deps"
 
 Convoy.verbose("Running <bold>CMake</bold> with the following arguments:")
 for arg in cmake_args:
     Convoy.verbose(f"    {arg}")
 
 refetch: list[str] | None = args.fetch_dependencies
-if refetch is not None and (build_path / "_deps").exists():
+if refetch is not None and deps_path.exists():
 
     def on_error(func, path, _) -> None:
         import stat
@@ -228,11 +229,11 @@ if refetch is not None and (build_path / "_deps").exists():
 
     if not refetch:
         Convoy.verbose("Removing all dependencies to force CMake to re-fetch them...")
-        shutil.rmtree(build_path / "_deps")
+        shutil.rmtree(deps_path)
     else:
         for dep in refetch:
             for thingy in ["build", "src", "subbuild"]:
-                path = build_path / "_deps" / f"{dep}-{thingy}"
+                path = deps_path / f"{dep}-{thingy}"
                 if not path.exists():
                     Convoy.verbose(
                         f"<fyellow>Dependency subfolder <bold>{dep}-{thingy}</bold> not found. Skipping..."
@@ -242,6 +243,28 @@ if refetch is not None and (build_path / "_deps").exists():
                     f"Removing dependency subfolder <bold>{dep}-{thingy}</bold> to force CMake to re-fetch it..."
                 )
                 shutil.rmtree(path, onexc=on_error if Convoy.is_windows else None)
+
+gitconfig = Path.home() / ".gitconfig"
+if gitconfig.exists():
+    with open(gitconfig) as f:
+        content = f.read()
+
+    for dep in deps_path.iterdir():
+        if not dep.is_dir() or not str(dep).endswith("-src"):
+            continue
+
+        dep = dep.resolve()
+        entry = f"directoty = {dep}"
+        if entry not in content:
+            continue
+
+        if not Convoy.run_process_success(
+            ["git", "config", "--global", "-add", "safe.directory", str(dep)]
+        ):
+            Convoy.verbose(
+                f"<fyellow>Failed to mark <bold>{dep}</bold> as owner safe to git. Skipping..."
+            )
+
 
 if not Convoy.run_process_success(
     ["cmake", str(source_path)] + cmake_args,

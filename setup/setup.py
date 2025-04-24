@@ -750,7 +750,7 @@ def is_vulkan_installed(version: VulkanVersion, /):
     # Convoy.log("<bold>Vulkaninfo</bold> not found.")
 
     if Convoy.is_macos:
-        vulkan_sdk = Path("~").expanduser() / "VulkanSDK" / str(version)
+        vulkan_sdk = Path.home() / "VulkanSDK" / str(version)
         if not vulkan_sdk.exists():
             Convoy.log(
                 f"<fyellow><bold>Vulkan SDK</bold> not found at <underline>{vulkan_sdk}</underline>."
@@ -905,7 +905,7 @@ def try_install_vulkan(version: VulkanVersion, /) -> bool:
     def macos_install(installer_path: Path, /, *, include_version: bool = True) -> bool:
         name = "InstallVulkan" if not include_version else f"InstallVulkan-{version}"
         path = str(installer_path / "Contents" / "MacOS" / name)
-        vulkan_sdk = Path(f"~/VulkanSDK/{version}").expanduser()
+        vulkan_sdk = Path.home() / "VulkanSDK" / str(version)
         if not Convoy.run_process_success(
             [
                 "sudo",
@@ -1036,7 +1036,7 @@ def try_install_vulkan(version: VulkanVersion, /) -> bool:
 
 def try_uninstall_vulkan(version: VulkanVersion, /) -> bool:
     if Convoy.is_macos:
-        path = Path("~/VulkanSDK").expanduser() / str(version)
+        path = Path.home() / "VulkanSDK" / str(version)
 
         def remove_folder() -> bool:
             if not path.exists():
