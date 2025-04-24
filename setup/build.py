@@ -4,6 +4,7 @@ from configparser import ConfigParser
 
 import subprocess
 import sys
+import shutil
 
 sys.path.append(str(Path(__file__).parent.parent))
 
@@ -88,6 +89,13 @@ def parse_arguments(
         type=str,
         default=None,
         help="The build command to run after CMake is done. Such command will be ran from the provided build path. Any unknown arguments will be forwarded to such command. Default is None.",
+    )
+    parser.add_argument(
+        "--fetch-dependencies",
+        nargs="+",
+        type=str,
+        default=None,
+        help="Force CMake to re-fetch the specified dependencies. This is useful if you want to re-fetch a dependency without having to delete the entire build directory. Specifying no dependency will re-fetch all dependencies. Default is None.",
     )
 
     custom_vname_map = {}
@@ -202,6 +210,24 @@ build_path.mkdir(exist_ok=True, parents=True)
 Convoy.verbose("Running <bold>CMake</bold> with the following arguments:")
 for arg in cmake_args:
     Convoy.verbose(f"    {arg}")
+
+refetch: list[str] | None = args.fetch_dependencies
+if refetch is not None and (build_path / "_deps").exists():
+    if not refetch:
+        Convoy.verbose("Removing all dependencies to force CMake to re-fetch them...")
+        shutil.rmtree(build_path / "_deps")
+    else:
+        for dep in refetch:
+            path = build_path / "_deps" / dep
+            if not path.exists():
+                Convoy.verbose(
+                    f"<fyellow>Dependency <bold>{dep}</bold> not found. Skipping..."
+                )
+                continue
+            Convoy.verbose(
+                f"Removing dependency <bold>{dep}</bold> to force CMake to re-fetch it..."
+            )
+            shutil.rmtree(path)
 
 if not Convoy.run_process_success(
     ["cmake", str(source_path)] + cmake_args,
