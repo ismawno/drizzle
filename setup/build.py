@@ -208,7 +208,7 @@ for argname, argvalue in parser_args_dict.items():
         cmake_args[f"-D{cmake_varname}"] = argvalue.replace('"', "")
         continue
 
-    nargvalue = parser_args_dict[f"no_{argname}"]
+    nargvalue = parser_args_dict[f"no-{argname}"]
 
     if argvalue:
         cmake_args[f"-D{cmake_varname}"] = "ON"
