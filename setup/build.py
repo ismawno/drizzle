@@ -255,7 +255,7 @@ if gitconfig.exists():
 
         dep = dep.resolve()
         entry = f"directoty = {dep}"
-        if entry not in content:
+        if entry in content:
             continue
 
         if Convoy.run_process_success(
