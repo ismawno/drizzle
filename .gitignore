@@ -1,5 +1,6 @@
 # Onyx
 .vscode/
+.vs/
 *build*/
 .venv/
 .DS_Store
