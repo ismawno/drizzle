@@ -226,7 +226,7 @@ if refetch is not None and (build_path / "_deps").exists():
                     )
                     continue
                 Convoy.verbose(
-                    f"Removing dependency <bold>{dep}-{thingy}</bold> to force CMake to re-fetch it..."
+                    f"Removing dependency subfolder <bold>{dep}-{thingy}</bold> to force CMake to re-fetch it..."
                 )
                 shutil.rmtree(path)
 
