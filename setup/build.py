@@ -213,6 +213,19 @@ for arg in cmake_args:
 
 refetch: list[str] | None = args.fetch_dependencies
 if refetch is not None and (build_path / "_deps").exists():
+
+    def on_error(func, path, _) -> None:
+        import stat
+        import os
+
+        try:
+            os.chmod(path, stat.S_IWRITE)
+            func(path)
+        except Exception as e:
+            Convoy.verbose(
+                f"<fyellow>Failed to remove <bold>{path}</bold> due to: <underline>{e}</underline>. Skipping..."
+            )
+
     if not refetch:
         Convoy.verbose("Removing all dependencies to force CMake to re-fetch them...")
         shutil.rmtree(build_path / "_deps")
@@ -228,7 +241,7 @@ if refetch is not None and (build_path / "_deps").exists():
                 Convoy.verbose(
                     f"Removing dependency subfolder <bold>{dep}-{thingy}</bold> to force CMake to re-fetch it..."
                 )
-                shutil.rmtree(path)
+                shutil.rmtree(path, onexc=on_error if Convoy.is_windows else None)
 
 if not Convoy.run_process_success(
     ["cmake", str(source_path)] + cmake_args,
