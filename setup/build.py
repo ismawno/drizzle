@@ -12,9 +12,9 @@ from convoy import Convoy
 
 
 def try_convert_bool(val: str, /) -> bool | str:
-    if val == "True":
+    if val.lower() in ["true", "on", "yes"]:
         return True
-    elif val == "False":
+    elif val.lower() in ["false", "off", "no"]:
         return False
     return val
 
@@ -37,14 +37,17 @@ def load_build_ini() -> ConfigParser:
 
 def parse_default_values(cfg: ConfigParser, /) -> dict[str, tuple[str, str | bool]]:
     cmake_vname_map = {}
-    for cmake_varname, kv in cfg["default-values"].items():
-        custom_varname, val = kv.split(": ")
-        if custom_varname in cmake_vname_map:
+    for cmake_varname, kv in cfg["cmake-options"].items():
+        cli_varname, val = kv.split(": ")
+        if cli_varname in cmake_vname_map:
             Convoy.exit_error(
-                f"Name mismatch: Variable <bold>{custom_varname}</bold> already exists. Custom variable names must be unique."
+                f"Name mismatch: Variable <bold>{cli_varname}</bold> already exists. CLI variable names must be unique."
             )
 
-        cmake_vname_map[cmake_varname] = (custom_varname, try_convert_bool(val))
+        cmake_vname_map[cmake_varname] = (
+            cli_varname,
+            try_convert_bool(val),
+        )
 
     return cmake_vname_map
 
@@ -98,38 +101,38 @@ def parse_arguments(
         help="Force CMake to re-fetch the specified dependencies. This is useful if you want to re-fetch a dependency without having to delete the entire build directory. Specifying no dependency will re-fetch all dependencies. Default is None.",
     )
 
-    custom_vname_map = {}
-    for cmake_varname, (custom_varname, val) in cmake_vname_map.items():
+    cli_vname_map = {}
+    for cmake_varname, (cli_varname, val) in cmake_vname_map.items():
         if isinstance(val, bool):
             cmakeval = "ON" if val else "OFF"
             parser.add_argument(
-                f"--{custom_varname}",
+                f"--{cli_varname}",
                 action="store_true",
                 default=False,
                 help=f"Ensures that the CMake option '{cmake_varname.upper()}' is set of 'ON'. Its default is '{cmakeval}'.",
             )
             parser.add_argument(
-                f"--no-{custom_varname}",
+                f"--no-{cli_varname}",
                 action="store_true",
                 default=False,
                 help=f"Ensures that the CMake option '{cmake_varname.upper()}' is set of 'OFF'. Its default is '{cmakeval}'.",
             )
         else:
             parser.add_argument(
-                f"--{custom_varname}",
+                f"--{cli_varname}",
                 type=str,
                 default=val,
                 help=f"Set the value of '{cmake_varname.upper()}' to the specified value. Default is '{val}'.",
             )
 
-        custom_vname_map[custom_varname.replace("-", "_")] = cmake_varname, val
-    return parser.parse_known_args(), custom_vname_map
+        cli_vname_map[cli_varname] = cmake_varname, val
+    return parser.parse_known_args(), cli_vname_map
 
 
 Convoy.log_label = "BUILD"
 cfg = load_build_ini()
 cmake_vname_map = parse_default_values(cfg)
-(args, unknown), custom_vname_map = parse_arguments(cmake_vname_map)
+(args, unknown), cli_vname_map = parse_arguments(cmake_vname_map)
 Convoy.is_verbose = args.verbose
 
 if args.build_command is None and unknown:
@@ -147,10 +150,10 @@ source_path: Path = args.source_path.resolve()
 
 parser_args_dict = vars(args)
 for argname, argvalue in parser_args_dict.items():
-    if argname not in custom_vname_map:
+    if argname not in cli_vname_map:
         continue
 
-    cmake_varname, default = custom_vname_map[argname]
+    cmake_varname, default = cli_vname_map[argname]
     if not isinstance(argvalue, bool):
         value = argvalue
     else:
@@ -166,41 +169,46 @@ for argname, argvalue in parser_args_dict.items():
         else:
             value = "True" if default else "False"
 
-    override_section = f"{cmake_varname.replace('_', '-').lower()}.{value}"
+    override_section = f"{cmake_varname}.{value}"
     if override_section not in cfg:
         continue
 
     overrides = cfg[override_section]
-    for custom_varname, new_default in overrides.items():
-        custom_varname = custom_varname.replace("-", "_")
-        if custom_varname not in custom_vname_map:
-            raise ValueError(
-                f"Default value override <bold>{custom_varname}</bold> was not found in the <bold>default-values</bold> section."
+    for cli_varname, new_default in overrides.items():
+        if cli_varname not in cli_vname_map:
+            Convoy.exit_error(
+                f"Default value override <bold>{cli_varname}</bold> was not found in the <bold>cmake-options</bold> section."
             )
+
+        old_value = cli_vname_map[cli_varname][1]
+        Convoy.verbose(
+            f"Overriding default value of option <bold>{cli_varname}</bold> from <bold>{old_value}</bold> to <bold>{new_default}</bold> as <bold>{cmake_varname}</bold> was set to <bold>{value}</bold>."
+        )
         new_value = (
-            custom_vname_map[custom_varname][0],
+            cli_vname_map[cli_varname][0],
             try_convert_bool(new_default),
         )
-        custom_vname_map[custom_varname] = new_value
+        cli_vname_map[cli_varname] = new_value
 
 cmake_args = {}
 for argname, argvalue in parser_args_dict.items():
-    if argname not in custom_vname_map:
+    if argname not in cli_vname_map:
         continue
 
-    cmake_varname, default = custom_vname_map[argname]
+    cmake_varname, default = cli_vname_map[argname]
+    cmake_varname = cmake_varname.upper().replace("-", "_")
     if not isinstance(argvalue, bool):
-        cmake_args[f"-D{cmake_varname.upper()}"] = argvalue.replace('"', "")
+        cmake_args[f"-D{cmake_varname}"] = argvalue.replace('"', "")
         continue
 
     nargvalue = parser_args_dict[f"no_{argname}"]
 
     if argvalue:
-        cmake_args[f"-D{cmake_varname.upper()}"] = "ON"
+        cmake_args[f"-D{cmake_varname}"] = "ON"
     elif nargvalue:
-        cmake_args[f"-D{cmake_varname.upper()}"] = "OFF"
+        cmake_args[f"-D{cmake_varname}"] = "OFF"
     else:
-        cmake_args[f"-D{cmake_varname.upper()}"] = "ON" if default else "OFF"
+        cmake_args[f"-D{cmake_varname}"] = "ON" if default else "OFF"
 
 cmake_args = [f"{argname}={argvalue}" for argname, argvalue in cmake_args.items()]
 cmake_args.append(f"-DTOOLKIT_PYTHON_EXECUTABLE={sys.executable}")
