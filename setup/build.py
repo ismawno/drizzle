@@ -218,16 +218,17 @@ if refetch is not None and (build_path / "_deps").exists():
         shutil.rmtree(build_path / "_deps")
     else:
         for dep in refetch:
-            path = build_path / "_deps" / dep
-            if not path.exists():
+            for thingy in ["build", "src", "subbuild"]:
+                path = build_path / "_deps" / f"{dep}-{thingy}"
+                if not path.exists():
+                    Convoy.verbose(
+                        f"<fyellow>Dependency subfolder <bold>{dep}-{thingy}</bold> not found. Skipping..."
+                    )
+                    continue
                 Convoy.verbose(
-                    f"<fyellow>Dependency <bold>{dep}</bold> not found. Skipping..."
+                    f"Removing dependency <bold>{dep}-{thingy}</bold> to force CMake to re-fetch it..."
                 )
-                continue
-            Convoy.verbose(
-                f"Removing dependency <bold>{dep}</bold> to force CMake to re-fetch it..."
-            )
-            shutil.rmtree(path)
+                shutil.rmtree(path)
 
 if not Convoy.run_process_success(
     ["cmake", str(source_path)] + cmake_args,
