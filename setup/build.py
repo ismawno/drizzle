@@ -257,7 +257,7 @@ if gitconfig.exists():
             continue
 
         dep = dep.resolve()
-        entry = f"directory = {dep}"
+        entry = f"directory = {dep}".replace("\\", "/").replace("//", "/")
         if entry in content:
             continue
 
