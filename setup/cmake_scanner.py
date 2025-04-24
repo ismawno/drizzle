@@ -189,6 +189,9 @@ write_help(
     "This section format goes as follows: <lowercase-cmake-option> = <lowercase-build-cli-option>: <default-value>"
 )
 write_help(
+    "You may write <lowercase-cmake-option> = <default-value> if you wish to use the same name for both."
+)
+write_help(
     "<lowercase-cmake-option> -> It is the raw CMake option name in lower case (python parser requires it), except for the '-D' prefix."
 )
 write_help(

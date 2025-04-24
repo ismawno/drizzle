@@ -38,7 +38,14 @@ def load_build_ini() -> ConfigParser:
 def parse_default_values(cfg: ConfigParser, /) -> dict[str, tuple[str, str | bool]]:
     cmake_vname_map = {}
     for cmake_varname, kv in cfg["cmake-options"].items():
-        cli_varname, val = kv.split(": ")
+        cmake_varname = cmake_varname.strip()
+        if ":" in kv:
+            cli_varname, val = kv.split(":")
+        else:
+            cli_varname = cmake_varname
+            val = kv
+        cli_varname = cli_varname.strip()
+        val = val.strip()
         if cli_varname in cmake_vname_map:
             Convoy.exit_error(
                 f"Name mismatch: Variable <bold>{cli_varname}</bold> already exists. CLI variable names must be unique."
