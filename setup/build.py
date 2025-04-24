@@ -246,6 +246,9 @@ if refetch is not None and deps_path.exists():
 
 gitconfig = Path.home() / ".gitconfig"
 if gitconfig.exists():
+    Convoy.verbose(
+        f"Found git configuration file at <underline>{gitconfig}</underline>."
+    )
     with open(gitconfig) as f:
         content = f.read()
 
