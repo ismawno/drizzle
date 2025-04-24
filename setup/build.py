@@ -236,11 +236,11 @@ if refetch is not None and deps_path.exists():
                 path = deps_path / f"{dep}-{thingy}"
                 if not path.exists():
                     Convoy.verbose(
-                        f"<fyellow>Dependency subfolder <bold>{dep}-{thingy}</bold> not found. Skipping..."
+                        f"<fyellow>Dependency subfolder <underline>{dep}-{thingy}</underline> not found. Skipping..."
                     )
                     continue
                 Convoy.verbose(
-                    f"Removing dependency subfolder <bold>{dep}-{thingy}</bold> to force CMake to re-fetch it..."
+                    f"Removing dependency subfolder <underline>{dep}-{thingy}</underline> to force CMake to re-fetch it..."
                 )
                 shutil.rmtree(path, onexc=on_error if Convoy.is_windows else None)
 
@@ -262,11 +262,11 @@ if gitconfig.exists():
             ["git", "config", "--global", "--add", "safe.directory", str(dep)]
         ):
             Convoy.verbose(
-                f"Marked <bold>{dep}</bold> as safe to git. This is required for CMake to work properly in some specific cases."
+                f"Marked <underline>{dep}</underline> as safe to git. This is required for CMake to work properly in some specific cases."
             )
         else:
             Convoy.verbose(
-                f"<fyellow>Failed to mark <bold>{dep}</bold> as owner safe to git. Skipping..."
+                f"<fyellow>Failed to mark <underline>{dep}</underline> as owner safe to git. Skipping..."
             )
 else:
     Convoy.verbose(
