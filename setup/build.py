@@ -155,7 +155,7 @@ if unknown:
 build_path: Path = args.build_path.resolve()
 source_path: Path = args.source_path.resolve()
 
-parser_args_dict = {k.replace("_", "-"): v for k, v in vars(args)}
+parser_args_dict = {k.replace("_", "-"): v for k, v in vars(args).items()}
 for argname, argvalue in parser_args_dict.items():
     if argname not in cli_vname_map:
         continue
