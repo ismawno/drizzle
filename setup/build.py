@@ -254,7 +254,7 @@ if gitconfig.exists():
             continue
 
         dep = dep.resolve()
-        entry = f"directoty = {dep}"
+        entry = f"directory = {dep}"
         if entry in content:
             continue
 
