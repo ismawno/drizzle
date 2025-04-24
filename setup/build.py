@@ -258,12 +258,20 @@ if gitconfig.exists():
         if entry not in content:
             continue
 
-        if not Convoy.run_process_success(
+        if Convoy.run_process_success(
             ["git", "config", "--global", "-add", "safe.directory", str(dep)]
         ):
             Convoy.verbose(
+                f"Marked <bold>{dep}</bold> as safe to git. This is required for CMake to work properly in some specific cases."
+            )
+        else:
+            Convoy.verbose(
                 f"<fyellow>Failed to mark <bold>{dep}</bold> as owner safe to git. Skipping..."
             )
+else:
+    Convoy.verbose(
+        "<fyellow>Git configuration file not found. You may experience issues with git's safe directory feature in some specific cases. If so, remove your build directory and re-run this script."
+    )
 
 
 if not Convoy.run_process_success(
