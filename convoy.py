@@ -6,6 +6,9 @@ import ctypes
 
 from time import perf_counter
 from pathlib import Path
+from typing import NoReturn, TypeVar
+
+T = TypeVar("T")
 
 
 class _Style:
@@ -99,12 +102,7 @@ class _Style:
                 prefix += "b"
             if "BRIGHT" in name:
                 prefix += "b"
-            name = (
-                name.removeprefix("FG_")
-                .removeprefix("BG_")
-                .removeprefix("BRIGHT_")
-                .lower()
-            )
+            name = name.removeprefix("FG_").removeprefix("BG_").removeprefix("BRIGHT_").lower()
 
             result[f"{prefix}{name}>"] = value
         return result
@@ -219,7 +217,12 @@ class _MetaConvoy(type):
         if self.is_verbose:
             print(self.__format(f"{self.__log_label}{msg}"), *args, **kwargs)
 
-    def exit_ok(self, msg: str | None = None, /) -> None:
+    def ncheck(self, param: T | None, /, *, msg: str | None = None) -> T:
+        if param is None:
+            self.exit_error(msg or "Found a <bold>None</bold> value.")
+        return param
+
+    def exit_ok(self, msg: str | None = None, /) -> NoReturn:
         if msg is not None:
             self.log(f"<fgreen>{msg}</fgreen>")
 
@@ -229,14 +232,14 @@ class _MetaConvoy(type):
         self,
         msg: str = "Something went wrong! Likely because something happened or the user declined a prompt.",
         /,
-    ) -> None:
+    ) -> NoReturn:
         self.log(f"<fred>Error: {msg}", file=sys.stderr)
         self.__exit(1)
 
-    def exit_declined(self) -> None:
+    def exit_declined(self) -> NoReturn:
         self.exit_error("Operation declined by user.")
 
-    def exit_restart(self) -> None:
+    def exit_restart(self) -> NoReturn:
         self.exit_ok("<bold>RE-RUN REQUIRED</bold>.")
 
     def prompt(self, msg: str, /, *, default: bool = True) -> bool:
@@ -293,7 +296,7 @@ class _MetaConvoy(type):
     def __format(self, text: str, /) -> str:
         return _Style.format(text, void=self.__no_colors)
 
-    def __exit(self, code: int, /) -> None:
+    def __exit(self, code: int, /) -> NoReturn:
         elapsed = perf_counter() - self.__t1
         self.log(f"Finished in <bold>{elapsed:.2f}</bold> seconds.")
         sys.exit(code)

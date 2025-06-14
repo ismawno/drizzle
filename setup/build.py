@@ -25,9 +25,7 @@ def load_build_ini() -> ConfigParser:
     root = Path(__file__).parent
     path = root / "build.ini"
     if not path.exists():
-        Convoy.exit_error(
-            f"No configuration file found at <underline>{root}</underline>."
-        )
+        Convoy.exit_error(f"No configuration file found at <underline>{root}</underline>.")
 
     with open(path) as f:
         cfg.read_file(f)
@@ -260,10 +258,8 @@ if refetch is not None and deps_path.exists():
                 shutil.rmtree(path, onexc=on_error if Convoy.is_windows else None)
 
 gitconfig = Path.home() / ".gitconfig"
-if gitconfig.exists():
-    Convoy.verbose(
-        f"Found git configuration file at <underline>{gitconfig}</underline>."
-    )
+if gitconfig.exists() and deps_path.exists():
+    Convoy.verbose(f"Found git configuration file at <underline>{gitconfig}</underline>.")
     with open(gitconfig) as f:
         content = f.read()
 
@@ -277,17 +273,13 @@ if gitconfig.exists():
         if entry in content:
             continue
 
-        if Convoy.run_process_success(
-            ["git", "config", "--global", "--add", "safe.directory", dep_str]
-        ):
+        if Convoy.run_process_success(["git", "config", "--global", "--add", "safe.directory", dep_str]):
             Convoy.verbose(
                 f"Marked <underline>{dep}</underline> as safe to git. This is required for CMake to work properly in some specific cases."
             )
         else:
-            Convoy.verbose(
-                f"<fyellow>Failed to mark <underline>{dep}</underline> as owner safe to git. Skipping..."
-            )
-else:
+            Convoy.verbose(f"<fyellow>Failed to mark <underline>{dep}</underline> as owner safe to git. Skipping...")
+elif not gitconfig.exists():
     Convoy.verbose(
         "<fyellow>Git configuration file not found. You may experience issues with git's safe directory feature in some specific cases. If so, remove your build directory and re-run this script."
     )
@@ -302,17 +294,13 @@ if not Convoy.run_process_success(
 
 if args.build_command is not None:
     bcmd: list[str] = args.build_command.split(" ")
-    Convoy.verbose(
-        f"Running build command: <bold>{args.build_command} {' '.join(unknown)}"
-    )
+    Convoy.verbose(f"Running build command: <bold>{args.build_command} {' '.join(unknown)}")
     if not Convoy.run_process_success(
         bcmd + unknown,
         stdout=subprocess.DEVNULL if not args.verbose else None,
         cwd=build_path,
     ):
-        Convoy.exit_error(
-            f"Failed to execute build command: <bold>{args.build_command}"
-        )
+        Convoy.exit_error(f"Failed to execute build command: <bold>{args.build_command}")
 
     Convoy.exit_ok(
         f"Build files were generated and the project compiled successfully. You may found the build files at <underline>{build_path}</underline>, along with the compiled binaries."

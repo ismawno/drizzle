@@ -69,4 +69,5 @@ Execute the `bash` script [unix-uninstall.sh](https://github.com/ismawno/drizzle
 
 ## Versioning
 
-As some Drizzle dependencies are being developed by me and are under constant change, I can only guarantee this project will build from the `main` branch or a specific tagged commit. This is because such dependencies are fetched with `CMake`'s `FetchContent` module with the `GIT_TAG` parameter set to `main` for all commits except for tagged ones. This makes my life easier when it comes to updating the dependencies according to my needs.
+As some Onyx dependencies are being developed by me and are under constant change, I can only guarantee this project will build from a tagged commit. This is because such dependencies are fetched with `CMake`'s `FetchContent` module with the `GIT_TAG` parameter set to `main` for all commits except for tagged ones. This makes my life easier when it comes to updating the dependencies according to my needs.
+

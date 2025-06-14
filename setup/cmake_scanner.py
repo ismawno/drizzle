@@ -22,7 +22,7 @@ def parse_arguments() -> Namespace:
     The problem with this is that I feel it is very easy to lose track of what configuration is being built unless I type in all
     my CMake flags explicitly every time I build the project, and that is just unbearable. Hence, this python script, along with `build.py`,
     provide flags with reliable defaults stored in a `build.ini` file that are always applied unless explicitly changed with a command line argument.
-    
+
     This script will create a 'build.ini' file in the same directory this file lives, to be used by 'build.py' to do
     the actual building.
     """
@@ -79,9 +79,7 @@ def parse_arguments() -> Namespace:
     return parser.parse_args()
 
 
-def create_cli_varname(
-    cmake_varname: str, /, *, override_strip_preffix: bool = False
-) -> str:
+def create_cli_varname(cmake_varname: str, /, *, override_strip_preffix: bool = False) -> str:
     cli_varname = cmake_varname
     if strip_preffix and not override_strip_preffix:
         for preffix in preffixes:
@@ -93,9 +91,7 @@ def create_cli_varname(
 
 def process_option(content: list[str]) -> tuple[str, str, str | bool]:
     cmake_varname, val = content
-    Convoy.verbose(
-        f"    Detected option <bold>{cmake_varname}</bold> with default value <bold>{val}</bold>."
-    )
+    Convoy.verbose(f"    Detected option <bold>{cmake_varname}</bold> with default value <bold>{val}</bold>.")
 
     cli_varname = create_cli_varname(cmake_varname)
 
@@ -117,6 +113,7 @@ strip_preffix: bool = not args.keep_preffixes
 preffixes: list[str] = args.preffixes
 
 
+contents = None
 if cmake_path is not None:
     contents = []
     for cmake_file in cmake_path.rglob(args.cmake_name):
@@ -125,12 +122,7 @@ if cmake_path is not None:
         )
         with open(cmake_file, "r") as f:
             options = [
-                process_option(
-                    content.removeprefix(f"{hint}(")
-                    .removesuffix(")")
-                    .replace('"', "")
-                    .split(" ")
-                )
+                process_option(content.removeprefix(f"{hint}(").removesuffix(")").replace('"', "").split(" "))
                 for content in f.read().splitlines()
                 if content.startswith(hint)
             ]
@@ -188,9 +180,7 @@ write_help(
 write_help(
     "This section format goes as follows: <lowercase-cmake-option> = <lowercase-build-cli-option>: <default-value>"
 )
-write_help(
-    "You may write <lowercase-cmake-option> = <default-value> if you wish to use the same name for both."
-)
+write_help("You may write <lowercase-cmake-option> = <default-value> if you wish to use the same name for both.")
 write_help(
     "<lowercase-cmake-option> -> It is the raw CMake option name in lower case (python parser requires it), except for the '-D' prefix."
 )
@@ -201,12 +191,11 @@ write_help(
     "<default-value> -> It is the value 'build.py' will use if no other value is provided through the command line. If the value is a boolean, you may use 'true/on/yes' or 'false/off/no'. Case insensitive."
 )
 
-if cmake_path is not None:
+if contents is not None:
     for cmake_varname, (cli_varname, val) in contents.items():
         cfg["cmake-options"][cmake_varname] = (
             f"{cli_varname}: {val}"
-            if "cmake-options" not in sections
-            or cmake_varname not in sections["cmake-options"]
+            if "cmake-options" not in sections or cmake_varname not in sections["cmake-options"]
             else sections["cmake-options"][cmake_varname]
         )
 
@@ -225,15 +214,13 @@ write_help(
     "<value-that-triggers-override> may have uppercase letters, as well as <new-default-value> or <default-value>."
 )
 
-write_help(
-    "This is useful when you would like to disable assertions or logs for distribution builds."
-)
+write_help("This is useful when you would like to disable assertions or logs for distribution builds.")
 
-for section, contents in sections.items():
+for section, cnts in sections.items():
     if section == "cmake-options":
         continue
     cfg.add_section(section)
-    for option, value in contents.items():
+    for option, value in cnts.items():
         cfg[section][option] = value
 
 with open(root / "build.ini", "w") as f:
