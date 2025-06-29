@@ -279,14 +279,14 @@ def validate_operating_system() -> None:
         Convoy.log(f"ARM: {Convoy.is_arm}")
 
     if Convoy.is_linux:
-        global g_linux_devtools, g_linux_dependencies
+        global g_linux_devtools, g_linux_dependencies, g_linux_version
+
+        if g_linux_version is None:
+            g_linux_version = "<rolling or unedfined>"
 
         Convoy.log(f"Distribution: {g_linux_distro} {g_linux_version}")
         if g_linux_distro is None:
             Convoy.exit_error("Failed to detect Linux distribution.")
-
-        if g_linux_version is None:
-            Convoy.exit_error("Failed to detect Linux version.")
 
         if g_linux_distro not in ["ubuntu", "fedora", "arch"]:
             Convoy.exit_error(f"Unsupported Linux distribution: <bold>{g_linux_distro}</bold>.")
@@ -299,17 +299,13 @@ def validate_operating_system() -> None:
 
         if g_linux_distro == "ubuntu":
             g_linux_devtools = "build-essential"
-            g_linux_dependencies = [
-                "qtbase5-dev" if g_linux_version == "22.04" else "qt5-default",
-                "libxcb-xinput0",
-                "libxcb-xinerama0",
-            ]
+            g_linux_dependencies = ["xz-utils", "libxcb-xinput0", "libxcb-xinerama0", "libxcb-cursor-dev"]
         elif g_linux_distro == "fedora":
             g_linux_devtools = "Development Tools"
-            g_linux_dependencies = ["qt", "xinput", "libXinerama"]
+            g_linux_dependencies = ["xz", "xinput", "libXinerama", "xcb-util-cursor"]
         elif g_linux_distro == "arch":
             g_linux_devtools = "base-devel"
-            g_linux_dependencies = ["qt5-base", "libxcb", "libxinerama"]
+            g_linux_dependencies = ["xz", "libxcb", "libXinerama", "xcb-util-cursor"]
 
 
 def prompt_to_install(dependency: str, /) -> bool:

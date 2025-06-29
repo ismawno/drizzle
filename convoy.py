@@ -178,7 +178,7 @@ class _MetaConvoy(type):
 
     @log_label.setter
     def log_label(self, msg: str, /) -> None:
-        self.__log_label = self.__create_log_label(msg)
+        self.__log_label = self.__create_log_label(msg) if msg != "" else ""
 
     def linux_distro(self) -> str | None:
         try:
