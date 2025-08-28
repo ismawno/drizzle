@@ -11,35 +11,42 @@ set(SOURCES
     driz/app/argparse.cpp
     driz/simulation/solver.cpp
     driz/simulation/kernel.cpp
-    driz/simulation/lookup.cpp
-)
+    driz/simulation/lookup.cpp)
 
 add_executable(drizzle ${SOURCES})
 
-
 include(FetchContent)
 FetchContent_Declare(
-    onyx
-    GIT_REPOSITORY https://github.com/ismawno/onyx.git
-    GIT_TAG v0.1.0
-)
+  onyx
+  GIT_REPOSITORY https://github.com/ismawno/onyx.git
+  GIT_TAG v0.1.1)
 FetchContent_MakeAvailable(onyx)
 
 FetchContent_Declare(
-    argparse
-    GIT_REPOSITORY https://github.com/p-ranav/argparse.git
-    GIT_TAG v3.2
-)
+  argparse
+  GIT_REPOSITORY https://github.com/p-ranav/argparse.git
+  GIT_TAG v3.2)
 FetchContent_MakeAvailable(argparse)
 
 tkit_register_for_reflection(drizzle SOURCES driz/simulation/settings.hpp)
 
-target_include_directories(drizzle PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${argparse_SOURCE_DIR}/include)
+target_include_directories(drizzle PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+                                           ${argparse_SOURCE_DIR}/include)
 target_link_libraries(drizzle PRIVATE onyx)
-target_compile_definitions(drizzle PRIVATE DRIZ_ROOT_PATH="${DRIZZLE_ROOT_PATH}")
+target_compile_definitions(drizzle
+                           PRIVATE DRIZ_ROOT_PATH="${DRIZZLE_ROOT_PATH}")
 
-if (MSVC)
-    tkit_configure_compile_link_options(drizzle FLAGS /W4 /WX)
-else()
-    tkit_configure_compile_link_options(drizzle FLAGS -Wall -Wextra -Wpedantic -Werror)
+if(MSVC)
+  tkit_configure_compile_link_options(drizzle FLAGS /W4 /WX)
+elseif(UNIX AND NOT APPLE)
+  tkit_configure_compile_link_options(
+    drizzle
+    FLAGS
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Werror
+    -Wno-changes-meaning)
+  tkit_configure_compile_link_options(drizzle FLAGS -Wall -Wextra -Wpedantic
+                                      -Werror)
 endif()
