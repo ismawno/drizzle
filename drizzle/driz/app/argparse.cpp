@@ -34,7 +34,7 @@ const ParseResult *ParseArgs(int argc, char **argv)
     parser.add_epilog("For similar projects, visit my GitHub at https://github.com/ismawno");
 
     parser.add_argument("--settings")
-        .help("A path pointing to a .yaml file with simulation settings. The file must be compliant with the"
+        .help("A path pointing to a .yaml file with simulation settings. The file must be compliant with the "
               "program's structure to work.");
     parser.add_argument("--state").help(
         "A path pointing to a .yaml file with the simulation state. The file must be compliant with the program's "

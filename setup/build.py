@@ -134,7 +134,7 @@ def parse_arguments(
     return parser.parse_known_args(), cli_vname_map
 
 
-Convoy.log_label = "BUILD"
+Convoy.program_label = "BUILD"
 cfg = load_build_ini()
 cmake_vname_map = parse_default_values(cfg)
 (args, unknown), cli_vname_map = parse_arguments(cmake_vname_map)
@@ -146,7 +146,7 @@ if args.build_command is None and unknown:
     )
 
 if unknown:
-    Convoy.verbose(
+    Convoy.log(
         f"Unknown arguments detected: <bold>{' '.join(unknown)}</bold>. These will be forwarded to the build command: <bold>{args.build_command}</bold>."
     )
 
@@ -177,8 +177,18 @@ for argname, argvalue in parser_args_dict.items():
     override_section = f"{cmake_varname}.{value}"
     if override_section not in cfg:
         continue
+    sections = cfg.sections()
+    idx = sections.index(override_section)
 
     overrides = cfg[override_section]
+    while not overrides:
+        idx += 1
+        if idx < len(sections):
+            overrides = cfg[sections[idx]]
+        else:
+            Convoy.exit_error(
+                "Override sections cannot be fully empty. To reuse overrides, make sure the empty section is stacked against a section with values."
+            )
     for cli_varname, new_default in overrides.items():
         if cli_varname not in cli_vname_map:
             Convoy.exit_error(
@@ -186,9 +196,10 @@ for argname, argvalue in parser_args_dict.items():
             )
 
         old_value = cli_vname_map[cli_varname][1]
-        Convoy.verbose(
-            f"Overriding default value of option <bold>{cli_varname}</bold> from <bold>{old_value}</bold> to <bold>{new_default}</bold> as <bold>{cmake_varname}</bold> was set to <bold>{value}</bold>."
-        )
+        if old_value != new_default:
+            Convoy.verbose(
+                f"Overriding default value of option <bold>{cli_varname}</bold> from <bold>{old_value}</bold> to <bold>{new_default}</bold> as <bold>{cmake_varname}</bold> was set to <bold>{value}</bold>."
+            )
         new_value = (
             cli_vname_map[cli_varname][0],
             try_convert_bool(new_default),
@@ -236,9 +247,7 @@ if refetch is not None and deps_path.exists():
             os.chmod(path, stat.S_IWRITE)
             func(path)
         except Exception as e:
-            Convoy.verbose(
-                f"<fyellow>Failed to remove <bold>{path}</bold> due to: <underline>{e}</underline>. Skipping..."
-            )
+            Convoy.warning(f"Failed to remove <bold>{path}</bold> due to: <underline>{e}</underline>. Skipping...")
 
     if not refetch:
         Convoy.verbose("Removing all dependencies to force CMake to re-fetch them...")
@@ -248,8 +257,8 @@ if refetch is not None and deps_path.exists():
             for thingy in ["build", "src", "subbuild"]:
                 path = deps_path / f"{dep}-{thingy}"
                 if not path.exists():
-                    Convoy.verbose(
-                        f"<fyellow>Dependency subfolder <underline>{dep}-{thingy}</underline> not found. Skipping..."
+                    Convoy.warning(
+                        f"Dependency subfolder <underline>{dep}-{thingy}</underline> not found. Skipping..."
                     )
                     continue
                 Convoy.verbose(
@@ -274,14 +283,14 @@ if gitconfig.exists() and deps_path.exists():
             continue
 
         if Convoy.run_process_success(["git", "config", "--global", "--add", "safe.directory", dep_str]):
-            Convoy.verbose(
+            Convoy.log(
                 f"Marked <underline>{dep}</underline> as safe to git. This is required for CMake to work properly in some specific cases."
             )
         else:
-            Convoy.verbose(f"<fyellow>Failed to mark <underline>{dep}</underline> as owner safe to git. Skipping...")
+            Convoy.warning(f"Failed to mark <underline>{dep}</underline> as owner safe to git. Skipping...")
 elif not gitconfig.exists():
-    Convoy.verbose(
-        "<fyellow>Git configuration file not found. You may experience issues with git's safe directory feature in some specific cases. If so, remove your build directory and re-run this script."
+    Convoy.warning(
+        "Git configuration file not found. You may experience issues with git's safe directory feature in some specific cases. If so, remove your build directory and re-run this script."
     )
 
 
