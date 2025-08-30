@@ -220,7 +220,7 @@ template <Dimension D> void Inspector<D>::renderInspectionData() const noexcept
     ImGui::Checkbox("Enable search##Inspection", &search);
 
     if (search)
-        ImGui::InputInt("Search by index##Inspection", (int *)&selected);
+        ImGui::InputScalar("Search by index##Inspection", ImGuiDataType_U32, &selected);
     else
         selected = TKit::Limits<u32>::max();
 
@@ -248,7 +248,7 @@ template <Dimension D> void Inspector<D>::renderGridData() const noexcept
     ImGui::Checkbox("Enable search##Grid", &search);
 
     if (search)
-        ImGui::InputInt("Search by index##Grid", (int *)&selected);
+        ImGui::InputScalar("Search by index##Grid", ImGuiDataType_U32, &selected);
     else
         selected = TKit::Limits<u32>::max();
 

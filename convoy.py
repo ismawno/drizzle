@@ -164,7 +164,7 @@ class _MetaConvoy(type):
 
     @property
     def version(self) -> str:
-        return "v0.1.1"
+        return "v0.2.2"
 
     @property
     def is_windows(self) -> bool:
@@ -408,7 +408,7 @@ class _MetaConvoy(type):
         input(msg)
 
     def run_process(
-        self, command: str | list[str], /, *args, exit_on_decline: bool = True, **kwargs
+        self, command: str | list[str], /, *args, exit_on_decline: bool = True, log: bool = True, **kwargs
     ) -> subprocess.CompletedProcess | None:
         if self.safe and not self.prompt(
             f"The command <bold>{command if isinstance(command, str) else ' '.join(command)}</bold> is about to be executed. Do you wish to continue?"
@@ -416,6 +416,9 @@ class _MetaConvoy(type):
             if exit_on_decline:
                 self.exit_declined()
             return None
+
+        if not self.safe and log:
+            self.log(f"Executing command <bold>{command if isinstance(command, str) else ' '.join(command)}</bold>.")
 
         return subprocess.run(command, *args, **kwargs)
 

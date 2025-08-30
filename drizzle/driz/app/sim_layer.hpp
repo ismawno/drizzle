@@ -16,7 +16,6 @@ template <Dimension D> class SimLayer final : public Onyx::UserLayer
 
   private:
     void OnUpdate() noexcept override;
-    void OnRender(VkCommandBuffer) noexcept override;
     void OnEvent(const Onyx::Event &p_Event) noexcept override;
 
     void step(bool p_Dummy = false) noexcept;
@@ -30,6 +29,7 @@ template <Dimension D> class SimLayer final : public Onyx::UserLayer
     Inspector<D> m_Inspector{&m_Solver};
 #endif
     Onyx::RenderContext<D> *m_Context;
+    Onyx::Camera<D> *m_Camera;
 
     f32 m_Timestep = 1.f / 60.f;
     bool m_DummyStep = false;

@@ -15,6 +15,7 @@ void SetIntroLayer(Onyx::Application &p_App, const Driz::ParseResult *p_Result) 
 
 int main(int argc, char **argv)
 {
+    TKIT_PROFILE_NOOP()
     const Driz::ParseResult *result = Driz::ParseArgs(argc, argv);
 
     Driz::Core::Initialize();

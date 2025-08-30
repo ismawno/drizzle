@@ -42,18 +42,19 @@ template <Dimension D> class LookupMethod
     template <typename F> void ForEachPairBruteForceST(F &&p_Function) const noexcept
     {
         const f32 r2 = Radius * Radius;
-        for (u32 i = 0; i < m_Positions->size(); ++i)
+        for (u32 i = 0; i < m_Positions->GetSize(); ++i)
             processPairWisePass(i, r2, std::forward<F>(p_Function));
     }
 
-    template <typename F> void ForEachPairBruteForceMT(F &&p_Function) const noexcept
+    template <typename F> void ForEachPairBruteForceMT(F &&p_Function, const u32 p_Partitions) const noexcept
     {
         const auto &positions = *m_Positions;
         const f32 r2 = Radius * Radius;
-        Core::ForEach(0, positions.size(),
-                      [this, r2, &p_Function](const u32 p_Start, const u32 p_End, const u32 p_ThreadIndex) {
+        Core::ForEach(0, positions.GetSize(), p_Partitions,
+                      [this, r2, &p_Function](const u32 p_Start, const u32 p_End) {
+                          const u32 tindex = Core::GetThreadIndex();
                           for (u32 i = p_Start; i < p_End; ++i)
-                              processPairWisePass(i, r2, std::forward<F>(p_Function), p_ThreadIndex);
+                              processPairWisePass(i, r2, std::forward<F>(p_Function), tindex);
                       });
     }
 
@@ -64,13 +65,14 @@ template <Dimension D> class LookupMethod
             processPairWiseCell(cell, offsets, std::forward<F>(p_Function));
     }
 
-    template <typename F> void ForEachPairGridMT(F &&p_Function) const noexcept
+    template <typename F> void ForEachPairGridMT(F &&p_Function, const u32 p_Partitions) const noexcept
     {
         const OffsetArray offsets = getGridOffsets();
-        Core::ForEach(0, Grid.Cells.size(),
-                      [this, &offsets, &p_Function](const u32 p_Start, const u32 p_End, const u32 p_ThreadIndex) {
+        Core::ForEach(0, Grid.Cells.GetSize(), p_Partitions,
+                      [this, &offsets, &p_Function](const u32 p_Start, const u32 p_End) {
+                          const u32 tindex = Core::GetThreadIndex();
                           for (u32 i = p_Start; i < p_End; ++i)
-                              processPairWiseCell(Grid.Cells[i], offsets, std::forward<F>(p_Function), p_ThreadIndex);
+                              processPairWiseCell(Grid.Cells[i], offsets, std::forward<F>(p_Function), tindex);
                       });
     }
 
@@ -78,7 +80,7 @@ template <Dimension D> class LookupMethod
     {
         const auto &positions = *m_Positions;
         const f32 r2 = Radius * Radius;
-        for (u32 i = 0; i < positions.size(); ++i)
+        for (u32 i = 0; i < positions.GetSize(); ++i)
             if (p_Index != i)
             {
                 const f32 distance = glm::distance2(positions[p_Index], positions[i]);
@@ -145,7 +147,7 @@ template <Dimension D> class LookupMethod
     void processPairWisePass(const u32 p_Index, const f32 p_Radius2, F &&p_Function, Args &&...p_Args) const noexcept
     {
         const auto &positions = *m_Positions;
-        for (u32 j = p_Index + 1; j < positions.size(); ++j)
+        for (u32 j = p_Index + 1; j < positions.GetSize(); ++j)
         {
             const f32 distance = glm::distance2(positions[p_Index], positions[j]);
             if (distance < p_Radius2)

@@ -3,7 +3,7 @@
 #include "onyx/app/user_layer.hpp"
 #include "onyx/app/app.hpp"
 #include "onyx/rendering/render_context.hpp"
-#include "driz/simulation/solver.hpp"
+#include "driz/simulation/settings.hpp"
 
 namespace Driz
 {
@@ -17,10 +17,12 @@ class IntroLayer final : public Onyx::UserLayer
                const SimulationState<D> &p_State) noexcept;
 
   private:
-    void OnRender(VkCommandBuffer) noexcept override;
+    void OnUpdate() noexcept override;
     void OnEvent(const Onyx::Event &p_Event) noexcept override;
 
-    template <Dimension D> void onRender(Onyx::RenderContext<D> *p_Context, const SimulationState<D> &p_State) noexcept;
+    template <Dimension D>
+    void onUpdate(Onyx::Camera<D> *p_Camera, Onyx::RenderContext<D> *p_Context,
+                  const SimulationState<D> &p_State) noexcept;
     template <Dimension D> void updateStateAsLattice(SimulationState<D> &p_State, const uvec<D> &p_Dimensions) noexcept;
     template <Dimension D> void renderBoundingBox(SimulationState<D> &p_State) noexcept;
 
@@ -36,8 +38,12 @@ class IntroLayer final : public Onyx::UserLayer
     uvec3 m_Dimensions3{8, 8, 8};
 #endif
     Onyx::Window *m_Window;
+
     Onyx::RenderContext<D2> *m_Context2;
     Onyx::RenderContext<D3> *m_Context3;
+
+    Onyx::Camera<D2> *m_Camera2;
+    Onyx::Camera<D3> *m_Camera3;
 
     SimulationSettings m_Settings;
 

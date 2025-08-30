@@ -3,8 +3,10 @@
 #include "driz/app/sim_layer.hpp"
 #include "onyx/serialization/color.hpp"
 #include "tkit/reflection/driz/simulation/settings.hpp"
+#include "tkit/reflection/driz/simulation/kernel.hpp"
 #include "tkit/serialization/yaml/container.hpp"
 #include "tkit/serialization/yaml/glm.hpp"
+#include "tkit/serialization/yaml/driz/simulation/settings.hpp"
 
 #include <argparse/argparse.hpp>
 
@@ -49,21 +51,16 @@ const ParseResult *ParseArgs(int argc, char **argv)
     group.add_argument("--2-dim").flag().help("Run the simulation in 2D mode.");
     group.add_argument("--3-dim").flag().help("Run the simulation in 3D mode.");
 
-    TKit::Reflect<SimulationSettings>::ForEachCommandLineField([&parser](const auto &p_Field) {
-        using Field = TKit::NoCVRef<decltype(p_Field)>;
-        using Type = typename Field::Type;
+    TKit::Reflect<SimulationSettings>::ForEachCommandLineMemberField([&parser](const auto &p_Field) {
+        using Type = TKIT_REFLECT_FIELD_TYPE(p_Field);
 
         argparse::Argument &arg = parser.add_argument(cliName(p_Field.Name));
         if constexpr (std::is_same_v<Type, f32>)
             arg.scan<'f', f32>();
 
         if constexpr (std::is_enum_v<Type>)
-        {
-            using EType = std::underlying_type_t<Type>;
-            arg.scan<'i', EType>().help(
-                TKIT_FORMAT("'SimulationSettings' enum field of type '{}'. You may specify it with an integer.",
-                            p_Field.TypeString));
-        }
+            arg.help(TKIT_FORMAT("'SimulationSettings' enum field of type '{}'. You may specify it with a string.",
+                                 p_Field.TypeString));
         else
             arg.help(TKIT_FORMAT("'SimulationSettings' field of type '{}'.", p_Field.TypeString));
     });
@@ -115,11 +112,18 @@ const ParseResult *ParseArgs(int argc, char **argv)
     else
         result->HasRunTime = false;
 
-    TKit::Reflect<SimulationSettings>::ForEachCommandLineField([&parser, &settings](const auto &p_Field) {
-        using Field = TKit::NoCVRef<decltype(p_Field)>;
-        using Type = typename Field::Type;
-        if (const auto value = parser.present<Type>(cliName(p_Field.Name)))
-            p_Field.Set(settings, *value);
+    TKit::Reflect<SimulationSettings>::ForEachCommandLineMemberField([&parser, &settings](const auto &p_Field) {
+        using Type = TKIT_REFLECT_FIELD_TYPE(p_Field);
+        if constexpr (std::is_enum_v<Type>)
+        {
+            if (const auto value = parser.present(cliName(p_Field.Name)))
+                p_Field.Set(settings, TKit::Reflect<Type>::FromString(*value));
+        }
+        else
+        {
+            if (const auto value = parser.present<Type>(cliName(p_Field.Name)))
+                p_Field.Set(settings, *value);
+        }
     });
 
     result->Settings = settings;

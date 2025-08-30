@@ -98,7 +98,7 @@ template <Dimension D> class Solver
     fvec<D> computePairwisePressureGradient(u32 p_Index1, u32 p_Index2, f32 p_Distance) const noexcept;
     fvec<D> computePairwiseViscosityTerm(u32 p_Index1, u32 p_Index2, f32 p_Distance) const noexcept;
 
-    TKit::Array<SimArray<fvec<D>>, TKIT_THREAD_POOL_MAX_THREADS> m_ThreadAccelerations;
-    TKit::Array<SimArray<Density>, TKIT_THREAD_POOL_MAX_THREADS> m_ThreadDensities;
+    TKit::Array<SimArray<fvec<D>>, DRIZ_MAX_THREADS> m_ThreadAccelerations;
+    TKit::Array<SimArray<Density>, DRIZ_MAX_THREADS> m_ThreadDensities;
 };
 } // namespace Driz

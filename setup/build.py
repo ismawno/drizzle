@@ -298,6 +298,7 @@ if not Convoy.run_process_success(
     ["cmake", str(source_path)] + cmake_args,
     stdout=subprocess.DEVNULL if not args.verbose else None,
     cwd=build_path,
+    log=False,
 ):
     Convoy.exit_error("Failed to execute <bold>CMake</bold> command.")
 

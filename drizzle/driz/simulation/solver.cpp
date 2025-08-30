@@ -114,24 +114,24 @@ Solver<D>::Solver(const SimulationSettings &p_Settings, const SimulationState<D>
     : Settings(p_Settings)
 {
     Data.State = p_State;
-    Data.Accelerations.resize(p_State.Positions.size(), fvec<D>{0.f});
-    Data.Densities.resize(p_State.Positions.size(), fvec2{Settings.ParticleMass});
-    Data.StagedPositions.resize(p_State.Positions.size());
+    Data.Accelerations.Resize(p_State.Positions.GetSize(), fvec<D>{0.f});
+    Data.Densities.Resize(p_State.Positions.GetSize(), fvec2{Settings.ParticleMass});
+    Data.StagedPositions.Resize(p_State.Positions.GetSize());
     for (auto &densities : m_ThreadDensities)
-        densities.resize(p_State.Positions.size(), fvec2{0.f});
+        densities.Resize(p_State.Positions.GetSize(), fvec2{0.f});
     for (auto &accelerations : m_ThreadAccelerations)
-        accelerations.resize(p_State.Positions.size(), fvec<D>{0.f});
+        accelerations.Resize(p_State.Positions.GetSize(), fvec<D>{0.f});
     if constexpr (D == D3)
-        Data.UnderMouseInfluence.resize(p_State.Positions.size(), u8{0});
+        Data.UnderMouseInfluence.Resize(p_State.Positions.GetSize(), u8{0});
 }
 
 template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
 {
     TKIT_PROFILE_NSCOPE("Driz::Solver::BeginStep");
-    Data.StagedPositions.resize(Data.State.Positions.size());
+    Data.StagedPositions.Resize(Data.State.Positions.GetSize());
 
     std::swap(Data.State.Positions, Data.StagedPositions);
-    for (u32 i = 0; i < Data.State.Positions.size(); ++i)
+    for (u32 i = 0; i < Data.State.Positions.GetSize(); ++i)
     {
         Data.State.Positions[i] = Data.StagedPositions[i] + Data.State.Velocities[i] * p_DeltaTime;
         Data.Densities[i] = fvec2{Settings.ParticleMass};
@@ -148,7 +148,7 @@ template <Dimension D> void Solver<D>::ApplyComputedForces(const f32 p_DeltaTime
 {
     TKIT_PROFILE_NSCOPE("Driz::Solver::ApplyComputedForces");
 
-    for (u32 i = 0; i < Data.State.Positions.size(); ++i)
+    for (u32 i = 0; i < Data.State.Positions.GetSize(); ++i)
     {
         Data.State.Velocities[i].y += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
         Data.State.Velocities[i] += Data.Accelerations[i] * p_DeltaTime;
@@ -158,7 +158,7 @@ template <Dimension D> void Solver<D>::ApplyComputedForces(const f32 p_DeltaTime
 }
 template <Dimension D> void Solver<D>::AddMouseForce(const fvec<D> &p_MousePos) noexcept
 {
-    for (u32 i = 0; i < Data.State.Positions.size(); ++i)
+    for (u32 i = 0; i < Data.State.Positions.GetSize(); ++i)
     {
         const fvec<D> diff = Data.State.Positions[i] - p_MousePos;
         const f32 distance2 = glm::length2(diff);
@@ -175,9 +175,8 @@ template <Dimension D> void Solver<D>::AddMouseForce(const fvec<D> &p_MousePos) 
 
 template <Dimension D> void Solver<D>::mergeDensityArrays() noexcept
 {
-    Core::ForEach(0, Data.State.Positions.size(), [this](const u32 p_Start, const u32 p_End, const u32) {
-        const u32 threads = Core::GetThreadPool().GetThreadCount() + 1;
-        for (u32 i = 0; i < threads; ++i)
+    Core::ForEach(0, Data.State.Positions.GetSize(), Settings.Partitions, [this](const u32 p_Start, const u32 p_End) {
+        for (u32 i = 0; i < Settings.Partitions; ++i)
             for (u32 j = p_Start; j < p_End; ++j)
             {
                 Data.Densities[j] += m_ThreadDensities[i][j];
@@ -187,9 +186,8 @@ template <Dimension D> void Solver<D>::mergeDensityArrays() noexcept
 }
 template <Dimension D> void Solver<D>::mergeAccelerationArrays() noexcept
 {
-    Core::ForEach(0, Data.State.Positions.size(), [this](const u32 p_Start, const u32 p_End, const u32) {
-        const u32 threads = Core::GetThreadPool().GetThreadCount() + 1;
-        for (u32 i = 0; i < threads; ++i)
+    Core::ForEach(0, Data.State.Positions.GetSize(), Settings.Partitions, [this](const u32 p_Start, const u32 p_End) {
+        for (u32 i = 0; i < Settings.Partitions; ++i)
             for (u32 j = p_Start; j < p_End; ++j)
             {
                 Data.Accelerations[j] += m_ThreadAccelerations[i][j];
@@ -217,18 +215,18 @@ template <Dimension D> void Solver<D>::ComputeDensities() noexcept
 
     const auto bruteForcePairWiseST = [this, pairWiseST]() { Lookup.ForEachPairBruteForceST(pairWiseST); };
     const auto bruteForcePairWiseMT = [this, pairWiseMT]() {
-        Lookup.ForEachPairBruteForceMT(pairWiseMT);
+        Lookup.ForEachPairBruteForceMT(pairWiseMT, Settings.Partitions);
         mergeDensityArrays();
     };
 
     const auto gridPairWiseST = [this, pairWiseST]() { Lookup.ForEachPairGridST(pairWiseST); };
     const auto gridPairWiseMT = [this, pairWiseMT]() {
-        Lookup.ForEachPairGridMT(pairWiseMT);
+        Lookup.ForEachPairGridMT(pairWiseMT, Settings.Partitions);
         mergeDensityArrays();
     };
 
     const auto bruteForceParticleWiseST = [this]() {
-        for (u32 i = 0; i < Data.State.Positions.size(); ++i)
+        for (u32 i = 0; i < Data.State.Positions.GetSize(); ++i)
         {
             fvec2 densities{Settings.ParticleMass};
             Lookup.ForEachParticleBruteForce(i, [this, &densities](const u32, const f32 p_Distance) {
@@ -238,20 +236,22 @@ template <Dimension D> void Solver<D>::ComputeDensities() noexcept
         }
     };
     const auto bruteForceParticleWiseMT = [this]() {
-        Core::ForEach(0, Data.State.Positions.size(), [this](const u32 p_Start, const u32 p_End, const u32) {
-            for (u32 i = p_Start; i < p_End; ++i)
-            {
-                fvec2 densities{Settings.ParticleMass};
-                Lookup.ForEachParticleBruteForce(i, [this, &densities](const u32, const f32 p_Distance) {
-                    densities += Settings.ParticleMass * fvec2{getInfluence(p_Distance), getNearInfluence(p_Distance)};
-                });
-                Data.Densities[i] = densities;
-            }
-        });
+        Core::ForEach(0, Data.State.Positions.GetSize(), Settings.Partitions,
+                      [this](const u32 p_Start, const u32 p_End) {
+                          for (u32 i = p_Start; i < p_End; ++i)
+                          {
+                              fvec2 densities{Settings.ParticleMass};
+                              Lookup.ForEachParticleBruteForce(i, [this, &densities](const u32, const f32 p_Distance) {
+                                  densities += Settings.ParticleMass *
+                                               fvec2{getInfluence(p_Distance), getNearInfluence(p_Distance)};
+                              });
+                              Data.Densities[i] = densities;
+                          }
+                      });
     };
 
     const auto gridParticleWiseST = [this]() {
-        for (u32 i = 0; i < Data.State.Positions.size(); ++i)
+        for (u32 i = 0; i < Data.State.Positions.GetSize(); ++i)
         {
             fvec2 densities{Settings.ParticleMass};
             Lookup.ForEachParticleGrid(i, [this, &densities](const u32, const f32 p_Distance) {
@@ -261,16 +261,18 @@ template <Dimension D> void Solver<D>::ComputeDensities() noexcept
         }
     };
     const auto gridParticleWiseMT = [this]() {
-        Core::ForEach(0, Data.State.Positions.size(), [this](const u32 p_Start, const u32 p_End, const u32) {
-            for (u32 i = p_Start; i < p_End; ++i)
-            {
-                fvec2 densities{Settings.ParticleMass};
-                Lookup.ForEachParticleGrid(i, [this, &densities](const u32, const f32 p_Distance) {
-                    densities += Settings.ParticleMass * fvec2{getInfluence(p_Distance), getNearInfluence(p_Distance)};
-                });
-                Data.Densities[i] = densities;
-            }
-        });
+        Core::ForEach(0, Data.State.Positions.GetSize(), Settings.Partitions,
+                      [this](const u32 p_Start, const u32 p_End) {
+                          for (u32 i = p_Start; i < p_End; ++i)
+                          {
+                              fvec2 densities{Settings.ParticleMass};
+                              Lookup.ForEachParticleGrid(i, [this, &densities](const u32, const f32 p_Distance) {
+                                  densities += Settings.ParticleMass *
+                                               fvec2{getInfluence(p_Distance), getNearInfluence(p_Distance)};
+                              });
+                              Data.Densities[i] = densities;
+                          }
+                      });
     };
 
     forEachWithinSmoothingRadius(bruteForcePairWiseST, bruteForcePairWiseMT, gridPairWiseST, gridPairWiseMT,
@@ -304,18 +306,18 @@ template <Dimension D> void Solver<D>::AddPressureAndViscosity() noexcept
 
     const auto bruteForcePairWiseST = [this, pairWiseST]() { Lookup.ForEachPairBruteForceST(pairWiseST); };
     const auto bruteForcePairWiseMT = [this, pairWiseMT]() {
-        Lookup.ForEachPairBruteForceMT(pairWiseMT);
+        Lookup.ForEachPairBruteForceMT(pairWiseMT, Settings.Partitions);
         mergeAccelerationArrays();
     };
 
     const auto gridPairWiseST = [this, pairWiseST]() { Lookup.ForEachPairGridST(pairWiseST); };
     const auto gridPairWiseMT = [this, pairWiseMT]() {
-        Lookup.ForEachPairGridMT(pairWiseMT);
+        Lookup.ForEachPairGridMT(pairWiseMT, Settings.Partitions);
         mergeAccelerationArrays();
     };
 
     const auto bruteForceParticleWiseST = [this]() {
-        for (u32 i = 0; i < Data.State.Positions.size(); ++i)
+        for (u32 i = 0; i < Data.State.Positions.GetSize(); ++i)
         {
             fvec<D> gradient{0.f};
             fvec<D> vterm{0.f};
@@ -329,25 +331,26 @@ template <Dimension D> void Solver<D>::AddPressureAndViscosity() noexcept
         }
     };
     const auto bruteForceParticleWiseMT = [this]() {
-        Core::ForEach(0, Data.State.Positions.size(), [this](const u32 p_Start, const u32 p_End, const u32) {
-            for (u32 i = p_Start; i < p_End; ++i)
-            {
-                fvec<D> gradient{0.f};
-                fvec<D> vterm{0.f};
-                Lookup.ForEachParticleBruteForce(
-                    i, [this, i, &gradient, &vterm](const u32 p_Index, const f32 p_Distance) {
-                        const fvec<D> g = computePairwisePressureGradient(i, p_Index, p_Distance);
-                        const fvec<D> t = computePairwiseViscosityTerm(i, p_Index, p_Distance);
-                        gradient += g;
-                        vterm += t;
-                    });
-                Data.Accelerations[i] = vterm - gradient / Data.Densities[i].x;
-            }
-        });
+        Core::ForEach(0, Data.State.Positions.GetSize(), Settings.Partitions,
+                      [this](const u32 p_Start, const u32 p_End) {
+                          for (u32 i = p_Start; i < p_End; ++i)
+                          {
+                              fvec<D> gradient{0.f};
+                              fvec<D> vterm{0.f};
+                              Lookup.ForEachParticleBruteForce(
+                                  i, [this, i, &gradient, &vterm](const u32 p_Index, const f32 p_Distance) {
+                                      const fvec<D> g = computePairwisePressureGradient(i, p_Index, p_Distance);
+                                      const fvec<D> t = computePairwiseViscosityTerm(i, p_Index, p_Distance);
+                                      gradient += g;
+                                      vterm += t;
+                                  });
+                              Data.Accelerations[i] = vterm - gradient / Data.Densities[i].x;
+                          }
+                      });
     };
 
     const auto gridParticleWiseST = [this]() {
-        for (u32 i = 0; i < Data.State.Positions.size(); ++i)
+        for (u32 i = 0; i < Data.State.Positions.GetSize(); ++i)
         {
             fvec<D> gradient{0.f};
             fvec<D> vterm{0.f};
@@ -361,20 +364,22 @@ template <Dimension D> void Solver<D>::AddPressureAndViscosity() noexcept
         }
     };
     const auto gridParticleWiseMT = [this]() {
-        Core::ForEach(0, Data.State.Positions.size(), [this](const u32 p_Start, const u32 p_End, const u32) {
-            for (u32 i = p_Start; i < p_End; ++i)
-            {
-                fvec<D> gradient{0.f};
-                fvec<D> vterm{0.f};
-                Lookup.ForEachParticleGrid(i, [this, i, &gradient, &vterm](const u32 p_Index, const f32 p_Distance) {
-                    const fvec<D> g = computePairwisePressureGradient(i, p_Index, p_Distance);
-                    const fvec<D> t = computePairwiseViscosityTerm(i, p_Index, p_Distance);
-                    gradient += g;
-                    vterm += t;
-                });
-                Data.Accelerations[i] = vterm - gradient / Data.Densities[i].x;
-            }
-        });
+        Core::ForEach(0, Data.State.Positions.GetSize(), Settings.Partitions,
+                      [this](const u32 p_Start, const u32 p_End) {
+                          for (u32 i = p_Start; i < p_End; ++i)
+                          {
+                              fvec<D> gradient{0.f};
+                              fvec<D> vterm{0.f};
+                              Lookup.ForEachParticleGrid(
+                                  i, [this, i, &gradient, &vterm](const u32 p_Index, const f32 p_Distance) {
+                                      const fvec<D> g = computePairwisePressureGradient(i, p_Index, p_Distance);
+                                      const fvec<D> t = computePairwiseViscosityTerm(i, p_Index, p_Distance);
+                                      gradient += g;
+                                      vterm += t;
+                                  });
+                              Data.Accelerations[i] = vterm - gradient / Data.Densities[i].x;
+                          }
+                      });
     };
     forEachWithinSmoothingRadius(bruteForcePairWiseST, bruteForcePairWiseMT, gridPairWiseST, gridPairWiseMT,
                                  bruteForceParticleWiseST, bruteForceParticleWiseMT, gridParticleWiseST,
@@ -413,16 +418,16 @@ template <Dimension D> void Solver<D>::UpdateAllLookups() noexcept
 
 template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position) noexcept
 {
-    Data.State.Positions.push_back(p_Position);
-    Data.State.Velocities.push_back(fvec<D>{0.f});
-    Data.Accelerations.push_back(fvec<D>{0.f});
-    Data.Densities.push_back(fvec2{Settings.ParticleMass});
+    Data.State.Positions.Append(p_Position);
+    Data.State.Velocities.Append(fvec<D>{0.f});
+    Data.Accelerations.Append(fvec<D>{0.f});
+    Data.Densities.Append(fvec2{Settings.ParticleMass});
     for (auto &densities : m_ThreadDensities)
-        densities.push_back(fvec2{0.f});
+        densities.Append(fvec2{0.f});
     for (auto &accelerations : m_ThreadAccelerations)
-        accelerations.push_back(fvec<D>{0.f});
+        accelerations.Append(fvec<D>{0.f});
     if constexpr (D == D3)
-        Data.UnderMouseInfluence.push_back(u8{0});
+        Data.UnderMouseInfluence.Append(u8{0});
 }
 
 template <Dimension D> void Solver<D>::encase(const u32 p_Index) noexcept
@@ -458,7 +463,7 @@ template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_C
 
 template <Dimension D> u32 Solver<D>::GetParticleCount() const noexcept
 {
-    return Data.State.Positions.size();
+    return Data.State.Positions.GetSize();
 }
 
 template class Solver<Dimension::D2>;

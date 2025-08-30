@@ -15,23 +15,19 @@ SimLayer<D>::SimLayer(Onyx::Application *p_Application, const SimulationSettings
     : m_Application(p_Application), m_Solver(p_Settings, p_State)
 {
     m_Window = m_Application->GetMainWindow();
-    m_Context = m_Window->GetRenderContext<D>();
+    m_Camera = m_Window->CreateCamera<D>();
+    m_Camera->BackgroundColor = Onyx::Color{0.15f};
+    if constexpr (D == D3)
+        m_Camera->SetPerspectiveProjection();
+
+    m_Context = m_Window->CreateRenderContext<D>();
 }
 
-template <Dimension D> void SimLayer<D>::OnUpdate() noexcept
+static f32 rayCast(const Onyx::Camera<D3> *p_Camera, const Onyx::RenderContext<D3> *p_Context,
+                   const SimulationState<D3> &p_State, const f32 p_Radius) noexcept
 {
-    TKIT_PROFILE_NSCOPE("SimLayer::Onupdate");
-    if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::R) && !ImGui::GetIO().WantCaptureKeyboard)
-        m_Solver.AddParticle(m_Context->GetMouseCoordinates());
-    if (!m_Pause)
-        step(m_DummyStep);
-}
-
-static f32 rayCast(const Onyx::RenderContext<D3> *p_Context, const SimulationState<D3> &p_State,
-                   const f32 p_Radius) noexcept
-{
-    const fvec3 origin = p_Context->GetMouseCoordinates(0.f);
-    const fvec3 direction = p_Context->GetMouseRayCastDirection();
+    const fvec3 origin = p_Camera->GetWorldMousePosition(&p_Context->GetCurrentAxes(), 0.f);
+    const fvec3 direction = p_Camera->GetMouseRayCastDirection();
 
     f32 rayDistance = FLT_MAX;
     f32 maxParticleDistance = 0.f;
@@ -55,17 +51,23 @@ static f32 rayCast(const Onyx::RenderContext<D3> *p_Context, const SimulationSta
     return rayDistance != FLT_MAX ? rayDistance : glm::sqrt(maxParticleDistance);
 }
 
-template <Dimension D> void SimLayer<D>::OnRender(const VkCommandBuffer) noexcept
+template <Dimension D> void SimLayer<D>::OnUpdate() noexcept
 {
-    TKIT_PROFILE_NSCOPE("SimLayer::OnRender");
-    Visualization<D>::AdjustRenderingContext(m_Context, m_Application->GetDeltaTime());
+    TKIT_PROFILE_NSCOPE("SimLayer::Onupdate");
+    if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::R) && !ImGui::GetIO().WantCaptureKeyboard)
+        m_Solver.AddParticle(m_Camera->GetWorldMousePosition(&m_Context->GetCurrentAxes()));
+    if (!m_Pause)
+        step(m_DummyStep);
+
+    Visualization<D>::AdjustRenderingContext(m_Camera, m_Context, m_Application->GetDeltaTime());
     m_Solver.DrawParticles(m_Context);
     m_Solver.DrawBoundingBox(m_Context);
 
     if constexpr (D == D2)
         if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft) &&
             !ImGui::GetIO().WantCaptureMouse)
-            Visualization<D2>::DrawMouseInfluence(m_Context, 2.f * m_Solver.Settings.MouseRadius, Onyx::Color::ORANGE);
+            Visualization<D2>::DrawMouseInfluence(m_Camera, m_Context, 2.f * m_Solver.Settings.MouseRadius,
+                                                  Onyx::Color::ORANGE);
 
     if (ImGui::Begin("Simulation settings"))
     {
@@ -73,7 +75,11 @@ template <Dimension D> void SimLayer<D>::OnRender(const VkCommandBuffer) noexcep
         ImportWidget("Import simulation state", Core::GetStatePath<D>(), m_Solver.Data.State);
 
         if (ImGui::Button("Back to menu"))
+        {
+            m_Window->DestroyCamera(m_Camera);
+            m_Window->DestroyRenderContext(m_Context);
             m_Application->SetUserLayer<IntroLayer>(m_Application, m_Solver.Settings, m_Solver.Data.State);
+        }
         Visualization<D>::RenderSettings(m_Solver.Settings);
     }
     ImGui::End();
@@ -97,7 +103,8 @@ template <Dimension D> void SimLayer<D>::OnEvent(const Onyx::Event &p_Event) noe
             f32 step = 0.005f * p_Event.ScrollOffset.y;
             if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::LeftShift))
                 step *= 10.f;
-            m_Context->ApplyCameraScalingControls(step);
+
+            m_Camera->ControlScrollWithUserInput(step);
             return;
         }
 
@@ -128,21 +135,21 @@ template <Dimension D> void SimLayer<D>::step(const bool p_Dummy) noexcept
     {
         if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
         {
-            const fvec2 mpos = m_Context->GetMouseCoordinates();
+            const fvec2 mpos = m_Camera->GetWorldMousePosition(&m_Context->GetCurrentAxes());
             m_Solver.AddMouseForce(mpos);
         }
     }
     else
     {
-        const fvec3 origin = m_Context->GetMouseCoordinates(0.f);
-        const fvec3 direction = m_Context->GetMouseRayCastDirection();
+        const fvec3 origin = m_Camera->GetWorldMousePosition(&m_Context->GetCurrentAxes(), 0.f);
+        const fvec3 direction = m_Camera->GetMouseRayCastDirection();
         if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
             m_Solver.AddMouseForce(origin + s_RayDistance * direction);
         else
         {
-            s_RayDistance = rayCast(m_Context, m_Solver.Data.State, m_Solver.Settings.ParticleRadius);
+            s_RayDistance = rayCast(m_Camera, m_Context, m_Solver.Data.State, m_Solver.Settings.ParticleRadius);
             const fvec3 pos = origin + s_RayDistance * direction;
-            for (u32 i = 0; i < m_Solver.Data.State.Positions.size(); ++i)
+            for (u32 i = 0; i < m_Solver.Data.State.Positions.GetSize(); ++i)
             {
                 const f32 distance2 = glm::distance2(m_Solver.Data.State.Positions[i], pos);
                 if (distance2 < m_Solver.Settings.MouseRadius * m_Solver.Settings.MouseRadius)

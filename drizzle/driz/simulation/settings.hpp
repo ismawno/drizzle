@@ -3,12 +3,16 @@
 #include "driz/simulation/kernel.hpp"
 #include "driz/core/glm.hpp"
 #include "driz/core/core.hpp"
-#include "onyx/draw/color.hpp"
+#include "onyx/property/color.hpp"
 #include "tkit/container/array.hpp"
 #include "tkit/reflection/reflect.hpp"
 
 namespace Driz
 {
+TKIT_YAML_SERIALIZE_DECLARE_ENUM(ParticleIterationMode)
+TKIT_YAML_SERIALIZE_DECLARE_ENUM(ParticleLookupMode)
+TKIT_REFLECT_DECLARE_ENUM(ParticleIterationMode)
+TKIT_REFLECT_DECLARE_ENUM(ParticleLookupMode)
 enum class ParticleLookupMode
 {
     BruteForceSingleThread = 0,
@@ -27,6 +31,7 @@ enum class ParticleIterationMode
 struct SimulationSettings
 {
     TKIT_REFLECT_DECLARE(SimulationSettings)
+    TKIT_YAML_SERIALIZE_DECLARE(SimulationSettings)
 
     TKIT_REFLECT_GROUP_BEGIN("CommandLine")
     f32 ParticleRadius = 0.3f;
@@ -48,6 +53,8 @@ struct SimulationSettings
     f32 MouseRadius = 6.f;
     f32 MouseForce = -30.f;
 
+    u32 Partitions = 1;
+
     ParticleLookupMode LookupMode = ParticleLookupMode::GridMultiThread;
     ParticleIterationMode IterationMode = ParticleIterationMode::PairWise;
 
@@ -64,6 +71,8 @@ struct SimulationSettings
 template <Dimension D> struct SimulationState
 {
     TKIT_REFLECT_DECLARE(SimulationState)
+    TKIT_YAML_SERIALIZE_DECLARE(SimulationState)
+
     SimArray<fvec<D>> Positions;
     SimArray<fvec<D>> Velocities;
 

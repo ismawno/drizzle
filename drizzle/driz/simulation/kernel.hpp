@@ -2,9 +2,13 @@
 
 #include "driz/core/alias.hpp"
 #include "driz/core/dimension.hpp"
+#include "tkit/reflection/reflect.hpp"
+#include "tkit/serialization/yaml/serialize.hpp"
 
 namespace Driz
 {
+TKIT_REFLECT_DECLARE_ENUM(KernelType)
+TKIT_YAML_SERIALIZE_DECLARE_ENUM(KernelType)
 enum class KernelType
 {
     Spiky2 = 0,

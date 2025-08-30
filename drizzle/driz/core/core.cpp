@@ -2,6 +2,8 @@
 #include "onyx/core/core.hpp"
 #include "tkit/utils/literals.hpp"
 
+#define DRIZ_MAX_WORKERS (ONYX_MAX_THREADS - 1)
+
 namespace Driz
 {
 using namespace TKit::Literals;
@@ -15,8 +17,8 @@ static fs::path s_StatePath3 = fs::path(DRIZ_ROOT_PATH) / "saves" / "3D";
 
 void Core::Initialize() noexcept
 {
-    s_ThreadPool.Construct(7);
-    Onyx::Core::Initialize(s_ThreadPool.Get());
+    s_ThreadPool.Construct(DRIZ_MAX_WORKERS);
+    Onyx::Core::Initialize(Onyx::Specs{.TaskManager = s_ThreadPool.Get()});
 
     fs::create_directories(s_SettingsPath);
     fs::create_directories(s_StatePath2);
@@ -36,15 +38,15 @@ TKit::ThreadPool &Core::GetThreadPool() noexcept
 {
     return *s_ThreadPool.Get();
 }
-void Core::SetWorkerThreadCount(const u32 p_ThreadCount) noexcept
-{
-    s_ThreadPool.Destruct();
-    s_ThreadPool.Construct(p_ThreadCount);
-}
 
 const fs::path &Core::GetSettingsPath() noexcept
 {
     return s_SettingsPath;
+}
+u32 Core::GetThreadIndex() noexcept
+{
+    thread_local u32 tindex = s_ThreadPool->GetThreadIndex();
+    return tindex;
 }
 
 template <Dimension D> const fs::path &Core::GetStatePath() noexcept

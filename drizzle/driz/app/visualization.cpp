@@ -4,10 +4,10 @@
 namespace Driz
 {
 template <Dimension D>
-void IVisualization<D>::AdjustRenderingContext(Onyx::RenderContext<D> *p_Context,
+void IVisualization<D>::AdjustRenderingContext(Onyx::Camera<D> *p_Camera, Onyx::RenderContext<D> *p_Context,
                                                const TKit::Timespan p_DeltaTime) noexcept
 {
-    p_Context->Flush(0.15f, 0.15f, 0.15f);
+    p_Context->Flush();
     p_Context->ScaleAxes(0.025f);
 
     if constexpr (D == D3)
@@ -16,7 +16,7 @@ void IVisualization<D>::AdjustRenderingContext(Onyx::RenderContext<D> *p_Context
         p_Context->DirectionalLight(fvec3{0.f, 1.f, 1.f}, 0.4f);
     }
 
-    p_Context->ApplyCameraMovementControls(0.75f * p_DeltaTime);
+    p_Camera->ControlMovementWithUserInput(0.75f * p_DeltaTime);
 }
 
 template <Dimension D>
@@ -26,7 +26,7 @@ void IVisualization<D>::DrawParticles(Onyx::RenderContext<D> *p_Context, const S
     const f32 psize = 2.f * p_Settings.ParticleRadius;
 
     const Onyx::Gradient gradient{p_Settings.Gradient};
-    for (u32 i = 0; i < p_State.Positions.size(); ++i)
+    for (u32 i = 0; i < p_State.Positions.GetSize(); ++i)
     {
         const fvec<D> &pos = p_State.Positions[i];
         const fvec<D> &vel = p_State.Velocities[i];
@@ -60,10 +60,10 @@ void IVisualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const
         p_Context->OutlineWidth(0.5f);
 
         const fvec2 center = 0.5f * (p_Min + p_Max);
-        const fvec2 size = p_Max - p_Min;
+        const fvec2 GetSize = p_Max - p_Min;
 
         p_Context->Translate(center);
-        p_Context->Square(size);
+        p_Context->Square(GetSize);
     }
     else
     {
@@ -268,19 +268,19 @@ template <Dimension D> void IVisualization<D>::RenderSettings(SimulationSettings
 
     if (p_Settings.UsesMultiThread())
     {
-        i32 threads = static_cast<i32>(Core::GetThreadPool().GetThreadCount());
-        if (ImGui::SliderInt("Worker thread count", &threads, 0, 15))
-            Core::SetWorkerThreadCount(static_cast<u32>(threads));
+        const u32 mn = 1;
+        const u32 mx = ONYX_MAX_THREADS;
+        ImGui::SliderScalar("Worker task count", ImGuiDataType_U32, &p_Settings.Partitions, &mn, &mx);
         Onyx::UserLayer::HelpMarkerSameLine(
             "The number of additional threads that will be used to compute the simulation. Try to match the number of "
             "threads with the number of cores in your CPU.");
     }
 }
 
-void Visualization<D2>::DrawMouseInfluence(Onyx::RenderContext<D2> *p_Context, const f32 p_Size,
-                                           const Onyx::Color &p_Color) noexcept
+void Visualization<D2>::DrawMouseInfluence(const Onyx::Camera<D2> *p_Camera, Onyx::RenderContext<D2> *p_Context,
+                                           const f32 p_Size, const Onyx::Color &p_Color) noexcept
 {
-    const fvec2 mpos = p_Context->GetMouseCoordinates();
+    const fvec2 mpos = p_Camera->GetWorldMousePosition(&p_Context->GetCurrentAxes());
     p_Context->Push();
     p_Context->Fill(p_Color);
     p_Context->Translate(mpos);
@@ -295,7 +295,7 @@ void Visualization<D3>::DrawParticles(Onyx::RenderContext<D3> *p_Context, const 
     const f32 psize = 2.f * p_Settings.ParticleRadius;
 
     const Onyx::Gradient gradient{p_Settings.Gradient};
-    for (u32 i = 0; i < p_Data.State.Positions.size(); ++i)
+    for (u32 i = 0; i < p_Data.State.Positions.GetSize(); ++i)
     {
         const fvec3 &pos = p_Data.State.Positions[i];
         const fvec3 &vel = p_Data.State.Velocities[i];

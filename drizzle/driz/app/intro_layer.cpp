@@ -11,9 +11,16 @@ IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSetting
     : m_Application(p_Application), m_Dim(p_Dim == D2 ? 0 : 1), m_Settings(p_Settings)
 {
     m_Window = m_Application->GetMainWindow();
-    m_Context2 = m_Window->GetRenderContext<D2>();
-    m_Context3 = m_Window->GetRenderContext<D3>();
-    m_Context3->SetPerspectiveProjection();
+
+    m_Camera2 = m_Window->CreateCamera<D2>();
+    m_Camera3 = m_Window->CreateCamera<D3>();
+
+    m_Camera2->BackgroundColor = Onyx::Color{0.15f};
+    m_Camera3->BackgroundColor = Onyx::Color{0.15f};
+    m_Camera3->SetPerspectiveProjection();
+
+    m_Context2 = m_Window->CreateRenderContext<D2>();
+    m_Context3 = m_Window->CreateRenderContext<D3>();
 
     updateStateAsLattice<D2>(m_State2, m_Dimensions2);
     updateStateAsLattice<D3>(m_State3, m_Dimensions3);
@@ -38,26 +45,42 @@ IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSetting
     }
     m_Window = m_Application->GetMainWindow();
 
-    m_Context2 = m_Window->GetRenderContext<D2>();
-    m_Context3 = m_Window->GetRenderContext<D3>();
-    m_Context3->SetPerspectiveProjection();
+    m_Camera2 = m_Window->CreateCamera<D2>();
+    m_Camera3 = m_Window->CreateCamera<D3>();
+
+    m_Camera2->BackgroundColor = Onyx::Color{0.15f};
+    m_Camera3->BackgroundColor = Onyx::Color{0.15f};
+
+    m_Camera3->SetPerspectiveProjection();
+
+    m_Context2 = m_Window->CreateRenderContext<D2>();
+    m_Context3 = m_Window->CreateRenderContext<D3>();
 }
 
-void IntroLayer::OnRender(const VkCommandBuffer) noexcept
+void IntroLayer::OnUpdate() noexcept
 {
-    m_Context2->Flush();
-    m_Context3->Flush();
     if (m_Dim == 0)
-        onRender(m_Context2, m_State2);
+    {
+        m_Camera2->Transparent = false;
+        m_Camera3->Transparent = true;
+        m_Context3->Flush();
+        onUpdate(m_Camera2, m_Context2, m_State2);
+    }
     else
-        onRender(m_Context3, m_State3);
+    {
+        m_Camera3->Transparent = false;
+        m_Camera2->Transparent = true;
+        m_Context2->Flush();
+        onUpdate(m_Camera3, m_Context3, m_State3);
+    }
     renderIntroSettings();
 }
 
 template <Dimension D>
-void IntroLayer::onRender(Onyx::RenderContext<D> *p_Context, const SimulationState<D> &p_State) noexcept
+void IntroLayer::onUpdate(Onyx::Camera<D> *p_Camera, Onyx::RenderContext<D> *p_Context,
+                          const SimulationState<D> &p_State) noexcept
 {
-    Visualization<D>::AdjustRenderingContext(p_Context, m_Application->GetDeltaTime());
+    Visualization<D>::AdjustRenderingContext(p_Camera, p_Context, m_Application->GetDeltaTime());
     Visualization<D>::DrawParticles(p_Context, m_Settings, p_State);
     Visualization<D>::DrawBoundingBox(p_Context, p_State.Min, p_State.Max, Onyx::Color::FromHexadecimal("A6B1E1"));
 }
@@ -69,7 +92,7 @@ void IntroLayer::OnEvent(const Onyx::Event &p_Event) noexcept
         f32 step = 0.005f * p_Event.ScrollOffset.y;
         if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::LeftShift))
             step *= 10.f;
-        m_Context2->ApplyCameraScalingControls(step);
+        m_Camera2->ControlScrollWithUserInput(step);
         return;
     }
 
@@ -116,9 +139,9 @@ void IntroLayer::renderIntroSettings() noexcept
 
         ImGui::Text("The camera controls are the following:");
         if (m_Dim == 0)
-            DisplayCameraMovementControls<D2>();
+            DisplayCameraControls<D2>();
         else
-            DisplayCameraMovementControls<D3>();
+            DisplayCameraControls<D3>();
         ImGui::BulletText("R: Spawn particles");
         ImGui::BulletText("Mouse click: Interact with the fluid!");
 
@@ -130,7 +153,7 @@ void IntroLayer::renderIntroSettings() noexcept
 
         if (m_Dim == 0)
         {
-            ImGui::Text("Current amount: %u", m_State2.Positions.size());
+            ImGui::Text("Current amount: %u", m_State2.Positions.GetSize());
             if (ImGui::DragInt2("Particles", reinterpret_cast<i32 *>(glm::value_ptr(m_Dimensions2)), 1.f, 1, INT32_MAX))
                 updateStateAsLattice<D2>(m_State2, m_Dimensions2);
             ExportWidget("Export simulation state", Core::GetStatePath<D2>(), m_State2);
@@ -139,7 +162,7 @@ void IntroLayer::renderIntroSettings() noexcept
         else
         {
             ResolutionEditor("Shape resolution", Core::Resolution, Flag_DisplayHelp);
-            ImGui::Text("Current amount: %u", m_State3.Positions.size());
+            ImGui::Text("Current amount: %u", m_State3.Positions.GetSize());
             if (ImGui::DragInt3("Particles", reinterpret_cast<i32 *>(glm::value_ptr(m_Dimensions3)), 1.f, 1, INT32_MAX))
                 updateStateAsLattice<D3>(m_State3, m_Dimensions3);
             ExportWidget("Export simulation state", Core::GetStatePath<D3>(), m_State3);
@@ -150,6 +173,10 @@ void IntroLayer::renderIntroSettings() noexcept
 
         if (ImGui::Button("Start simulation"))
         {
+            m_Window->DestroyCamera(m_Camera2);
+            m_Window->DestroyCamera(m_Camera3);
+            m_Window->DestroyRenderContext(m_Context2);
+            m_Window->DestroyRenderContext(m_Context3);
             if (m_Dim == 0)
                 m_Application->SetUserLayer<SimLayer<D2>>(m_Application, m_Settings, m_State2);
             else
@@ -167,8 +194,8 @@ void IntroLayer::renderIntroSettings() noexcept
 template <Dimension D>
 void IntroLayer::updateStateAsLattice(SimulationState<D> &p_State, const uvec<D> &p_Dimensions) noexcept
 {
-    p_State.Positions.clear();
-    p_State.Velocities.clear();
+    p_State.Positions.Clear();
+    p_State.Velocities.Clear();
     const f32 separation = 0.4f * m_Settings.SmoothingRadius;
     const fvec<D> midPoint = 0.5f * separation * fvec<D>{p_Dimensions - 1u};
     for (u32 i = 0; i < p_Dimensions.x; ++i)
@@ -179,15 +206,15 @@ void IntroLayer::updateStateAsLattice(SimulationState<D> &p_State, const uvec<D>
             const f32 y = static_cast<f32>(j) * separation;
             if constexpr (D == D2)
             {
-                p_State.Positions.push_back(fvec2{x, y} - midPoint);
-                p_State.Velocities.push_back(fvec2{0.f});
+                p_State.Positions.Append(fvec2{x, y} - midPoint);
+                p_State.Velocities.Append(fvec2{0.f});
             }
             else
                 for (u32 k = 0; k < p_Dimensions.z; ++k)
                 {
                     const f32 z = static_cast<f32>(k) * separation;
-                    p_State.Positions.push_back(fvec3{x, y, z} - midPoint);
-                    p_State.Velocities.push_back(fvec3{0.f});
+                    p_State.Positions.Append(fvec3{x, y, z} - midPoint);
+                    p_State.Velocities.Append(fvec3{0.f});
                 }
         }
     }

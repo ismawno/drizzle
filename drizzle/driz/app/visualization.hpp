@@ -5,7 +5,8 @@
 #include "onyx/serialization/color.hpp"
 #include "onyx/app/user_layer.hpp"
 #include "tkit/profiling/timespan.hpp"
-#include "tkit/reflection/driz/simulation/settings.hpp"
+#include "tkit/serialization/yaml/driz/simulation/settings.hpp"
+#include "tkit/serialization/yaml/driz/simulation/kernel.hpp"
 #include "tkit/serialization/yaml/container.hpp"
 #include <imgui.h>
 
@@ -14,7 +15,8 @@ namespace Driz
 struct SimulationSettings;
 template <Dimension D> struct IVisualization
 {
-    static void AdjustRenderingContext(Onyx::RenderContext<D> *p_Context, TKit::Timespan p_DeltaTime) noexcept;
+    static void AdjustRenderingContext(Onyx::Camera<D> *p_Camera, Onyx::RenderContext<D> *p_Context,
+                                       TKit::Timespan p_DeltaTime) noexcept;
 
     static void DrawParticles(Onyx::RenderContext<D> *p_Context, const SimulationSettings &p_Settings,
                               const SimulationState<D> &p_State) noexcept;
@@ -32,7 +34,8 @@ template <Dimension D> struct Visualization;
 
 template <> struct Visualization<D2> : IVisualization<D2>
 {
-    static void DrawMouseInfluence(Onyx::RenderContext<D2> *p_Context, f32 p_Size, const Onyx::Color &p_Color) noexcept;
+    static void DrawMouseInfluence(const Onyx::Camera<D2> *p_Camera, Onyx::RenderContext<D2> *p_Context, f32 p_Size,
+                                   const Onyx::Color &p_Color) noexcept;
 };
 
 template <> struct Visualization<D3> : IVisualization<D3>
@@ -64,9 +67,9 @@ template <typename T> void ImportWidget(const char *p_Name, const fs::path &p_Di
 {
     TKit::StaticArray32<fs::path> paths;
     for (const auto &entry : fs::directory_iterator(p_DirPath))
-        paths.push_back(entry.path());
+        paths.Append(entry.path());
 
-    if (ImGui::BeginMenu(p_Name, !paths.empty()))
+    if (ImGui::BeginMenu(p_Name, !paths.IsEmpty()))
     {
         for (const fs::path &path : paths)
         {

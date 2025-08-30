@@ -18,10 +18,10 @@ template <Dimension D> void LookupMethod<D>::UpdateBruteForceLookup(const f32 p_
 template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius) noexcept
 {
     TKIT_PROFILE_NSCOPE("Driz::LookupMethod::UpdateGridLookup");
-    if (m_Positions->empty())
+    if (m_Positions->IsEmpty())
         return;
     Radius = p_Radius;
-    const u32 particles = m_Positions->size();
+    const u32 particles = m_Positions->GetSize();
 
     struct IndexPair
     {
@@ -29,9 +29,9 @@ template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius
         u32 CellKey;
     };
 
-    Grid.CellKeyToIndex.resize(particles);
-    Grid.ParticleIndices.resize(particles);
-    Grid.Cells.clear();
+    Grid.CellKeyToIndex.Resize(particles);
+    Grid.ParticleIndices.Resize(particles);
+    Grid.Cells.Clear();
 
     IndexPair *keys = Core::GetArena().Allocate<IndexPair>(particles);
 
@@ -62,9 +62,9 @@ template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius
         if (keys[i].CellKey != prevKey)
         {
             cell.End = i;
-            Grid.Cells.push_back(cell);
+            Grid.Cells.Append(cell);
 
-            Grid.CellKeyToIndex[keys[i].CellKey] = Grid.Cells.size();
+            Grid.CellKeyToIndex[keys[i].CellKey] = Grid.Cells.GetSize();
             cell.Key = keys[i].CellKey;
             cell.Start = i;
         }
@@ -73,7 +73,7 @@ template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius
     }
 
     cell.End = particles;
-    Grid.Cells.push_back(cell);
+    Grid.Cells.Append(cell);
     Core::GetArena().Reset();
 }
 
@@ -141,7 +141,7 @@ template <Dimension D> ivec<D> LookupMethod<D>::GetCellPosition(const fvec<D> &p
 }
 template <Dimension D> u32 LookupMethod<D>::GetCellKey(const ivec<D> &p_CellPosition) const noexcept
 {
-    return GetCellKey(p_CellPosition, m_Positions->size());
+    return GetCellKey(p_CellPosition, m_Positions->GetSize());
 }
 
 template <Dimension D> LookupMethod<D>::OffsetArray LookupMethod<D>::getGridOffsets() const noexcept
@@ -160,7 +160,7 @@ template <Dimension D> LookupMethod<D>::OffsetArray LookupMethod<D>::getGridOffs
 
 template <Dimension D> u32 LookupMethod<D>::GetCellCount() const noexcept
 {
-    return Grid.Cells.size();
+    return Grid.Cells.GetSize();
 }
 
 template class LookupMethod<D2>;
