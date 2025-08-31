@@ -176,7 +176,8 @@ template <Dimension D> void Solver<D>::AddMouseForce(const fvec<D> &p_MousePos) 
 template <Dimension D> void Solver<D>::mergeDensityArrays() noexcept
 {
     Core::ForEach(0, Data.State.Positions.GetSize(), Settings.Partitions, [this](const u32 p_Start, const u32 p_End) {
-        for (u32 i = 0; i < Settings.Partitions; ++i)
+        TKIT_PROFILE_NSCOPE("Driz::Solver::MergeDensityArrays");
+        for (u32 i = 0; i < DRIZ_MAX_THREADS; ++i)
             for (u32 j = p_Start; j < p_End; ++j)
             {
                 Data.Densities[j] += m_ThreadDensities[i][j];
@@ -187,7 +188,8 @@ template <Dimension D> void Solver<D>::mergeDensityArrays() noexcept
 template <Dimension D> void Solver<D>::mergeAccelerationArrays() noexcept
 {
     Core::ForEach(0, Data.State.Positions.GetSize(), Settings.Partitions, [this](const u32 p_Start, const u32 p_End) {
-        for (u32 i = 0; i < Settings.Partitions; ++i)
+        TKIT_PROFILE_NSCOPE("Driz::Solver::MergeAccelerationArrays");
+        for (u32 i = 0; i < DRIZ_MAX_THREADS; ++i)
             for (u32 j = p_Start; j < p_End; ++j)
             {
                 Data.Accelerations[j] += m_ThreadAccelerations[i][j];
@@ -226,6 +228,7 @@ template <Dimension D> void Solver<D>::ComputeDensities() noexcept
     };
 
     const auto bruteForceParticleWiseST = [this]() {
+        TKIT_PROFILE_NSCOPE("Driz::Solver::ForEachParticleBruteForceST");
         for (u32 i = 0; i < Data.State.Positions.GetSize(); ++i)
         {
             fvec2 densities{Settings.ParticleMass};
@@ -238,6 +241,7 @@ template <Dimension D> void Solver<D>::ComputeDensities() noexcept
     const auto bruteForceParticleWiseMT = [this]() {
         Core::ForEach(0, Data.State.Positions.GetSize(), Settings.Partitions,
                       [this](const u32 p_Start, const u32 p_End) {
+                          TKIT_PROFILE_NSCOPE("Driz::Solver::ForEachParticleBruteForceMT");
                           for (u32 i = p_Start; i < p_End; ++i)
                           {
                               fvec2 densities{Settings.ParticleMass};
@@ -251,6 +255,7 @@ template <Dimension D> void Solver<D>::ComputeDensities() noexcept
     };
 
     const auto gridParticleWiseST = [this]() {
+        TKIT_PROFILE_NSCOPE("Driz::Solver::ForEachParticleGridST");
         for (u32 i = 0; i < Data.State.Positions.GetSize(); ++i)
         {
             fvec2 densities{Settings.ParticleMass};
@@ -263,6 +268,7 @@ template <Dimension D> void Solver<D>::ComputeDensities() noexcept
     const auto gridParticleWiseMT = [this]() {
         Core::ForEach(0, Data.State.Positions.GetSize(), Settings.Partitions,
                       [this](const u32 p_Start, const u32 p_End) {
+                          TKIT_PROFILE_NSCOPE("Driz::Solver::ForEachParticleGridMT");
                           for (u32 i = p_Start; i < p_End; ++i)
                           {
                               fvec2 densities{Settings.ParticleMass};

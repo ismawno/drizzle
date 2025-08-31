@@ -41,6 +41,7 @@ template <Dimension D> class LookupMethod
 
     template <typename F> void ForEachPairBruteForceST(F &&p_Function) const noexcept
     {
+        TKIT_PROFILE_NSCOPE("Driz::Solver::ForEachPairBruteForceST");
         const f32 r2 = Radius * Radius;
         for (u32 i = 0; i < m_Positions->GetSize(); ++i)
             processPairWisePass(i, r2, std::forward<F>(p_Function));
@@ -52,6 +53,7 @@ template <Dimension D> class LookupMethod
         const f32 r2 = Radius * Radius;
         Core::ForEach(0, positions.GetSize(), p_Partitions,
                       [this, r2, &p_Function](const u32 p_Start, const u32 p_End) {
+                          TKIT_PROFILE_NSCOPE("Driz::Solver::ForEachPairBruteForceMT");
                           const u32 tindex = Core::GetThreadIndex();
                           for (u32 i = p_Start; i < p_End; ++i)
                               processPairWisePass(i, r2, std::forward<F>(p_Function), tindex);
@@ -60,6 +62,7 @@ template <Dimension D> class LookupMethod
 
     template <typename F> void ForEachPairGridST(F &&p_Function) const noexcept
     {
+        TKIT_PROFILE_NSCOPE("Driz::Solver::ForEachPairGridST");
         const OffsetArray offsets = getGridOffsets();
         for (const GridCell &cell : Grid.Cells)
             processPairWiseCell(cell, offsets, std::forward<F>(p_Function));
@@ -70,6 +73,7 @@ template <Dimension D> class LookupMethod
         const OffsetArray offsets = getGridOffsets();
         Core::ForEach(0, Grid.Cells.GetSize(), p_Partitions,
                       [this, &offsets, &p_Function](const u32 p_Start, const u32 p_End) {
+                          TKIT_PROFILE_NSCOPE("Driz::Solver::ForEachPairGridMT");
                           const u32 tindex = Core::GetThreadIndex();
                           for (u32 i = p_Start; i < p_End; ++i)
                               processPairWiseCell(Grid.Cells[i], offsets, std::forward<F>(p_Function), tindex);

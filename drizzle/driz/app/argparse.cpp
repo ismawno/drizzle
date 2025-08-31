@@ -57,6 +57,8 @@ const ParseResult *ParseArgs(int argc, char **argv)
         argparse::Argument &arg = parser.add_argument(cliName(p_Field.Name));
         if constexpr (std::is_same_v<Type, f32>)
             arg.scan<'f', f32>();
+        else if constexpr (std::is_same_v<Type, u32>)
+            arg.scan<'u', u32>();
 
         if constexpr (std::is_enum_v<Type>)
             arg.help(TKIT_FORMAT("'SimulationSettings' enum field of type '{}'. You may specify it with a string.",

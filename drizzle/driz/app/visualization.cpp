@@ -269,7 +269,7 @@ template <Dimension D> void IVisualization<D>::RenderSettings(SimulationSettings
     if (p_Settings.UsesMultiThread())
     {
         const u32 mn = 1;
-        const u32 mx = ONYX_MAX_THREADS;
+        const u32 mx = DRIZ_MAX_TASKS + 1;
         ImGui::SliderScalar("Worker task count", ImGuiDataType_U32, &p_Settings.Partitions, &mn, &mx);
         Onyx::UserLayer::HelpMarkerSameLine(
             "The number of additional threads that will be used to compute the simulation. Try to match the number of "
