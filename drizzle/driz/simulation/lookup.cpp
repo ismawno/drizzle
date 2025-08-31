@@ -47,8 +47,8 @@ template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius
     {
         TKIT_PROFILE_NSCOPE("Driz::LookupMethod::CellKeySorting");
         std::sort(keys, keys + particles, [](const IndexPair &a, const IndexPair &b) {
-            if (a.CellKey == b.CellKey)
-                return a.ParticleIndex < b.ParticleIndex;
+            // if (a.CellKey == b.CellKey)
+            //     return a.ParticleIndex < b.ParticleIndex;
             return a.CellKey < b.CellKey;
         });
     }
