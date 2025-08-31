@@ -23,6 +23,7 @@ template <Dimension D>
 void IVisualization<D>::DrawParticles(Onyx::RenderContext<D> *p_Context, const SimulationSettings &p_Settings,
                                       const SimulationState<D> &p_State) noexcept
 {
+    TKIT_PROFILE_NSCOPE("Driz::IVisualization::DrawParticles");
     const f32 psize = 2.f * p_Settings.ParticleRadius;
 
     const Onyx::Gradient gradient{p_Settings.Gradient};
@@ -292,6 +293,7 @@ void Visualization<D3>::DrawParticles(Onyx::RenderContext<D3> *p_Context, const 
                                       const SimulationData<D3> &p_Data, const Onyx::Color &p_OutlineHighlight,
                                       const Onyx::Color &p_OutlinePressed) noexcept
 {
+    TKIT_PROFILE_NSCOPE("Driz::Visualization<D3>::DrawParticles");
     const f32 psize = 2.f * p_Settings.ParticleRadius;
 
     const Onyx::Gradient gradient{p_Settings.Gradient};

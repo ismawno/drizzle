@@ -287,7 +287,7 @@ template <Dimension D> void Solver<D>::ComputeDensities() noexcept
 }
 template <Dimension D> void Solver<D>::AddPressureAndViscosity() noexcept
 {
-    TKIT_PROFILE_NSCOPE("Driz::Solver::PressureAndViscosity");
+    TKIT_PROFILE_NSCOPE("Driz::Solver::AddPressureAndViscosity");
     const auto computeAccelerations = [this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
         const fvec<D> gradient = computePairwisePressureGradient(p_Index1, p_Index2, p_Distance);
         const fvec<D> term = computePairwiseViscosityTerm(p_Index1, p_Index2, p_Distance);
