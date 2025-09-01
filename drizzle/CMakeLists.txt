@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
   onyx
   GIT_REPOSITORY https://github.com/ismawno/onyx.git
-  GIT_TAG v0.1.1)
+  GIT_TAG v0.1.2)
 FetchContent_MakeAvailable(onyx)
 
 FetchContent_Declare(
@@ -49,4 +49,8 @@ elseif(UNIX AND NOT APPLE)
     -Wno-changes-meaning)
   tkit_configure_compile_link_options(drizzle FLAGS -Wall -Wextra -Wpedantic
                                       -Werror)
+endif()
+
+if(APPLE)
+  vkit_add_vulkan_executable_macos_rpath(drizzle)
 endif()

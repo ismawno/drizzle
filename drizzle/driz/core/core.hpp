@@ -11,7 +11,7 @@
 
 // #define DRIZ_ENABLE_INSPECTOR
 
-#define DRIZ_VERSION "v0.1.2"
+#define DRIZ_VERSION "v0.1.3"
 
 namespace Driz
 {
