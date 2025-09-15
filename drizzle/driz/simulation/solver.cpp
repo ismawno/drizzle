@@ -6,7 +6,7 @@
 namespace Driz
 {
 template <Dimension D>
-static f32 computeKernel(const KernelType p_Kernel, const f32 p_Radius, const f32 p_Distance) noexcept
+static f32 computeKernel(const KernelType p_Kernel, const f32 p_Radius, const f32 p_Distance)
 {
     switch (p_Kernel)
     {
@@ -28,7 +28,7 @@ static f32 computeKernel(const KernelType p_Kernel, const f32 p_Radius, const f3
     return 0.f;
 }
 template <Dimension D>
-static f32 computeKernelSlope(const KernelType p_Kernel, const f32 p_Radius, const f32 p_Distance) noexcept
+static f32 computeKernelSlope(const KernelType p_Kernel, const f32 p_Radius, const f32 p_Distance)
 {
     switch (p_Kernel)
     {
@@ -50,41 +50,41 @@ static f32 computeKernelSlope(const KernelType p_Kernel, const f32 p_Radius, con
     return 0.f;
 }
 
-bool SimulationSettings::UsesGrid() const noexcept
+bool SimulationSettings::UsesGrid() const
 {
     return LookupMode == ParticleLookupMode::GridSingleThread || LookupMode == ParticleLookupMode::GridMultiThread;
 }
-bool SimulationSettings::UsesMultiThread() const noexcept
+bool SimulationSettings::UsesMultiThread() const
 {
     return LookupMode == ParticleLookupMode::BruteForceMultiThread || LookupMode == ParticleLookupMode::GridMultiThread;
 }
 
-template <Dimension D> f32 Solver<D>::getInfluence(const f32 p_Distance) const noexcept
+template <Dimension D> f32 Solver<D>::getInfluence(const f32 p_Distance) const
 {
     return computeKernel<D>(Settings.KType, Settings.SmoothingRadius, p_Distance);
 }
-template <Dimension D> f32 Solver<D>::getInfluenceSlope(const f32 p_Distance) const noexcept
+template <Dimension D> f32 Solver<D>::getInfluenceSlope(const f32 p_Distance) const
 {
     return computeKernelSlope<D>(Settings.KType, Settings.SmoothingRadius, p_Distance);
 }
 
-template <Dimension D> f32 Solver<D>::getNearInfluence(const f32 p_Distance) const noexcept
+template <Dimension D> f32 Solver<D>::getNearInfluence(const f32 p_Distance) const
 {
     return computeKernel<D>(Settings.NearKType, Settings.SmoothingRadius, p_Distance);
 }
-template <Dimension D> f32 Solver<D>::getNearInfluenceSlope(const f32 p_Distance) const noexcept
+template <Dimension D> f32 Solver<D>::getNearInfluenceSlope(const f32 p_Distance) const
 {
     return computeKernelSlope<D>(Settings.NearKType, Settings.SmoothingRadius, p_Distance);
 }
 
-template <Dimension D> f32 Solver<D>::getViscosityInfluence(const f32 p_Distance) const noexcept
+template <Dimension D> f32 Solver<D>::getViscosityInfluence(const f32 p_Distance) const
 {
     return computeKernel<D>(Settings.ViscosityKType, Settings.SmoothingRadius, p_Distance);
 }
 
 template <Dimension D>
 fvec<D> Solver<D>::computePairwisePressureGradient(const u32 p_Index1, const u32 p_Index2,
-                                                   const f32 p_Distance) const noexcept
+                                                   const f32 p_Distance) const
 {
     const fvec<D> dir = (Data.State.Positions[p_Index1] - Data.State.Positions[p_Index2]) / p_Distance;
     const fvec2 kernels = {getInfluenceSlope(p_Distance), getNearInfluenceSlope(p_Distance)};
@@ -100,7 +100,7 @@ fvec<D> Solver<D>::computePairwisePressureGradient(const u32 p_Index1, const u32
 
 template <Dimension D>
 fvec<D> Solver<D>::computePairwiseViscosityTerm(const u32 p_Index1, const u32 p_Index2,
-                                                const f32 p_Distance) const noexcept
+                                                const f32 p_Distance) const
 {
     const fvec<D> diff = Data.State.Velocities[p_Index2] - Data.State.Velocities[p_Index1];
     const f32 kernel = getViscosityInfluence(p_Distance);
@@ -110,7 +110,7 @@ fvec<D> Solver<D>::computePairwiseViscosityTerm(const u32 p_Index1, const u32 p_
 }
 
 template <Dimension D>
-Solver<D>::Solver(const SimulationSettings &p_Settings, const SimulationState<D> &p_State) noexcept
+Solver<D>::Solver(const SimulationSettings &p_Settings, const SimulationState<D> &p_State)
     : Settings(p_Settings)
 {
     Data.State = p_State;
@@ -125,7 +125,7 @@ Solver<D>::Solver(const SimulationSettings &p_Settings, const SimulationState<D>
         Data.UnderMouseInfluence.Resize(p_State.Positions.GetSize(), u8{0});
 }
 
-template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
+template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime)
 {
     TKIT_PROFILE_NSCOPE("Driz::Solver::BeginStep");
     Data.StagedPositions.Resize(Data.State.Positions.GetSize());
@@ -140,11 +140,11 @@ template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime) noexcept
             Data.UnderMouseInfluence[i] = 0;
     }
 }
-template <Dimension D> void Solver<D>::EndStep() noexcept
+template <Dimension D> void Solver<D>::EndStep()
 {
     std::swap(Data.State.Positions, Data.StagedPositions);
 }
-template <Dimension D> void Solver<D>::ApplyComputedForces(const f32 p_DeltaTime) noexcept
+template <Dimension D> void Solver<D>::ApplyComputedForces(const f32 p_DeltaTime)
 {
     TKIT_PROFILE_NSCOPE("Driz::Solver::ApplyComputedForces");
 
@@ -156,7 +156,7 @@ template <Dimension D> void Solver<D>::ApplyComputedForces(const f32 p_DeltaTime
         encase(i);
     }
 }
-template <Dimension D> void Solver<D>::AddMouseForce(const fvec<D> &p_MousePos) noexcept
+template <Dimension D> void Solver<D>::AddMouseForce(const fvec<D> &p_MousePos)
 {
     for (u32 i = 0; i < Data.State.Positions.GetSize(); ++i)
     {
@@ -173,7 +173,7 @@ template <Dimension D> void Solver<D>::AddMouseForce(const fvec<D> &p_MousePos) 
     }
 }
 
-template <Dimension D> void Solver<D>::mergeDensityArrays() noexcept
+template <Dimension D> void Solver<D>::mergeDensityArrays()
 {
     Core::ForEach(0, Data.State.Positions.GetSize(), Settings.Partitions, [this](const u32 p_Start, const u32 p_End) {
         TKIT_PROFILE_NSCOPE("Driz::Solver::MergeDensityArrays");
@@ -185,7 +185,7 @@ template <Dimension D> void Solver<D>::mergeDensityArrays() noexcept
             }
     });
 }
-template <Dimension D> void Solver<D>::mergeAccelerationArrays() noexcept
+template <Dimension D> void Solver<D>::mergeAccelerationArrays()
 {
     Core::ForEach(0, Data.State.Positions.GetSize(), Settings.Partitions, [this](const u32 p_Start, const u32 p_End) {
         TKIT_PROFILE_NSCOPE("Driz::Solver::MergeAccelerationArrays");
@@ -198,7 +198,7 @@ template <Dimension D> void Solver<D>::mergeAccelerationArrays() noexcept
     });
 }
 
-template <Dimension D> void Solver<D>::ComputeDensities() noexcept
+template <Dimension D> void Solver<D>::ComputeDensities()
 {
     TKIT_PROFILE_NSCOPE("Driz::Solver::ComputeDensities");
 
@@ -285,7 +285,7 @@ template <Dimension D> void Solver<D>::ComputeDensities() noexcept
                                  bruteForceParticleWiseST, bruteForceParticleWiseMT, gridParticleWiseST,
                                  gridParticleWiseMT);
 }
-template <Dimension D> void Solver<D>::AddPressureAndViscosity() noexcept
+template <Dimension D> void Solver<D>::AddPressureAndViscosity()
 {
     TKIT_PROFILE_NSCOPE("Driz::Solver::AddPressureAndViscosity");
     const auto computeAccelerations = [this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
@@ -392,14 +392,14 @@ template <Dimension D> void Solver<D>::AddPressureAndViscosity() noexcept
                                  gridParticleWiseMT);
 }
 
-template <Dimension D> fvec2 Solver<D>::getPressureFromDensity(const Density &p_Density) const noexcept
+template <Dimension D> fvec2 Solver<D>::getPressureFromDensity(const Density &p_Density) const
 {
     const f32 p1 = Settings.PressureStiffness * (p_Density.x - Settings.TargetDensity);
     const f32 p2 = Settings.NearPressureStiffness * p_Density.y;
     return {p1, p2};
 }
 
-template <Dimension D> void Solver<D>::UpdateLookup() noexcept
+template <Dimension D> void Solver<D>::UpdateLookup()
 {
     Lookup.SetPositions(&Data.State.Positions);
     switch (Settings.LookupMode)
@@ -415,14 +415,14 @@ template <Dimension D> void Solver<D>::UpdateLookup() noexcept
     }
 }
 
-template <Dimension D> void Solver<D>::UpdateAllLookups() noexcept
+template <Dimension D> void Solver<D>::UpdateAllLookups()
 {
     Lookup.SetPositions(&Data.State.Positions);
     Lookup.UpdateBruteForceLookup(Settings.SmoothingRadius);
     Lookup.UpdateGridLookup(Settings.SmoothingRadius);
 }
 
-template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position) noexcept
+template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position)
 {
     Data.State.Positions.Append(p_Position);
     Data.State.Velocities.Append(fvec<D>{0.f});
@@ -436,7 +436,7 @@ template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position) no
         Data.UnderMouseInfluence.Append(u8{0});
 }
 
-template <Dimension D> void Solver<D>::encase(const u32 p_Index) noexcept
+template <Dimension D> void Solver<D>::encase(const u32 p_Index)
 {
     const f32 factor = 1.f - Settings.EncaseFriction;
     for (u32 j = 0; j < D; ++j)
@@ -454,12 +454,12 @@ template <Dimension D> void Solver<D>::encase(const u32 p_Index) noexcept
     }
 }
 
-template <Dimension D> void Solver<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context) const noexcept
+template <Dimension D> void Solver<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context) const
 {
     Visualization<D>::DrawBoundingBox(p_Context, Data.State.Min, Data.State.Max,
                                       Onyx::Color::FromHexadecimal("A6B1E1"));
 }
-template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_Context) const noexcept
+template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_Context) const
 {
     if constexpr (D == D2)
         Visualization<D2>::DrawParticles(p_Context, Settings, Data.State);
@@ -467,7 +467,7 @@ template <Dimension D> void Solver<D>::DrawParticles(Onyx::RenderContext<D> *p_C
         Visualization<D3>::DrawParticles(p_Context, Settings, Data, Onyx::Color::GREEN, Onyx::Color::ORANGE);
 }
 
-template <Dimension D> u32 Solver<D>::GetParticleCount() const noexcept
+template <Dimension D> u32 Solver<D>::GetParticleCount() const
 {
     return Data.State.Positions.GetSize();
 }

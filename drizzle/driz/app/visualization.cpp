@@ -5,7 +5,7 @@ namespace Driz
 {
 template <Dimension D>
 void IVisualization<D>::AdjustRenderingContext(Onyx::Camera<D> *p_Camera, Onyx::RenderContext<D> *p_Context,
-                                               const TKit::Timespan p_DeltaTime) noexcept
+                                               const TKit::Timespan p_DeltaTime)
 {
     p_Context->Flush();
     p_Context->ScaleAxes(0.025f);
@@ -21,7 +21,7 @@ void IVisualization<D>::AdjustRenderingContext(Onyx::Camera<D> *p_Camera, Onyx::
 
 template <Dimension D>
 void IVisualization<D>::DrawParticles(Onyx::RenderContext<D> *p_Context, const SimulationSettings &p_Settings,
-                                      const SimulationState<D> &p_State) noexcept
+                                      const SimulationState<D> &p_State)
 {
     TKIT_PROFILE_NSCOPE("Driz::IVisualization::DrawParticles");
     const f32 psize = 2.f * p_Settings.ParticleRadius;
@@ -50,7 +50,7 @@ void IVisualization<D>::DrawParticles(Onyx::RenderContext<D> *p_Context, const S
 
 template <Dimension D>
 void IVisualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const fvec<D> &p_Min, const fvec<D> &p_Max,
-                                        const Onyx::Color &p_Color) noexcept
+                                        const Onyx::Color &p_Color)
 {
     p_Context->Push();
 
@@ -105,7 +105,7 @@ void IVisualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const
 
 template <Dimension D>
 void IVisualization<D>::DrawCell(Onyx::RenderContext<D> *p_Context, const ivec<D> &p_Position, const f32 p_Size,
-                                 const Onyx::Color &p_Color, const f32 p_Thickness) noexcept
+                                 const Onyx::Color &p_Color, const f32 p_Thickness)
 {
     p_Context->Fill(p_Color);
     if constexpr (D == D2)
@@ -147,7 +147,7 @@ void IVisualization<D>::DrawCell(Onyx::RenderContext<D> *p_Context, const ivec<D
     }
 }
 
-static void comboKenel(const char *name, KernelType &p_Type) noexcept
+static void comboKenel(const char *name, KernelType &p_Type)
 {
     ImGui::Combo(name, reinterpret_cast<i32 *>(&p_Type),
                  "Spiky2\0Spiky3\0Spiky5\0Cubic Spline\0WendlandC2\0WendlandC4\0\0");
@@ -157,7 +157,7 @@ static void comboKenel(const char *name, KernelType &p_Type) noexcept
         "behave is crucial for the behavior of the fluid.");
 }
 
-template <Dimension D> void IVisualization<D>::RenderSettings(SimulationSettings &p_Settings) noexcept
+template <Dimension D> void IVisualization<D>::RenderSettings(SimulationSettings &p_Settings)
 {
     const f32 speed = 0.2f;
     ImGui::TextWrapped(
@@ -279,7 +279,7 @@ template <Dimension D> void IVisualization<D>::RenderSettings(SimulationSettings
 }
 
 void Visualization<D2>::DrawMouseInfluence(const Onyx::Camera<D2> *p_Camera, Onyx::RenderContext<D2> *p_Context,
-                                           const f32 p_Size, const Onyx::Color &p_Color) noexcept
+                                           const f32 p_Size, const Onyx::Color &p_Color)
 {
     const fvec2 mpos = p_Camera->GetWorldMousePosition(&p_Context->GetCurrentAxes());
     p_Context->Push();
@@ -291,7 +291,7 @@ void Visualization<D2>::DrawMouseInfluence(const Onyx::Camera<D2> *p_Camera, Ony
 
 void Visualization<D3>::DrawParticles(Onyx::RenderContext<D3> *p_Context, const SimulationSettings &p_Settings,
                                       const SimulationData<D3> &p_Data, const Onyx::Color &p_OutlineHighlight,
-                                      const Onyx::Color &p_OutlinePressed) noexcept
+                                      const Onyx::Color &p_OutlinePressed)
 {
     TKIT_PROFILE_NSCOPE("Driz::Visualization<D3>::DrawParticles");
     const f32 psize = 2.f * p_Settings.ParticleRadius;

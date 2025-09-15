@@ -16,18 +16,18 @@ struct SimulationSettings;
 template <Dimension D> struct IVisualization
 {
     static void AdjustRenderingContext(Onyx::Camera<D> *p_Camera, Onyx::RenderContext<D> *p_Context,
-                                       TKit::Timespan p_DeltaTime) noexcept;
+                                       TKit::Timespan p_DeltaTime);
 
     static void DrawParticles(Onyx::RenderContext<D> *p_Context, const SimulationSettings &p_Settings,
-                              const SimulationState<D> &p_State) noexcept;
+                              const SimulationState<D> &p_State);
 
     static void DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const fvec<D> &p_Min, const fvec<D> &p_Max,
-                                const Onyx::Color &p_Color) noexcept;
+                                const Onyx::Color &p_Color);
 
     static void DrawCell(Onyx::RenderContext<D> *p_Context, const ivec<D> &p_Position, f32 p_Size,
-                         const Onyx::Color &p_Color, f32 p_Thickness = 0.1f) noexcept;
+                         const Onyx::Color &p_Color, f32 p_Thickness = 0.1f);
 
-    static void RenderSettings(SimulationSettings &p_Settings) noexcept;
+    static void RenderSettings(SimulationSettings &p_Settings);
 };
 
 template <Dimension D> struct Visualization;
@@ -35,7 +35,7 @@ template <Dimension D> struct Visualization;
 template <> struct Visualization<D2> : IVisualization<D2>
 {
     static void DrawMouseInfluence(const Onyx::Camera<D2> *p_Camera, Onyx::RenderContext<D2> *p_Context, f32 p_Size,
-                                   const Onyx::Color &p_Color) noexcept;
+                                   const Onyx::Color &p_Color);
 };
 
 template <> struct Visualization<D3> : IVisualization<D3>
@@ -44,10 +44,10 @@ template <> struct Visualization<D3> : IVisualization<D3>
 
     static void DrawParticles(Onyx::RenderContext<D3> *p_Context, const SimulationSettings &p_Settings,
                               const SimulationData<D3> &p_Data, const Onyx::Color &p_OutlineHover,
-                              const Onyx::Color &p_OutlinePressed) noexcept;
+                              const Onyx::Color &p_OutlinePressed);
 };
 
-template <typename T> void ExportWidget(const char *p_Name, const fs::path &p_DirPath, const T &p_Instance) noexcept
+template <typename T> void ExportWidget(const char *p_Name, const fs::path &p_DirPath, const T &p_Instance)
 {
     static char xport[64] = {0};
     if (ImGui::InputTextWithHint(p_Name, "Filename", xport, 64, ImGuiInputTextFlags_EnterReturnsTrue))
@@ -63,7 +63,7 @@ template <typename T> void ExportWidget(const char *p_Name, const fs::path &p_Di
                                         "extension, nor a complete path. A file name is enough.");
 }
 
-template <typename T> void ImportWidget(const char *p_Name, const fs::path &p_DirPath, T &p_Instance) noexcept
+template <typename T> void ImportWidget(const char *p_Name, const fs::path &p_DirPath, T &p_Instance)
 {
     TKit::StaticArray32<fs::path> paths;
     for (const auto &entry : fs::directory_iterator(p_DirPath))

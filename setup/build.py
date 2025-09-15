@@ -105,6 +105,12 @@ def parse_arguments(
         default=None,
         help="Force CMake to re-fetch the specified dependencies. This is useful if you want to re-fetch a dependency without having to delete the entire build directory. Specifying no dependency will re-fetch all dependencies. Default is None.",
     )
+    parser.add_argument(
+        "--mark-safe-directories",
+        action="store_true",
+        default=False,
+        help=f"Mark dependency directories as safe in your git configurations to avoid build issues.",
+    )
 
     cli_vname_map = {}
     for cmake_varname, (cli_varname, val) in cmake_vname_map.items():
@@ -267,7 +273,7 @@ if refetch is not None and deps_path.exists():
                 shutil.rmtree(path, onexc=on_error if Convoy.is_windows else None)
 
 gitconfig = Path.home() / ".gitconfig"
-if gitconfig.exists() and deps_path.exists():
+if args.mark_safe_directories and gitconfig.exists() and deps_path.exists():
     Convoy.verbose(f"Found git configuration file at <underline>{gitconfig}</underline>.")
     with open(gitconfig) as f:
         content = f.read()
@@ -288,9 +294,9 @@ if gitconfig.exists() and deps_path.exists():
             )
         else:
             Convoy.warning(f"Failed to mark <underline>{dep}</underline> as owner safe to git. Skipping...")
-elif not gitconfig.exists():
+elif not gitconfig.exists() or not args.mark_safe_directories:
     Convoy.warning(
-        "Git configuration file not found. You may experience issues with git's safe directory feature in some specific cases. If so, remove your build directory and re-run this script."
+        "Git configuration file not found or the option <bold>--mark-safe-directories</bold> was not set. You may experience issues with git's safe directory feature in some specific cases. If so, remove your build directory and re-run this script, otherwise ignore this warning."
     )
 
 

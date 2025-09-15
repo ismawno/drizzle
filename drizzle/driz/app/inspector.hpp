@@ -25,24 +25,24 @@ struct InspectionData
 template <Dimension D> class Inspector
 {
   public:
-    explicit Inspector(const Solver<D> *p_Solver) noexcept;
+    explicit Inspector(const Solver<D> *p_Solver);
 
-    void Render() noexcept;
-    void Inspect() noexcept;
+    void Render();
+    void Inspect();
 
-    bool WantsToInspect() const noexcept;
+    bool WantsToInspect() const;
 
   private:
-    void renderInspectionData() const noexcept;
-    void renderGridData() const noexcept;
-    void renderParticleData() const noexcept;
+    void renderInspectionData() const;
+    void renderGridData() const;
+    void renderParticleData() const;
 
-    void renderParticle(u32 p_Index) const noexcept;
-    void renderPairs(const TKit::TreeSet<ParticlePair> &p_Pairs, u32 p_Selected) const noexcept;
-    void renderDuplicatePairs(const TKit::TreeMap<ParticlePair, u32> &p_Pairs, u32 p_Selected) const noexcept;
-    void renderPairData(const InspectionData &p_Data, u32 p_Selected) const noexcept;
+    void renderParticle(u32 p_Index) const;
+    void renderPairs(const TKit::TreeSet<ParticlePair> &p_Pairs, u32 p_Selected) const;
+    void renderDuplicatePairs(const TKit::TreeMap<ParticlePair, u32> &p_Pairs, u32 p_Selected) const;
+    void renderPairData(const InspectionData &p_Data, u32 p_Selected) const;
 
-    auto getPairWiseCollectionST(LookupPairs &p_Pairs) const noexcept
+    auto getPairWiseCollectionST(LookupPairs &p_Pairs) const
     {
         return [&p_Pairs](const u32 p_Index1, const u32 p_Index2, const f32) {
             const u32 index1 = glm::min(p_Index1, p_Index2);
@@ -58,7 +58,7 @@ template <Dimension D> class Inspector
             }
         };
     }
-    auto getPairWiseCollectionMT(LookupPairs &p_Pairs) const noexcept
+    auto getPairWiseCollectionMT(LookupPairs &p_Pairs) const
     {
         return [this, &p_Pairs](const u32 p_Index1, const u32 p_Index2, const f32, const u32) {
             const u32 index1 = glm::min(p_Index1, p_Index2);
@@ -75,7 +75,7 @@ template <Dimension D> class Inspector
             }
         };
     }
-    auto getParticleWiseCollection(const u32 p_Index1, LookupPairs &p_Pairs) const noexcept
+    auto getParticleWiseCollection(const u32 p_Index1, LookupPairs &p_Pairs) const
     {
         return [p_Index1, &p_Pairs](const u32 p_Index2, const f32) {
             const u32 index1 = glm::min(p_Index1, p_Index2);

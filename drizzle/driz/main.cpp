@@ -3,7 +3,7 @@
 #include "driz/app/argparse.hpp"
 #include "onyx/app/app.hpp"
 
-void SetIntroLayer(Onyx::Application &p_App, const Driz::ParseResult *p_Result) noexcept
+void SetIntroLayer(Onyx::Application &p_App, const Driz::ParseResult *p_Result)
 {
     if (p_Result->State2)
         p_App.SetUserLayer<Driz::IntroLayer>(&p_App, p_Result->Settings, *p_Result->State2);

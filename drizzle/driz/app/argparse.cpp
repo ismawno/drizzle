@@ -12,7 +12,7 @@
 
 namespace Driz
 {
-static std::string cliName(const char *p_Name) noexcept
+static std::string cliName(const char *p_Name)
 {
     std::string result{"--"};
     for (const char *c = p_Name; *c != '\0'; ++c)
@@ -67,15 +67,7 @@ const ParseResult *ParseArgs(int argc, char **argv)
             arg.help(TKIT_FORMAT("'SimulationSettings' field of type '{}'.", p_Field.TypeString));
     });
 
-    try
-    {
-        parser.parse_args(argc, argv);
-    }
-    catch (const std::exception &err)
-    {
-        std::cerr << err.what() << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
+    parser.parse_args(argc, argv);
     ParseResult *result = new ParseResult{};
 
     SimulationSettings settings{};

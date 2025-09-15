@@ -15,7 +15,7 @@ static fs::path s_SettingsPath = fs::path(DRIZ_ROOT_PATH) / "saves" / "settings"
 static fs::path s_StatePath2 = fs::path(DRIZ_ROOT_PATH) / "saves" / "2D";
 static fs::path s_StatePath3 = fs::path(DRIZ_ROOT_PATH) / "saves" / "3D";
 
-void Core::Initialize() noexcept
+void Core::Initialize()
 {
     s_ThreadPool.Construct(DRIZ_MAX_WORKERS);
     Onyx::Core::Initialize(Onyx::Specs{.TaskManager = s_ThreadPool.Get()});
@@ -24,32 +24,32 @@ void Core::Initialize() noexcept
     fs::create_directories(s_StatePath2);
     fs::create_directories(s_StatePath3);
 }
-void Core::Terminate() noexcept
+void Core::Terminate()
 {
     Onyx::Core::Terminate();
     s_ThreadPool.Destruct();
 }
 
-TKit::ArenaAllocator &Core::GetArena() noexcept
+TKit::ArenaAllocator &Core::GetArena()
 {
     return s_Arena;
 }
-TKit::ThreadPool &Core::GetThreadPool() noexcept
+TKit::ThreadPool &Core::GetThreadPool()
 {
     return *s_ThreadPool.Get();
 }
 
-const fs::path &Core::GetSettingsPath() noexcept
+const fs::path &Core::GetSettingsPath()
 {
     return s_SettingsPath;
 }
-u32 Core::GetThreadIndex() noexcept
+u32 Core::GetThreadIndex()
 {
     thread_local u32 tindex = s_ThreadPool->GetThreadIndex();
     return tindex;
 }
 
-template <Dimension D> const fs::path &Core::GetStatePath() noexcept
+template <Dimension D> const fs::path &Core::GetStatePath()
 {
     if constexpr (D == D2)
         return s_StatePath2;
@@ -57,7 +57,7 @@ template <Dimension D> const fs::path &Core::GetStatePath() noexcept
         return s_StatePath3;
 }
 
-template const fs::path &Core::GetStatePath<D2>() noexcept;
-template const fs::path &Core::GetStatePath<D3>() noexcept;
+template const fs::path &Core::GetStatePath<D2>();
+template const fs::path &Core::GetStatePath<D3>();
 
 } // namespace Driz

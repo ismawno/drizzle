@@ -26,8 +26,8 @@ FetchContent_MakeAvailable(onyx)
 
 FetchContent_Declare(
   argparse
-  GIT_REPOSITORY https://github.com/p-ranav/argparse.git
-  GIT_TAG v3.2
+  GIT_REPOSITORY https://github.com/ismawno/argparse.git
+  GIT_TAG v3.2.x
   GIT_SHALLOW TRUE
   GIT_PROGRESS TRUE)
 FetchContent_MakeAvailable(argparse)

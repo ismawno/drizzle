@@ -5,17 +5,17 @@
 
 namespace Driz
 {
-template <Dimension D> void LookupMethod<D>::SetPositions(const SimArray<fvec<D>> *p_Positions) noexcept
+template <Dimension D> void LookupMethod<D>::SetPositions(const SimArray<fvec<D>> *p_Positions)
 {
     m_Positions = p_Positions;
 }
 
-template <Dimension D> void LookupMethod<D>::UpdateBruteForceLookup(const f32 p_Radius) noexcept
+template <Dimension D> void LookupMethod<D>::UpdateBruteForceLookup(const f32 p_Radius)
 {
     Radius = p_Radius;
 }
 
-template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius) noexcept
+template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius)
 {
     TKIT_PROFILE_NSCOPE("Driz::LookupMethod::UpdateGridLookup");
     if (m_Positions->IsEmpty())
@@ -77,7 +77,7 @@ template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius
     Core::GetArena().Reset();
 }
 
-template <Dimension D> u32 LookupMethod<D>::DrawCells(Onyx::RenderContext<D> *p_Context) const noexcept
+template <Dimension D> u32 LookupMethod<D>::DrawCells(Onyx::RenderContext<D> *p_Context) const
 {
     TKIT_PROFILE_NSCOPE("Driz::LookupMethod::DrawCells");
     const auto isUnique = [](const auto it1, const auto it2, const ivec<D> &p_Position) {
@@ -122,7 +122,7 @@ template <Dimension D> u32 LookupMethod<D>::DrawCells(Onyx::RenderContext<D> *p_
     return cellClashes;
 }
 
-template <Dimension D> ivec<D> LookupMethod<D>::GetCellPosition(const fvec<D> &p_Position, const f32 p_Radius) noexcept
+template <Dimension D> ivec<D> LookupMethod<D>::GetCellPosition(const fvec<D> &p_Position, const f32 p_Radius)
 {
     ivec<D> cellPosition{0};
     for (u32 i = 0; i < D; ++i)
@@ -130,21 +130,21 @@ template <Dimension D> ivec<D> LookupMethod<D>::GetCellPosition(const fvec<D> &p
     return cellPosition;
 }
 template <Dimension D>
-u32 LookupMethod<D>::GetCellKey(const ivec<D> &p_CellPosition, const u32 p_ParticleCount) noexcept
+u32 LookupMethod<D>::GetCellKey(const ivec<D> &p_CellPosition, const u32 p_ParticleCount)
 {
     return TKit::Hash(p_CellPosition) % p_ParticleCount;
 }
 
-template <Dimension D> ivec<D> LookupMethod<D>::GetCellPosition(const fvec<D> &p_Position) const noexcept
+template <Dimension D> ivec<D> LookupMethod<D>::GetCellPosition(const fvec<D> &p_Position) const
 {
     return GetCellPosition(p_Position, Radius);
 }
-template <Dimension D> u32 LookupMethod<D>::GetCellKey(const ivec<D> &p_CellPosition) const noexcept
+template <Dimension D> u32 LookupMethod<D>::GetCellKey(const ivec<D> &p_CellPosition) const
 {
     return GetCellKey(p_CellPosition, m_Positions->GetSize());
 }
 
-template <Dimension D> LookupMethod<D>::OffsetArray LookupMethod<D>::getGridOffsets() const noexcept
+template <Dimension D> LookupMethod<D>::OffsetArray LookupMethod<D>::getGridOffsets() const
 {
     if constexpr (D == D2)
         return {ivec<D>{-1, -1}, ivec<D>{-1, 0}, ivec<D>{-1, 1}, ivec<D>{0, -1},
@@ -158,7 +158,7 @@ template <Dimension D> LookupMethod<D>::OffsetArray LookupMethod<D>::getGridOffs
                 ivec<D>{1, 1, 1}};
 }
 
-template <Dimension D> u32 LookupMethod<D>::GetCellCount() const noexcept
+template <Dimension D> u32 LookupMethod<D>::GetCellCount() const
 {
     return Grid.Cells.GetSize();
 }

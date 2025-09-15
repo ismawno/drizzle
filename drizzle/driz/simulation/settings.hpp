@@ -64,8 +64,8 @@ struct SimulationSettings
 
     TKit::Array<Onyx::Color, 3> Gradient = {Onyx::Color::CYAN, Onyx::Color::YELLOW, Onyx::Color::RED};
 
-    bool UsesGrid() const noexcept;
-    bool UsesMultiThread() const noexcept;
+    bool UsesGrid() const;
+    bool UsesMultiThread() const;
 };
 
 template <Dimension D> struct SimulationState

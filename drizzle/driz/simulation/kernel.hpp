@@ -22,25 +22,25 @@ enum class KernelType
 // Kernels expect the distance to be inferior to the radius
 template <Dimension D> struct Kernel
 {
-    static f32 Spiky2(f32 p_Radius, f32 p_Distance) noexcept;
-    static f32 Spiky2Slope(f32 p_Radius, f32 p_Distance) noexcept;
+    static f32 Spiky2(f32 p_Radius, f32 p_Distance);
+    static f32 Spiky2Slope(f32 p_Radius, f32 p_Distance);
 
-    static f32 Spiky3(f32 p_Radius, f32 p_Distance) noexcept;
-    static f32 Spiky3Slope(f32 p_Radius, f32 p_Distance) noexcept;
+    static f32 Spiky3(f32 p_Radius, f32 p_Distance);
+    static f32 Spiky3Slope(f32 p_Radius, f32 p_Distance);
 
-    static f32 Spiky5(f32 p_Radius, f32 p_Distance) noexcept;
-    static f32 Spiky5Slope(f32 p_Radius, f32 p_Distance) noexcept;
+    static f32 Spiky5(f32 p_Radius, f32 p_Distance);
+    static f32 Spiky5Slope(f32 p_Radius, f32 p_Distance);
 
-    static f32 Poly6(f32 p_Radius, f32 p_Distance) noexcept;
-    static f32 Poly6Slope(f32 p_Radius, f32 p_Distance) noexcept;
+    static f32 Poly6(f32 p_Radius, f32 p_Distance);
+    static f32 Poly6Slope(f32 p_Radius, f32 p_Distance);
 
-    static f32 CubicSpline(f32 p_Radius, f32 p_Distance) noexcept;
-    static f32 CubicSplineSlope(f32 p_Radius, f32 p_Distance) noexcept;
+    static f32 CubicSpline(f32 p_Radius, f32 p_Distance);
+    static f32 CubicSplineSlope(f32 p_Radius, f32 p_Distance);
 
-    static f32 WendlandC2(f32 p_Radius, f32 p_Distance) noexcept;
-    static f32 WendlandC2Slope(f32 p_Radius, f32 p_Distance) noexcept;
+    static f32 WendlandC2(f32 p_Radius, f32 p_Distance);
+    static f32 WendlandC2Slope(f32 p_Radius, f32 p_Distance);
 
-    static f32 WendlandC4(f32 p_Radius, f32 p_Distance) noexcept;
-    static f32 WendlandC4Slope(f32 p_Radius, f32 p_Distance) noexcept;
+    static f32 WendlandC4(f32 p_Radius, f32 p_Distance);
+    static f32 WendlandC4Slope(f32 p_Radius, f32 p_Distance);
 };
 } // namespace Driz

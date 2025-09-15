@@ -12,14 +12,14 @@ template <Dimension D> class SimLayer final : public Onyx::UserLayer
 {
   public:
     SimLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
-             const SimulationState<D> &p_State) noexcept;
+             const SimulationState<D> &p_State);
 
   private:
-    void OnUpdate() noexcept override;
-    void OnEvent(const Onyx::Event &p_Event) noexcept override;
+    void OnUpdate() override;
+    void OnEvent(const Onyx::Event &p_Event) override;
 
-    void step(bool p_Dummy = false) noexcept;
-    void renderVisualizationSettings() noexcept;
+    void step(bool p_Dummy = false);
+    void renderVisualizationSettings();
 
     Onyx::Application *m_Application;
     Onyx::Window *m_Window;

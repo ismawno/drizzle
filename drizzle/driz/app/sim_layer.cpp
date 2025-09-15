@@ -11,7 +11,7 @@ static f32 s_RayDistance = 0.f;
 
 template <Dimension D>
 SimLayer<D>::SimLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
-                      const SimulationState<D> &p_State) noexcept
+                      const SimulationState<D> &p_State)
     : m_Application(p_Application), m_Solver(p_Settings, p_State)
 {
     m_Window = m_Application->GetMainWindow();
@@ -24,7 +24,7 @@ SimLayer<D>::SimLayer(Onyx::Application *p_Application, const SimulationSettings
 }
 
 static f32 rayCast(const Onyx::Camera<D3> *p_Camera, const Onyx::RenderContext<D3> *p_Context,
-                   const SimulationState<D3> &p_State, const f32 p_Radius) noexcept
+                   const SimulationState<D3> &p_State, const f32 p_Radius)
 {
     const fvec3 origin = p_Camera->GetWorldMousePosition(&p_Context->GetCurrentAxes(), 0.f);
     const fvec3 direction = p_Camera->GetMouseRayCastDirection();
@@ -51,7 +51,7 @@ static f32 rayCast(const Onyx::Camera<D3> *p_Camera, const Onyx::RenderContext<D
     return rayDistance != FLT_MAX ? rayDistance : glm::sqrt(maxParticleDistance);
 }
 
-template <Dimension D> void SimLayer<D>::OnUpdate() noexcept
+template <Dimension D> void SimLayer<D>::OnUpdate()
 {
     TKIT_PROFILE_NSCOPE("SimLayer::Onupdate");
     if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::R) && !ImGui::GetIO().WantCaptureKeyboard)
@@ -95,7 +95,7 @@ template <Dimension D> void SimLayer<D>::OnUpdate() noexcept
 #endif
 }
 
-template <Dimension D> void SimLayer<D>::OnEvent(const Onyx::Event &p_Event) noexcept
+template <Dimension D> void SimLayer<D>::OnEvent(const Onyx::Event &p_Event)
 {
     if constexpr (D == D2)
         if (p_Event.Type == Onyx::Event::Scrolled && !ImGui::GetIO().WantCaptureMouse)
@@ -125,7 +125,7 @@ template <Dimension D> void SimLayer<D>::OnEvent(const Onyx::Event &p_Event) noe
         }
 }
 
-template <Dimension D> void SimLayer<D>::step(const bool p_Dummy) noexcept
+template <Dimension D> void SimLayer<D>::step(const bool p_Dummy)
 {
     m_Solver.BeginStep(m_Timestep);
     m_Solver.UpdateLookup();
@@ -171,7 +171,7 @@ template <Dimension D> void SimLayer<D>::step(const bool p_Dummy) noexcept
     m_Solver.EndStep();
 }
 
-template <Dimension D> void SimLayer<D>::renderVisualizationSettings() noexcept
+template <Dimension D> void SimLayer<D>::renderVisualizationSettings()
 {
     PresentModeEditor(m_Window, Flag_DisplayHelp);
     ImGui::Spacing();

@@ -7,7 +7,7 @@
 namespace Driz
 {
 IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
-                       const Dimension p_Dim) noexcept
+                       const Dimension p_Dim)
     : m_Application(p_Application), m_Dim(p_Dim == D2 ? 0 : 1), m_Settings(p_Settings)
 {
     m_Window = m_Application->GetMainWindow();
@@ -28,7 +28,7 @@ IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSetting
 
 template <Dimension D>
 IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
-                       const SimulationState<D> &p_State) noexcept
+                       const SimulationState<D> &p_State)
     : m_Application(p_Application), m_Settings(p_Settings)
 {
     if constexpr (D == D2)
@@ -57,7 +57,7 @@ IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSetting
     m_Context3 = m_Window->CreateRenderContext<D3>();
 }
 
-void IntroLayer::OnUpdate() noexcept
+void IntroLayer::OnUpdate()
 {
     if (m_Dim == 0)
     {
@@ -78,14 +78,14 @@ void IntroLayer::OnUpdate() noexcept
 
 template <Dimension D>
 void IntroLayer::onUpdate(Onyx::Camera<D> *p_Camera, Onyx::RenderContext<D> *p_Context,
-                          const SimulationState<D> &p_State) noexcept
+                          const SimulationState<D> &p_State)
 {
     Visualization<D>::AdjustRenderingContext(p_Camera, p_Context, m_Application->GetDeltaTime());
     Visualization<D>::DrawParticles(p_Context, m_Settings, p_State);
     Visualization<D>::DrawBoundingBox(p_Context, p_State.Min, p_State.Max, Onyx::Color::FromHexadecimal("A6B1E1"));
 }
 
-void IntroLayer::OnEvent(const Onyx::Event &p_Event) noexcept
+void IntroLayer::OnEvent(const Onyx::Event &p_Event)
 {
     if (m_Dim == 0 && p_Event.Type == Onyx::Event::Scrolled && !ImGui::GetIO().WantCaptureMouse)
     {
@@ -107,7 +107,7 @@ void IntroLayer::OnEvent(const Onyx::Event &p_Event) noexcept
         }
 }
 
-void IntroLayer::renderIntroSettings() noexcept
+void IntroLayer::renderIntroSettings()
 {
     if (ImGui::Begin("Welcome to Drizzle, my fluid simulator!"))
     {
@@ -192,7 +192,7 @@ void IntroLayer::renderIntroSettings() noexcept
 }
 
 template <Dimension D>
-void IntroLayer::updateStateAsLattice(SimulationState<D> &p_State, const uvec<D> &p_Dimensions) noexcept
+void IntroLayer::updateStateAsLattice(SimulationState<D> &p_State, const uvec<D> &p_Dimensions)
 {
     p_State.Positions.Clear();
     p_State.Velocities.Clear();
@@ -220,7 +220,7 @@ void IntroLayer::updateStateAsLattice(SimulationState<D> &p_State, const uvec<D>
     }
 }
 
-template <Dimension D> void IntroLayer::renderBoundingBox(SimulationState<D> &p_State) noexcept
+template <Dimension D> void IntroLayer::renderBoundingBox(SimulationState<D> &p_State)
 {
     if (ImGui::TreeNode("Bounding box"))
     {
@@ -239,8 +239,8 @@ template <Dimension D> void IntroLayer::renderBoundingBox(SimulationState<D> &p_
 }
 
 template IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
-                                const SimulationState<D2> &p_State) noexcept;
+                                const SimulationState<D2> &p_State);
 template IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
-                                const SimulationState<D3> &p_State) noexcept;
+                                const SimulationState<D3> &p_State);
 
 } // namespace Driz

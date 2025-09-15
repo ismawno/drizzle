@@ -3,8 +3,7 @@
 #include "driz/core/glm.hpp"
 #include "driz/core/core.hpp"
 #include "onyx/rendering/render_context.hpp"
-#include "tkit/utils/literals.hpp"
-#include <array>
+#include "tkit/profiling/macros.hpp"
 
 namespace Driz
 {
@@ -25,21 +24,21 @@ struct GridData
 template <Dimension D> class LookupMethod
 {
   public:
-    void SetPositions(const SimArray<fvec<D>> *p_Positions) noexcept;
+    void SetPositions(const SimArray<fvec<D>> *p_Positions);
 
-    void UpdateBruteForceLookup(f32 p_Radius) noexcept;
-    void UpdateGridLookup(f32 p_Radius) noexcept;
+    void UpdateBruteForceLookup(f32 p_Radius);
+    void UpdateGridLookup(f32 p_Radius);
 
-    static ivec<D> GetCellPosition(const fvec<D> &p_Position, f32 p_Radius) noexcept;
-    static u32 GetCellKey(const ivec<D> &p_CellPosition, u32 p_ParticleCount) noexcept;
+    static ivec<D> GetCellPosition(const fvec<D> &p_Position, f32 p_Radius);
+    static u32 GetCellKey(const ivec<D> &p_CellPosition, u32 p_ParticleCount);
 
-    ivec<D> GetCellPosition(const fvec<D> &p_Position) const noexcept;
-    u32 GetCellKey(const ivec<D> &p_CellPosition) const noexcept;
+    ivec<D> GetCellPosition(const fvec<D> &p_Position) const;
+    u32 GetCellKey(const ivec<D> &p_CellPosition) const;
 
-    u32 DrawCells(Onyx::RenderContext<D> *p_Context) const noexcept;
-    u32 GetCellCount() const noexcept;
+    u32 DrawCells(Onyx::RenderContext<D> *p_Context) const;
+    u32 GetCellCount() const;
 
-    template <typename F> void ForEachPairBruteForceST(F &&p_Function) const noexcept
+    template <typename F> void ForEachPairBruteForceST(F &&p_Function) const
     {
         TKIT_PROFILE_NSCOPE("Driz::Solver::ForEachPairBruteForceST");
         const f32 r2 = Radius * Radius;
@@ -47,7 +46,7 @@ template <Dimension D> class LookupMethod
             processPairWisePass(i, r2, std::forward<F>(p_Function));
     }
 
-    template <typename F> void ForEachPairBruteForceMT(F &&p_Function, const u32 p_Partitions) const noexcept
+    template <typename F> void ForEachPairBruteForceMT(F &&p_Function, const u32 p_Partitions) const
     {
         const auto &positions = *m_Positions;
         const f32 r2 = Radius * Radius;
@@ -60,7 +59,7 @@ template <Dimension D> class LookupMethod
                       });
     }
 
-    template <typename F> void ForEachPairGridST(F &&p_Function) const noexcept
+    template <typename F> void ForEachPairGridST(F &&p_Function) const
     {
         TKIT_PROFILE_NSCOPE("Driz::Solver::ForEachPairGridST");
         const OffsetArray offsets = getGridOffsets();
@@ -68,7 +67,7 @@ template <Dimension D> class LookupMethod
             processPairWiseCell(cell, offsets, std::forward<F>(p_Function));
     }
 
-    template <typename F> void ForEachPairGridMT(F &&p_Function, const u32 p_Partitions) const noexcept
+    template <typename F> void ForEachPairGridMT(F &&p_Function, const u32 p_Partitions) const
     {
         const OffsetArray offsets = getGridOffsets();
         Core::ForEach(0, Grid.Cells.GetSize(), p_Partitions,
@@ -80,7 +79,7 @@ template <Dimension D> class LookupMethod
                       });
     }
 
-    template <typename F> void ForEachParticleBruteForce(const u32 p_Index, F &&p_Function) const noexcept
+    template <typename F> void ForEachParticleBruteForce(const u32 p_Index, F &&p_Function) const
     {
         const auto &positions = *m_Positions;
         const f32 r2 = Radius * Radius;
@@ -93,7 +92,7 @@ template <Dimension D> class LookupMethod
             }
     }
 
-    template <typename F> void ForEachParticleGrid(const u32 p_Index1, F &&p_Function) const noexcept
+    template <typename F> void ForEachParticleGrid(const u32 p_Index1, F &&p_Function) const
     {
         const auto offsets = getGridOffsets();
         const f32 r2 = Radius * Radius;
@@ -148,7 +147,7 @@ template <Dimension D> class LookupMethod
     using OffsetArray = TKit::Array<ivec<D>, s_OffsetCount>;
 
     template <typename F, typename... Args>
-    void processPairWisePass(const u32 p_Index, const f32 p_Radius2, F &&p_Function, Args &&...p_Args) const noexcept
+    void processPairWisePass(const u32 p_Index, const f32 p_Radius2, F &&p_Function, Args &&...p_Args) const
     {
         const auto &positions = *m_Positions;
         for (u32 j = p_Index + 1; j < positions.GetSize(); ++j)
@@ -161,7 +160,7 @@ template <Dimension D> class LookupMethod
 
     template <typename F, typename... Args>
     void processPairWiseCell(const GridCell &p_Cell, const OffsetArray &p_Offsets, F &&p_Function,
-                             Args &&...p_Args) const noexcept
+                             Args &&...p_Args) const
     {
         const f32 r2 = Radius * Radius;
         const auto &positions = *m_Positions;
@@ -208,7 +207,7 @@ template <Dimension D> class LookupMethod
         }
     }
 
-    OffsetArray getGridOffsets() const noexcept;
+    OffsetArray getGridOffsets() const;
 
     const SimArray<fvec<D>> *m_Positions = nullptr;
 };

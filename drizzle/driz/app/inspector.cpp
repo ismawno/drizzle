@@ -5,11 +5,11 @@
 
 namespace Driz
 {
-template <Dimension D> Inspector<D>::Inspector(const Solver<D> *p_Solver) noexcept : m_Solver(p_Solver)
+template <Dimension D> Inspector<D>::Inspector(const Solver<D> *p_Solver) : m_Solver(p_Solver)
 {
 }
 
-template <Dimension D> void Inspector<D>::Render() noexcept
+template <Dimension D> void Inspector<D>::Render()
 {
     ImGui::Text("The inspector's purpose is to provide detailed information about the simulation to detect "
                 "inconsistencies or bugs");
@@ -51,7 +51,7 @@ template <Dimension D> void Inspector<D>::Render() noexcept
     }
 }
 
-template <Dimension D> void Inspector<D>::Inspect() noexcept
+template <Dimension D> void Inspector<D>::Inspect()
 {
     m_WantsToInspect = false;
     const LookupMethod<D> &lookup = m_Solver->Lookup;
@@ -94,12 +94,12 @@ template <Dimension D> void Inspector<D>::Inspect() noexcept
     m_LastInspectionTime = clock.GetElapsed().AsMilliseconds();
 }
 
-template <Dimension D> bool Inspector<D>::WantsToInspect() const noexcept
+template <Dimension D> bool Inspector<D>::WantsToInspect() const
 {
     return m_WantsToInspect;
 }
 
-template <Dimension D> void Inspector<D>::renderParticle(const u32 p_Index) const noexcept
+template <Dimension D> void Inspector<D>::renderParticle(const u32 p_Index) const
 {
     const fvec<D> &pos = m_Data.State.Positions[p_Index];
     const fvec<D> &vel = m_Data.State.Velocities[p_Index];
@@ -133,7 +133,7 @@ template <Dimension D> void Inspector<D>::renderParticle(const u32 p_Index) cons
 }
 
 template <Dimension D>
-void Inspector<D>::renderPairs(const TKit::TreeSet<ParticlePair> &p_Pairs, const u32 p_Selected) const noexcept
+void Inspector<D>::renderPairs(const TKit::TreeSet<ParticlePair> &p_Pairs, const u32 p_Selected) const
 {
     for (const auto &pair : p_Pairs)
     {
@@ -150,7 +150,7 @@ void Inspector<D>::renderPairs(const TKit::TreeSet<ParticlePair> &p_Pairs, const
 
 template <Dimension D>
 void Inspector<D>::renderDuplicatePairs(const TKit::TreeMap<ParticlePair, u32> &p_Pairs,
-                                        const u32 p_Selected) const noexcept
+                                        const u32 p_Selected) const
 {
     for (const auto &[pair, ocurrences] : p_Pairs)
     {
@@ -166,7 +166,7 @@ void Inspector<D>::renderDuplicatePairs(const TKit::TreeMap<ParticlePair, u32> &
 }
 
 template <Dimension D>
-void Inspector<D>::renderPairData(const InspectionData &p_Data, const u32 p_Selected) const noexcept
+void Inspector<D>::renderPairData(const InspectionData &p_Data, const u32 p_Selected) const
 {
     ImGui::Columns(2, "Inspection data", true);
     ImGui::BeginChild("Brute force", {0, 250}, true);
@@ -211,7 +211,7 @@ void Inspector<D>::renderPairData(const InspectionData &p_Data, const u32 p_Sele
     ImGui::Columns(1);
 }
 
-template <Dimension D> void Inspector<D>::renderInspectionData() const noexcept
+template <Dimension D> void Inspector<D>::renderInspectionData() const
 {
     ImGui::Text("Last inspection took %.2f ms", m_LastInspectionTime);
 
@@ -241,7 +241,7 @@ template <Dimension D> void Inspector<D>::renderInspectionData() const noexcept
     }
 }
 
-template <Dimension D> void Inspector<D>::renderGridData() const noexcept
+template <Dimension D> void Inspector<D>::renderGridData() const
 {
     static u32 selected = TKit::Limits<u32>::max();
     static bool search = false;
@@ -281,7 +281,7 @@ template <Dimension D> void Inspector<D>::renderGridData() const noexcept
     }
 }
 
-template <Dimension D> void Inspector<D>::renderParticleData() const noexcept
+template <Dimension D> void Inspector<D>::renderParticleData() const
 {
     const u32 pcount = m_Data.State.Positions.size();
     if (ImGui::TreeNode(m_Solver, "Particles: %u", pcount))

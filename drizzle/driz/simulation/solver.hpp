@@ -9,25 +9,25 @@ namespace Driz
 template <Dimension D> class Solver
 {
   public:
-    Solver(const SimulationSettings &p_Settings, const SimulationState<D> &p_State) noexcept;
+    Solver(const SimulationSettings &p_Settings, const SimulationState<D> &p_State);
 
-    void BeginStep(f32 p_DeltaTime) noexcept;
-    void EndStep() noexcept;
+    void BeginStep(f32 p_DeltaTime);
+    void EndStep();
 
-    void AddMouseForce(const fvec<D> &p_MousePos) noexcept;
-    void AddPressureAndViscosity() noexcept;
-    void ComputeDensities() noexcept;
-    void ApplyComputedForces(f32 p_DeltaTime) noexcept;
+    void AddMouseForce(const fvec<D> &p_MousePos);
+    void AddPressureAndViscosity();
+    void ComputeDensities();
+    void ApplyComputedForces(f32 p_DeltaTime);
 
-    u32 GetParticleCount() const noexcept;
+    u32 GetParticleCount() const;
 
-    void UpdateLookup() noexcept;
-    void UpdateAllLookups() noexcept;
+    void UpdateLookup();
+    void UpdateAllLookups();
 
-    void AddParticle(const fvec<D> &p_Position) noexcept;
+    void AddParticle(const fvec<D> &p_Position);
 
-    void DrawBoundingBox(Onyx::RenderContext<D> *p_Context) const noexcept;
-    void DrawParticles(Onyx::RenderContext<D> *p_Context) const noexcept;
+    void DrawBoundingBox(Onyx::RenderContext<D> *p_Context) const;
+    void DrawParticles(Onyx::RenderContext<D> *p_Context) const;
 
     LookupMethod<D> Lookup;
     SimulationData<D> Data;
@@ -39,7 +39,7 @@ template <Dimension D> class Solver
     void forEachWithinSmoothingRadius(F1 &&p_BruteForcePairWiseST, F2 &&p_BruteForcePairWiseMT, F3 &&p_GridPairWiseST,
                                       F4 &&p_GridPairWiseMT, F5 &&p_BruteForceParticleWiseST,
                                       F6 &&p_BruteForceParticleWiseMT, F7 &&p_GridParticleWiseST,
-                                      F8 &&p_GridParticleWiseMT) const noexcept
+                                      F8 &&p_GridParticleWiseMT) const
     {
         switch (Settings.IterationMode)
         {
@@ -80,23 +80,23 @@ template <Dimension D> class Solver
         }
     }
 
-    fvec2 getPressureFromDensity(const Density &p_Density) const noexcept;
+    fvec2 getPressureFromDensity(const Density &p_Density) const;
 
-    void encase(u32 p_Index) noexcept;
+    void encase(u32 p_Index);
 
-    void mergeDensityArrays() noexcept;
-    void mergeAccelerationArrays() noexcept;
+    void mergeDensityArrays();
+    void mergeAccelerationArrays();
 
-    f32 getInfluence(f32 p_Distance) const noexcept;
-    f32 getInfluenceSlope(f32 p_Distance) const noexcept;
+    f32 getInfluence(f32 p_Distance) const;
+    f32 getInfluenceSlope(f32 p_Distance) const;
 
-    f32 getNearInfluence(f32 p_Distance) const noexcept;
-    f32 getNearInfluenceSlope(f32 p_Distance) const noexcept;
+    f32 getNearInfluence(f32 p_Distance) const;
+    f32 getNearInfluenceSlope(f32 p_Distance) const;
 
-    f32 getViscosityInfluence(f32 p_Distance) const noexcept;
+    f32 getViscosityInfluence(f32 p_Distance) const;
 
-    fvec<D> computePairwisePressureGradient(u32 p_Index1, u32 p_Index2, f32 p_Distance) const noexcept;
-    fvec<D> computePairwiseViscosityTerm(u32 p_Index1, u32 p_Index2, f32 p_Distance) const noexcept;
+    fvec<D> computePairwisePressureGradient(u32 p_Index1, u32 p_Index2, f32 p_Distance) const;
+    fvec<D> computePairwiseViscosityTerm(u32 p_Index1, u32 p_Index2, f32 p_Distance) const;
 
     TKit::Array<SimArray<fvec<D>>, DRIZ_MAX_THREADS> m_ThreadAccelerations;
     TKit::Array<SimArray<Density>, DRIZ_MAX_THREADS> m_ThreadDensities;

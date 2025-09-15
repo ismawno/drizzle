@@ -10,23 +10,23 @@ namespace Driz
 class IntroLayer final : public Onyx::UserLayer
 {
   public:
-    IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings, Dimension p_Dim) noexcept;
+    IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings, Dimension p_Dim);
 
     template <Dimension D>
     IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
-               const SimulationState<D> &p_State) noexcept;
+               const SimulationState<D> &p_State);
 
   private:
-    void OnUpdate() noexcept override;
-    void OnEvent(const Onyx::Event &p_Event) noexcept override;
+    void OnUpdate() override;
+    void OnEvent(const Onyx::Event &p_Event) override;
 
     template <Dimension D>
     void onUpdate(Onyx::Camera<D> *p_Camera, Onyx::RenderContext<D> *p_Context,
-                  const SimulationState<D> &p_State) noexcept;
-    template <Dimension D> void updateStateAsLattice(SimulationState<D> &p_State, const uvec<D> &p_Dimensions) noexcept;
-    template <Dimension D> void renderBoundingBox(SimulationState<D> &p_State) noexcept;
+                  const SimulationState<D> &p_State);
+    template <Dimension D> void updateStateAsLattice(SimulationState<D> &p_State, const uvec<D> &p_Dimensions);
+    template <Dimension D> void renderBoundingBox(SimulationState<D> &p_State);
 
-    void renderIntroSettings() noexcept;
+    void renderIntroSettings();
 
     Onyx::Application *m_Application;
     i32 m_Dim = 0;
