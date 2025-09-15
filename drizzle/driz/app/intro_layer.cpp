@@ -58,6 +58,7 @@ IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSetting
 
 void IntroLayer::OnUpdate()
 {
+    TKIT_PROFILE_NSCOPE("Driz::IntroLayer::OnUpdate");
     if (m_Dim == 0)
     {
         m_Camera2->Transparent = false;

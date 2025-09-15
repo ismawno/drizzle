@@ -134,7 +134,8 @@ template <Dimension D> void SimLayer<D>::step(const bool p_Dummy)
     m_Solver.AddPressureAndViscosity();
     if constexpr (D == D2)
     {
-        if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
+        if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft) &&
+            !ImGui::GetIO().WantCaptureMouse)
         {
             const fvec2 mpos = m_Camera->GetWorldMousePosition(&m_Context->GetCurrentAxes());
             m_Solver.AddMouseForce(mpos);
