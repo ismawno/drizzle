@@ -1,11 +1,9 @@
 #include "driz/app/visualization.hpp"
-#include "driz/simulation/solver.hpp"
+#include "tkit/profiling/macros.hpp"
 
 namespace Driz
 {
-template <Dimension D>
-void IVisualization<D>::AdjustRenderingContext(Onyx::Camera<D> *p_Camera, Onyx::RenderContext<D> *p_Context,
-                                               const TKit::Timespan p_DeltaTime)
+template <Dimension D> void IVisualization<D>::AdjustRenderContext(Onyx::RenderContext<D> *p_Context)
 {
     p_Context->Flush();
     p_Context->ScaleAxes(0.025f);
@@ -15,8 +13,6 @@ void IVisualization<D>::AdjustRenderingContext(Onyx::Camera<D> *p_Camera, Onyx::
         p_Context->TranslateZAxis(-20.f);
         p_Context->DirectionalLight(fvec3{0.f, 1.f, 1.f}, 0.4f);
     }
-
-    p_Camera->ControlMovementWithUserInput(0.75f * p_DeltaTime);
 }
 
 template <Dimension D>

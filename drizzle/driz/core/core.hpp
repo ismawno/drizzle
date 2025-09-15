@@ -13,11 +13,15 @@
 #define DRIZ_MAX_THREADS ONYX_MAX_THREADS
 #define DRIZ_MAX_TASKS (ONYX_MAX_THREADS - 1)
 
+#ifndef DRIZ_MAX_PARTICLES
+#    define DRIZ_MAX_PARTICLES 100000
+#endif
+
 namespace Driz
 {
 namespace fs = std::filesystem;
 
-template <typename T> using SimArray = TKit::StaticArray<T, 70000>;
+template <typename T> using SimArray = TKit::StaticArray<T, DRIZ_MAX_PARTICLES>;
 
 struct Core
 {

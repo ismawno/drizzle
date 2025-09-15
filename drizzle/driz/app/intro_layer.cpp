@@ -6,8 +6,7 @@
 
 namespace Driz
 {
-IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
-                       const Dimension p_Dim)
+IntroLayer::IntroLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings, const Dimension p_Dim)
     : m_Application(p_Application), m_Dim(p_Dim == D2 ? 0 : 1), m_Settings(p_Settings)
 {
     m_Window = m_Application->GetMainWindow();
@@ -80,9 +79,14 @@ template <Dimension D>
 void IntroLayer::onUpdate(Onyx::Camera<D> *p_Camera, Onyx::RenderContext<D> *p_Context,
                           const SimulationState<D> &p_State)
 {
-    Visualization<D>::AdjustRenderingContext(p_Camera, p_Context, m_Application->GetDeltaTime());
-    Visualization<D>::DrawParticles(p_Context, m_Settings, p_State);
-    Visualization<D>::DrawBoundingBox(p_Context, p_State.Min, p_State.Max, Onyx::Color::FromHexadecimal("A6B1E1"));
+    if (m_NeedsRedraw)
+    {
+        Visualization<D>::AdjustRenderContext(p_Context);
+        Visualization<D>::DrawParticles(p_Context, m_Settings, p_State);
+        Visualization<D>::DrawBoundingBox(p_Context, p_State.Min, p_State.Max, Onyx::Color::FromHexadecimal("A6B1E1"));
+        m_NeedsRedraw = false;
+    }
+    p_Camera->ControlMovementWithUserInput(0.75f * m_Application->GetDeltaTime());
 }
 
 void IntroLayer::OnEvent(const Onyx::Event &p_Event)
@@ -131,9 +135,9 @@ void IntroLayer::renderIntroSettings()
         ImGui::TextLinkOpenURL("My GitHub", "https://github.com/ismawno");
 
         ImGui::Spacing();
-        ImGui::Combo("Dimension", &m_Dim,
-                     "2D\0"
-                     "3D\0\0");
+        m_NeedsRedraw |= ImGui::Combo("Dimension", &m_Dim,
+                                      "2D\0"
+                                      "3D\0\0");
         HelpMarkerSameLine("You can choose between a 2D and 3D simulation. 3D is more computationally expensive.");
         ImGui::Spacing();
 
@@ -191,9 +195,9 @@ void IntroLayer::renderIntroSettings()
     ImGui::End();
 }
 
-template <Dimension D>
-void IntroLayer::updateStateAsLattice(SimulationState<D> &p_State, const uvec<D> &p_Dimensions)
+template <Dimension D> void IntroLayer::updateStateAsLattice(SimulationState<D> &p_State, const uvec<D> &p_Dimensions)
 {
+    m_NeedsRedraw = true;
     p_State.Positions.Clear();
     p_State.Velocities.Clear();
     const f32 separation = 0.4f * m_Settings.SmoothingRadius;
@@ -225,13 +229,22 @@ template <Dimension D> void IntroLayer::renderBoundingBox(SimulationState<D> &p_
     if (ImGui::TreeNode("Bounding box"))
     {
         if (ImGui::DragFloat("Width", &p_State.Max.x, 0.05f))
+        {
             p_State.Min.x = -p_State.Max.x;
+            m_NeedsRedraw = true;
+        }
         if (ImGui::DragFloat("Height", &p_State.Max.y, 0.05f))
+        {
             p_State.Min.y = -p_State.Max.y;
+            m_NeedsRedraw = true;
+        }
         if constexpr (D == D3)
         {
             if (ImGui::DragFloat("Depth", &p_State.Max.z, 0.05f))
+            {
                 p_State.Min.z = -p_State.Max.z;
+                m_NeedsRedraw = true;
+            }
         }
         ImGui::TreePop();
     }

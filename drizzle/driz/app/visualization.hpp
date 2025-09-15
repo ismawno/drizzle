@@ -4,6 +4,7 @@
 #include "onyx/rendering/render_context.hpp"
 #include "onyx/serialization/color.hpp"
 #include "onyx/app/user_layer.hpp"
+#include "driz/simulation/settings.hpp"
 #include "tkit/profiling/timespan.hpp"
 #include "tkit/serialization/yaml/driz/simulation/settings.hpp"
 #include "tkit/serialization/yaml/driz/simulation/kernel.hpp"
@@ -15,8 +16,7 @@ namespace Driz
 struct SimulationSettings;
 template <Dimension D> struct IVisualization
 {
-    static void AdjustRenderingContext(Onyx::Camera<D> *p_Camera, Onyx::RenderContext<D> *p_Context,
-                                       TKit::Timespan p_DeltaTime);
+    static void AdjustRenderContext(Onyx::RenderContext<D> *p_Context);
 
     static void DrawParticles(Onyx::RenderContext<D> *p_Context, const SimulationSettings &p_Settings,
                               const SimulationState<D> &p_State);

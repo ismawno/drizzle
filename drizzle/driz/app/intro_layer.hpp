@@ -21,8 +21,7 @@ class IntroLayer final : public Onyx::UserLayer
     void OnEvent(const Onyx::Event &p_Event) override;
 
     template <Dimension D>
-    void onUpdate(Onyx::Camera<D> *p_Camera, Onyx::RenderContext<D> *p_Context,
-                  const SimulationState<D> &p_State);
+    void onUpdate(Onyx::Camera<D> *p_Camera, Onyx::RenderContext<D> *p_Context, const SimulationState<D> &p_State);
     template <Dimension D> void updateStateAsLattice(SimulationState<D> &p_State, const uvec<D> &p_Dimensions);
     template <Dimension D> void renderBoundingBox(SimulationState<D> &p_State);
 
@@ -49,5 +48,7 @@ class IntroLayer final : public Onyx::UserLayer
 
     SimulationState<D2> m_State2;
     SimulationState<D3> m_State3;
+
+    bool m_NeedsRedraw = false;
 };
 } // namespace Driz

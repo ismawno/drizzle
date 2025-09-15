@@ -59,7 +59,8 @@ template <Dimension D> void SimLayer<D>::OnUpdate()
     if (!m_Pause)
         step(m_DummyStep);
 
-    Visualization<D>::AdjustRenderingContext(m_Camera, m_Context, m_Application->GetDeltaTime());
+    Visualization<D>::AdjustRenderContext(m_Context);
+    m_Camera->ControlMovementWithUserInput(0.75f * m_Application->GetDeltaTime());
     m_Solver.DrawParticles(m_Context);
     m_Solver.DrawBoundingBox(m_Context);
 
