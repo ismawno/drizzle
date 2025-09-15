@@ -19,29 +19,33 @@ template <Dimension D>
 void IVisualization<D>::DrawParticles(Onyx::RenderContext<D> *p_Context, const SimulationSettings &p_Settings,
                                       const SimulationState<D> &p_State)
 {
-    TKIT_PROFILE_NSCOPE("Driz::IVisualization::DrawParticles");
-    const f32 psize = 2.f * p_Settings.ParticleRadius;
+    p_Context->ShareCurrentState();
+    Core::ForEach(0, p_State.Positions.GetSize(), p_Settings.Partitions,
+                  [&, p_Context](const u32 p_Start, const u32 p_End) {
+                      TKIT_PROFILE_NSCOPE("Driz::IVisualization::DrawParticles");
+                      const f32 psize = 2.f * p_Settings.ParticleRadius;
 
-    const Onyx::Gradient gradient{p_Settings.Gradient};
-    for (u32 i = 0; i < p_State.Positions.GetSize(); ++i)
-    {
-        const fvec<D> &pos = p_State.Positions[i];
-        const fvec<D> &vel = p_State.Velocities[i];
+                      const Onyx::Gradient gradient{p_Settings.Gradient};
+                      for (u32 i = p_Start; i < p_End; ++i)
+                      {
+                          const fvec<D> &pos = p_State.Positions[i];
+                          const fvec<D> &vel = p_State.Velocities[i];
 
-        const f32 speed = glm::min(p_Settings.FastSpeed, glm::length(vel));
-        const Onyx::Color color = gradient.Evaluate(speed / p_Settings.FastSpeed);
+                          const f32 speed = glm::min(p_Settings.FastSpeed, glm::length(vel));
+                          const Onyx::Color color = gradient.Evaluate(speed / p_Settings.FastSpeed);
 
-        p_Context->Push();
-        p_Context->Fill(color);
+                          p_Context->Push();
+                          p_Context->Fill(color);
 
-        p_Context->Translate(pos);
-        if constexpr (D == D2)
-            p_Context->Circle(psize);
-        else
-            p_Context->Sphere(psize, Core::Resolution);
+                          p_Context->Translate(pos);
+                          if constexpr (D == D2)
+                              p_Context->Circle(psize);
+                          else
+                              p_Context->Sphere(psize, Core::Resolution);
 
-        p_Context->Pop();
-    }
+                          p_Context->Pop();
+                      }
+                  });
 }
 
 template <Dimension D>
@@ -289,30 +293,33 @@ void Visualization<D3>::DrawParticles(Onyx::RenderContext<D3> *p_Context, const 
                                       const SimulationData<D3> &p_Data, const Onyx::Color &p_OutlineHighlight,
                                       const Onyx::Color &p_OutlinePressed)
 {
-    TKIT_PROFILE_NSCOPE("Driz::Visualization<D3>::DrawParticles");
-    const f32 psize = 2.f * p_Settings.ParticleRadius;
+    Core::ForEach(0, p_Data.State.Positions.GetSize(), p_Settings.Partitions,
+                  [&, p_Context](const u32 p_Start, const u32 p_End) {
+                      TKIT_PROFILE_NSCOPE("Driz::Visualization<D3>::DrawParticles");
+                      const f32 psize = 2.f * p_Settings.ParticleRadius;
 
-    const Onyx::Gradient gradient{p_Settings.Gradient};
-    for (u32 i = 0; i < p_Data.State.Positions.GetSize(); ++i)
-    {
-        const fvec3 &pos = p_Data.State.Positions[i];
-        const fvec3 &vel = p_Data.State.Velocities[i];
+                      const Onyx::Gradient gradient{p_Settings.Gradient};
+                      for (u32 i = p_Start; i < p_End; ++i)
+                      {
+                          const fvec3 &pos = p_Data.State.Positions[i];
+                          const fvec3 &vel = p_Data.State.Velocities[i];
 
-        const f32 speed = glm::min(p_Settings.FastSpeed, glm::length(vel));
-        const Onyx::Color color = gradient.Evaluate(speed / p_Settings.FastSpeed);
+                          const f32 speed = glm::min(p_Settings.FastSpeed, glm::length(vel));
+                          const Onyx::Color color = gradient.Evaluate(speed / p_Settings.FastSpeed);
 
-        p_Context->Push();
-        if (p_Data.UnderMouseInfluence[i] == 1)
-            p_Context->Outline(p_OutlinePressed);
-        else if (p_Data.UnderMouseInfluence[i] == 2)
-            p_Context->Outline(p_OutlineHighlight);
+                          p_Context->Push();
+                          if (p_Data.UnderMouseInfluence[i] == 1)
+                              p_Context->Outline(p_OutlinePressed);
+                          else if (p_Data.UnderMouseInfluence[i] == 2)
+                              p_Context->Outline(p_OutlineHighlight);
 
-        p_Context->Fill(color);
-        p_Context->Translate(pos);
-        p_Context->Sphere(psize, Core::Resolution);
+                          p_Context->Fill(color);
+                          p_Context->Translate(pos);
+                          p_Context->Sphere(psize, Core::Resolution);
 
-        p_Context->Pop();
-    }
+                          p_Context->Pop();
+                      }
+                  });
 }
 
 template struct IVisualization<D2>;
