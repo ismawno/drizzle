@@ -23,7 +23,7 @@ for %%c in (python python3 python2 py) do (
 :found
 if defined found (
     echo Valid python executable found. Runnnig setup...
-    %found% %script_dir%setup.py -s --vulkan-sdk --cmake --visual-studio --build-script %script_dir%build.py --source-path %script_dir%.. --build-path %script_dir%..\build --build-type Dist -v
+    %found% %script_dir%setup.py -s --cmake --visual-studio --build-script %script_dir%build.py --source-path %script_dir%.. --build-path %script_dir%..\build --build-type Dist -v
 ) else (
     echo Python is required to run the setup.
     exit /b 1

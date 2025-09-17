@@ -127,8 +127,8 @@ def parse_arguments() -> tuple[Namespace, list[str]]:
     parser.add_argument(
         "--vulkan-version",
         type=str,
-        default="1.3.250.1",
-        help="The Vulkan SDK version to install. Default is '1.3.250.1'.",
+        default="1.4.321.1",
+        help="The Vulkan SDK version to install. Default is '1.4.321.1'.",
     )
     if Convoy.is_windows:
         parser.add_argument(

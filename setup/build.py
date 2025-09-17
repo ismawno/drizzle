@@ -319,9 +319,9 @@ if args.build_command is not None:
         Convoy.exit_error(f"Failed to execute build command: <bold>{args.build_command}")
 
     Convoy.exit_ok(
-        f"Build files were generated and the project compiled successfully. You may found the build files at <underline>{build_path}</underline>, along with the compiled binaries."
+        f"Build files were generated and the project compiled successfully. You may find the build files at <underline>{build_path}</underline>, along with the compiled binaries."
     )
 
 Convoy.exit_ok(
-    f"Build files were generated successfully. You may found the build files at <underline>{build_path}</underline>. As no build command was provided, the project must be compiled manually. You may do so with <bold>make</bold> if you are using a unix-like system or <bold>Visual Studio</bold> if you are using Windows."
+    f"Build files were generated successfully. You may find the build files at <underline>{build_path}</underline>. As no build command was provided, the project must be compiled manually. You may do so with <bold>make</bold> if you are using a unix-like system or <bold>Visual Studio</bold> if you are using Windows."
 )

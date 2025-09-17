@@ -29,7 +29,7 @@ DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
 ROOT="$DIR/.."
 
 if [[ "$(uname)" == "Darwin" ]]; then
-    $working_python "$ROOT/setup/setup.py" -s --xcode-command-line-tools --vulkan-sdk --cmake --build-script "$ROOT/setup/build.py" --source-path "$ROOT" --build-path "$ROOT/build" --build-type Dist -v --build-command make -j 4
+    $working_python "$ROOT/setup/setup.py" -s --xcode-command-line-tools --cmake --build-script "$ROOT/setup/build.py" --source-path "$ROOT" --build-path "$ROOT/build" --build-type Dist -v --build-command make -j 4
 else
-    $working_python "$ROOT/setup/setup.py" -s --linux-devtools --vulkan-sdk --cmake --build-script "$ROOT/setup/build.py" --source-path "$ROOT" --build-path "$ROOT/build" --build-type Dist -v --build-command make -j 4
+    $working_python "$ROOT/setup/setup.py" -s --linux-devtools --cmake --build-script "$ROOT/setup/build.py" --source-path "$ROOT" --build-path "$ROOT/build" --build-type Dist -v --build-command make -j 4
 fi
