@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.16...3.31)
 project(drizzle-root)
 
 # Set the C++ standard to C++20
@@ -21,4 +21,3 @@ define_option(CMAKE_BUILD_TYPE "Debug" "Drizzle - Build")
 set(DRIZZLE_ROOT_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory(drizzle)
-
