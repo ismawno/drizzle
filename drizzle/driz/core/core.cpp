@@ -9,7 +9,7 @@ namespace Driz
 using namespace TKit::Literals;
 
 static TKit::Storage<TKit::ThreadPool> s_ThreadPool;
-static TKit::ArenaAllocator s_Arena{1_mb};
+static TKit::ArenaAllocator s_Arena{5_mb};
 
 static fs::path s_SettingsPath = fs::path(DRIZ_ROOT_PATH) / "saves" / "settings";
 static fs::path s_StatePath2 = fs::path(DRIZ_ROOT_PATH) / "saves" / "2D";

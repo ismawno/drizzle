@@ -15,6 +15,55 @@ template <Dimension D> void LookupMethod<D>::UpdateBruteForceLookup(const f32 p_
     Radius = p_Radius;
 }
 
+struct IndexPair
+{
+    u32 ParticleIndex;
+    u32 CellKey;
+};
+
+enum class RadixSort : u32
+{
+    Base8 = 8,
+    Base16 = 16
+};
+
+template <RadixSort Base> IndexPair *radixSort(IndexPair *p_Keys, const u32 p_Count)
+{
+    constexpr u32 base = static_cast<u32>(Base);
+    constexpr u32 bcount = 1 << base;
+    constexpr u32 passes = 32 / base;
+    constexpr u32 mask = bcount - 1;
+
+    TKit::Array<u32, bcount> buckets{};
+    TKit::ArenaAllocator &arena = Core::GetArena();
+
+    IndexPair *sorted = arena.Allocate<IndexPair>(p_Count);
+
+    for (u32 i = 0; i < passes; ++i)
+    {
+        for (u32 j = 0; j < bcount; ++j)
+            buckets[j] = 0;
+
+        const u32 shift = base * i;
+        for (u32 j = 0; j < p_Count; ++j)
+        {
+            const u32 digit = (p_Keys[j].CellKey >> shift) & mask;
+            ++buckets[digit];
+        }
+
+        for (u32 j = 1; j < bcount; ++j)
+            buckets[j] += buckets[j - 1];
+
+        for (u32 j = p_Count - 1; j < p_Count; --j)
+        {
+            const u32 digit = (p_Keys[j].CellKey >> shift) & mask;
+            sorted[--buckets[digit]] = p_Keys[j];
+        }
+        std::swap(p_Keys, sorted);
+    }
+    return sorted;
+}
+
 template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius)
 {
     TKIT_PROFILE_NSCOPE("Driz::LookupMethod::UpdateGridLookup");
@@ -23,17 +72,12 @@ template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius
     Radius = p_Radius;
     const u32 particles = m_Positions->GetSize();
 
-    struct IndexPair
-    {
-        u32 ParticleIndex;
-        u32 CellKey;
-    };
-
-    Grid.CellKeyToIndex.Resize(particles);
+    Grid.CellKeyToCellIndex.Resize(particles);
     Grid.ParticleIndices.Resize(particles);
     Grid.Cells.Clear();
 
-    IndexPair *keys = Core::GetArena().Allocate<IndexPair>(particles);
+    TKit::ArenaAllocator &arena = Core::GetArena();
+    IndexPair *keys = arena.Allocate<IndexPair>(particles);
 
     const auto &positions = *m_Positions;
     for (u32 i = 0; i < particles; ++i)
@@ -41,40 +85,38 @@ template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius
         const ivec<D> cellPosition = GetCellPosition(positions[i]);
         const u32 key = GetCellKey(cellPosition);
         keys[i] = IndexPair{i, key};
-        Grid.CellKeyToIndex[i] = UINT32_MAX;
+        Grid.CellKeyToCellIndex[i] = UINT32_MAX;
     }
 
+    IndexPair *sortedKeys;
     {
         TKIT_PROFILE_NSCOPE("Driz::LookupMethod::CellKeySorting");
-        std::sort(keys, keys + particles, [](const IndexPair &a, const IndexPair &b) {
-            // if (a.CellKey == b.CellKey)
-            //     return a.ParticleIndex < b.ParticleIndex;
-            return a.CellKey < b.CellKey;
-        });
+        sortedKeys = radixSort<RadixSort::Base16>(keys, particles);
     }
 
-    u32 prevKey = keys[0].CellKey;
+    u32 prevKey = sortedKeys[0].CellKey;
     GridCell cell{prevKey, 0, 0};
-    Grid.CellKeyToIndex[prevKey] = 0;
+    Grid.CellKeyToCellIndex[prevKey] = 0;
 
     for (u32 i = 0; i < particles; ++i)
     {
-        if (keys[i].CellKey != prevKey)
+        const IndexPair pair = sortedKeys[i];
+        if (pair.CellKey != prevKey)
         {
             cell.End = i;
             Grid.Cells.Append(cell);
 
-            Grid.CellKeyToIndex[keys[i].CellKey] = Grid.Cells.GetSize();
-            cell.Key = keys[i].CellKey;
+            Grid.CellKeyToCellIndex[pair.CellKey] = Grid.Cells.GetSize();
+            cell.Key = pair.CellKey;
             cell.Start = i;
         }
-        Grid.ParticleIndices[i] = keys[i].ParticleIndex;
-        prevKey = keys[i].CellKey;
+        Grid.ParticleIndices[i] = pair.ParticleIndex;
+        prevKey = pair.CellKey;
     }
 
     cell.End = particles;
     Grid.Cells.Append(cell);
-    Core::GetArena().Reset();
+    arena.Reset();
 }
 
 template <Dimension D> u32 LookupMethod<D>::DrawCells(Onyx::RenderContext<D> *p_Context) const
@@ -129,8 +171,7 @@ template <Dimension D> ivec<D> LookupMethod<D>::GetCellPosition(const fvec<D> &p
         cellPosition[i] = static_cast<i32>(p_Position[i] / p_Radius) - (p_Position[i] < 0.f);
     return cellPosition;
 }
-template <Dimension D>
-u32 LookupMethod<D>::GetCellKey(const ivec<D> &p_CellPosition, const u32 p_ParticleCount)
+template <Dimension D> u32 LookupMethod<D>::GetCellKey(const ivec<D> &p_CellPosition, const u32 p_ParticleCount)
 {
     return TKit::Hash(p_CellPosition) % p_ParticleCount;
 }

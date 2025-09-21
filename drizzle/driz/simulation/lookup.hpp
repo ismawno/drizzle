@@ -18,7 +18,7 @@ struct GridData
 {
     SimArray<GridCell> Cells;
     SimArray<u32> ParticleIndices;
-    SimArray<u32> CellKeyToIndex;
+    SimArray<u32> CellKeyToCellIndex;
 };
 
 template <Dimension D> class LookupMethod
@@ -80,7 +80,7 @@ template <Dimension D> class LookupMethod
                                   for (const ivec<D> &offset : offsets)
                                   {
                                       const u32 cellKey2 = GetCellKey(center + offset);
-                                      const u32 cellIndex = Grid.CellKeyToIndex[cellKey2];
+                                      const u32 cellIndex = Grid.CellKeyToCellIndex[cellKey2];
                                       if (cellKey2 > cellKey1 && cellIndex != UINT32_MAX && checkVisited(cellKey2))
                                       {
                                           const GridCell &cell2 = Grid.Cells[cellIndex];
