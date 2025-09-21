@@ -9,7 +9,6 @@
 #include "onyx/object/primitives.hpp"
 #include <filesystem>
 
-// #define DRIZ_ENABLE_INSPECTOR
 #define DRIZ_MAX_THREADS ONYX_MAX_THREADS
 #define DRIZ_MAX_TASKS (ONYX_MAX_THREADS - 1)
 

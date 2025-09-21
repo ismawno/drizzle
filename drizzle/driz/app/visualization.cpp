@@ -245,37 +245,12 @@ template <Dimension D> void IVisualization<D>::RenderSettings(SimulationSettings
 
     ImGui::Spacing();
 
-    ImGui::Text("Optimizations");
+    const u32 mn = 1;
+    const u32 mx = DRIZ_MAX_TASKS + 1;
+    ImGui::SliderScalar("Worker task count", ImGuiDataType_U32, &p_Settings.Partitions, &mn, &mx);
     Onyx::UserLayer::HelpMarkerSameLine(
-        "The sole purpose of optimizations is to make the simulation do the same thing, but faster. This requires "
-        "writing more efficient code, or explicitly using available hardware (such as multi-threading).");
-
-    ImGui::Combo("Lookup mode", reinterpret_cast<i32 *>(&p_Settings.LookupMode),
-                 "Brute Force SingleThread\0Brute Force MultiTread\0Grid SingleTread\0Grid MultiTread\0\0");
-    Onyx::UserLayer::HelpMarkerSameLine(
-        "The lookup mode is one of the most important optimizations, as it affects the most expensive operation in the "
-        "simulation by far: finding neighboring particles. The brute force method mindlessly checks every particle "
-        "against every other particle, while the grid method divides the simulation space into cells and only checks "
-        "particles within the same cell or neighboring cells. You may also choose the single-threaded or "
-        "multi-threaded variants of both.");
-
-    ImGui::Combo("Iteration mode", reinterpret_cast<i32 *>(&p_Settings.IterationMode), "Pairwise\0Particlewise\0\0");
-    Onyx::UserLayer::HelpMarkerSameLine(
-        "The iteration mode determines how the simulation traverses the lookup data "
-        "structure. The pairwise mode iterates over every pair of particles. Its main advantage is that it avoids "
-        "redundancy calculations. The particlewise mode iterates over every particle and calculates the forces acting "
-        "on it. This mode is more cache-friendly and can be parallelized more easily, specially in GPU-land, but it "
-        "introduces a lot of redundant operations.");
-
-    if (p_Settings.UsesMultiThread())
-    {
-        const u32 mn = 1;
-        const u32 mx = DRIZ_MAX_TASKS + 1;
-        ImGui::SliderScalar("Worker task count", ImGuiDataType_U32, &p_Settings.Partitions, &mn, &mx);
-        Onyx::UserLayer::HelpMarkerSameLine(
-            "The number of additional threads that will be used to compute the simulation. Try to match the number of "
-            "threads with the number of cores in your CPU.");
-    }
+        "The number of additional threads that will be used to compute the simulation. Try to match the number of "
+        "threads with the number of cores in your CPU.");
 }
 
 void Visualization<D2>::DrawMouseInfluence(const Onyx::Camera<D2> *p_Camera, Onyx::RenderContext<D2> *p_Context,

@@ -88,12 +88,6 @@ template <Dimension D> void SimLayer<D>::OnUpdate()
     if (ImGui::Begin("Visualization settings"))
         renderVisualizationSettings();
     ImGui::End();
-
-#ifdef DRIZ_ENABLE_INSPECTOR
-    if (ImGui::Begin("Simulation inspector"))
-        m_Inspector.Render();
-    ImGui::End();
-#endif
 }
 
 template <Dimension D> void SimLayer<D>::OnEvent(const Onyx::Event &p_Event)
@@ -160,14 +154,6 @@ template <Dimension D> void SimLayer<D>::step(const bool p_Dummy)
         }
     }
 
-#ifdef DRIZ_ENABLE_INSPECTOR
-    if (m_Inspector.WantsToInspect())
-    {
-        m_Solver.UpdateAllLookups();
-        m_Inspector.Inspect();
-    }
-#endif
-
     if (!p_Dummy)
         m_Solver.ApplyComputedForces(m_Timestep);
     m_Solver.EndStep();
@@ -217,7 +203,7 @@ template <Dimension D> void SimLayer<D>::renderVisualizationSettings()
         "If the grid spatial lookup optimization is enabled, this setting will let you visualize the grid cells as "
         "well as if there are clashes between them.");
 
-    if (m_Solver.Settings.UsesGrid() && drawGrid)
+    if (drawGrid)
     {
         m_Solver.UpdateLookup();
         const u32 cellClashes = m_Solver.Lookup.DrawCells(m_Context);

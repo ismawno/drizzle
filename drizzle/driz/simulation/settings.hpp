@@ -9,25 +9,6 @@
 
 namespace Driz
 {
-TKIT_YAML_SERIALIZE_DECLARE_ENUM(ParticleIterationMode)
-TKIT_YAML_SERIALIZE_DECLARE_ENUM(ParticleLookupMode)
-TKIT_REFLECT_DECLARE_ENUM(ParticleIterationMode)
-TKIT_REFLECT_DECLARE_ENUM(ParticleLookupMode)
-enum class ParticleLookupMode
-{
-    BruteForceSingleThread = 0,
-    BruteForceMultiThread,
-
-    GridSingleThread,
-    GridMultiThread
-};
-
-enum class ParticleIterationMode
-{
-    PairWise = 0,
-    ParticleWise
-};
-
 struct SimulationSettings
 {
     TKIT_REFLECT_DECLARE(SimulationSettings)
@@ -55,17 +36,11 @@ struct SimulationSettings
 
     u32 Partitions = 1;
 
-    ParticleLookupMode LookupMode = ParticleLookupMode::GridMultiThread;
-    ParticleIterationMode IterationMode = ParticleIterationMode::PairWise;
-
     KernelType KType = KernelType::Spiky3;
     KernelType NearKType = KernelType::Spiky5;
     TKIT_REFLECT_GROUP_END()
 
     TKit::Array<Onyx::Color, 3> Gradient = {Onyx::Color::CYAN, Onyx::Color::YELLOW, Onyx::Color::RED};
-
-    bool UsesGrid() const;
-    bool UsesMultiThread() const;
 };
 
 template <Dimension D> struct SimulationState

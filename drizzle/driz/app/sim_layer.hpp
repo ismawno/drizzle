@@ -1,18 +1,16 @@
 #pragma once
 
+#include "driz/simulation/solver.hpp"
 #include "onyx/app/user_layer.hpp"
 #include "onyx/app/app.hpp"
 #include "onyx/rendering/render_context.hpp"
-#include "driz/simulation/solver.hpp"
-#include "driz/app/inspector.hpp"
 
 namespace Driz
 {
 template <Dimension D> class SimLayer final : public Onyx::UserLayer
 {
   public:
-    SimLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings,
-             const SimulationState<D> &p_State);
+    SimLayer(Onyx::Application *p_Application, const SimulationSettings &p_Settings, const SimulationState<D> &p_State);
 
   private:
     void OnUpdate() override;
@@ -25,9 +23,6 @@ template <Dimension D> class SimLayer final : public Onyx::UserLayer
     Onyx::Window *m_Window;
 
     Solver<D> m_Solver;
-#ifdef DRIZ_ENABLE_INSPECTOR
-    Inspector<D> m_Inspector{&m_Solver};
-#endif
     Onyx::RenderContext<D> *m_Context;
     Onyx::Camera<D> *m_Camera;
 

@@ -7,7 +7,6 @@ set(SOURCES
     driz/app/sim_layer.cpp
     driz/app/intro_layer.cpp
     driz/app/visualization.cpp
-    driz/app/inspector.cpp
     driz/app/argparse.cpp
     driz/simulation/solver.cpp
     driz/simulation/kernel.cpp

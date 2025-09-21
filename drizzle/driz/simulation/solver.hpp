@@ -34,52 +34,6 @@ template <Dimension D> class Solver
     SimulationSettings Settings;
 
   private:
-    // This is hilarious
-    template <typename F1, typename F2, typename F3, typename F4, typename F5, typename F6, typename F7, typename F8>
-    void forEachWithinSmoothingRadius(F1 &&p_BruteForcePairWiseST, F2 &&p_BruteForcePairWiseMT, F3 &&p_GridPairWiseST,
-                                      F4 &&p_GridPairWiseMT, F5 &&p_BruteForceParticleWiseST,
-                                      F6 &&p_BruteForceParticleWiseMT, F7 &&p_GridParticleWiseST,
-                                      F8 &&p_GridParticleWiseMT) const
-    {
-        switch (Settings.IterationMode)
-        {
-        case ParticleIterationMode::PairWise:
-            switch (Settings.LookupMode)
-            {
-            case ParticleLookupMode::BruteForceSingleThread:
-                std::forward<F1>(p_BruteForcePairWiseST)();
-                return;
-            case ParticleLookupMode::BruteForceMultiThread:
-                std::forward<F2>(p_BruteForcePairWiseMT)();
-                return;
-            case ParticleLookupMode::GridSingleThread:
-                std::forward<F3>(p_GridPairWiseST)();
-                return;
-            case ParticleLookupMode::GridMultiThread:
-                std::forward<F4>(p_GridPairWiseMT)();
-                return;
-            }
-            return;
-        case ParticleIterationMode::ParticleWise:
-            switch (Settings.LookupMode)
-            {
-            case ParticleLookupMode::BruteForceSingleThread:
-                std::forward<F5>(p_BruteForceParticleWiseST)();
-                return;
-            case ParticleLookupMode::BruteForceMultiThread:
-                std::forward<F6>(p_BruteForceParticleWiseMT)();
-                return;
-            case ParticleLookupMode::GridSingleThread:
-                std::forward<F7>(p_GridParticleWiseST)();
-                return;
-            case ParticleLookupMode::GridMultiThread:
-                std::forward<F8>(p_GridParticleWiseMT)();
-                return;
-            }
-            return;
-        }
-    }
-
     fvec2 getPressureFromDensity(const Density &p_Density) const;
 
     void encase(u32 p_Index);
