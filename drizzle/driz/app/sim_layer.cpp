@@ -60,7 +60,8 @@ template <Dimension D> void SimLayer<D>::OnUpdate()
         step(m_DummyStep);
 
     Visualization<D>::AdjustRenderContext(m_Context);
-    m_Camera->ControlMovementWithUserInput(0.75f * m_Application->GetDeltaTime());
+    if (!ImGui::GetIO().WantCaptureKeyboard)
+        m_Camera->ControlMovementWithUserInput(0.75f * m_Application->GetDeltaTime());
     m_Solver.DrawParticles(m_Context);
     m_Solver.DrawBoundingBox(m_Context);
 

@@ -87,7 +87,8 @@ void IntroLayer::onUpdate(Onyx::Camera<D> *p_Camera, Onyx::RenderContext<D> *p_C
         Visualization<D>::DrawBoundingBox(p_Context, p_State.Min, p_State.Max, Onyx::Color::FromHexadecimal("A6B1E1"));
         m_NeedsRedraw = false;
     }
-    p_Camera->ControlMovementWithUserInput(0.75f * m_Application->GetDeltaTime());
+    if (!ImGui::GetIO().WantCaptureKeyboard)
+        p_Camera->ControlMovementWithUserInput(0.75f * m_Application->GetDeltaTime());
 }
 
 void IntroLayer::OnEvent(const Onyx::Event &p_Event)
