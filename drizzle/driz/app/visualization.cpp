@@ -293,6 +293,7 @@ void Visualization<D3>::DrawParticles(Onyx::RenderContext<D3> *p_Context, const 
                                       const SimulationData<D3> &p_Data, const Onyx::Color &p_OutlineHighlight,
                                       const Onyx::Color &p_OutlinePressed)
 {
+    p_Context->ShareCurrentState();
     Core::ForEach(0, p_Data.State.Positions.GetSize(), p_Settings.Partitions,
                   [&, p_Context](const u32 p_Start, const u32 p_End) {
                       TKIT_PROFILE_NSCOPE("Driz::Visualization<D3>::DrawParticles");
