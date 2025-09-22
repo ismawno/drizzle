@@ -73,31 +73,6 @@ template <Dimension D> f32 Solver<D>::getViscosityInfluence(const f32 p_Distance
 }
 
 template <Dimension D>
-fvec<D> Solver<D>::computePairwisePressureGradient(const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) const
-{
-    const fvec<D> dir = (Data.State.Positions[p_Index1] - Data.State.Positions[p_Index2]) / p_Distance;
-    const fvec2 kernels = {getInfluenceSlope(p_Distance), getNearInfluenceSlope(p_Distance)};
-
-    const fvec2 pressures1 = getPressureFromDensity(Data.Densities[p_Index1]);
-    const fvec2 pressures2 = getPressureFromDensity(Data.Densities[p_Index2]);
-
-    const fvec2 densities = 0.5f * (Data.Densities[p_Index1] + Data.Densities[p_Index2]);
-    const fvec2 coeffs = 0.5f * (pressures1 + pressures2) * kernels / densities;
-
-    return (Settings.ParticleMass * (coeffs.x + coeffs.y)) * dir;
-}
-
-template <Dimension D>
-fvec<D> Solver<D>::computePairwiseViscosityTerm(const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) const
-{
-    const fvec<D> diff = Data.State.Velocities[p_Index2] - Data.State.Velocities[p_Index1];
-    const f32 kernel = getViscosityInfluence(p_Distance);
-
-    const f32 u = glm::length(diff);
-    return ((Settings.ViscLinearTerm + Settings.ViscQuadraticTerm * u) * kernel) * diff;
-}
-
-template <Dimension D>
 Solver<D>::Solver(const SimulationSettings &p_Settings, const SimulationState<D> &p_State) : Settings(p_Settings)
 {
     Data.State = p_State;
@@ -202,17 +177,40 @@ template <Dimension D> void Solver<D>::AddPressureAndViscosity()
 {
     TKIT_PROFILE_NSCOPE("Driz::Solver::AddPressureAndViscosity");
     const auto computeAccelerations = [this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
-        const fvec<D> gradient = computePairwisePressureGradient(p_Index1, p_Index2, p_Distance);
-        const fvec<D> term = computePairwiseViscosityTerm(p_Index1, p_Index2, p_Distance);
+        // Gradient
+        const fvec<D> dir = (Data.State.Positions[p_Index1] - Data.State.Positions[p_Index2]) / p_Distance;
+        const fvec2 kernels = {getInfluenceSlope(p_Distance), getNearInfluenceSlope(p_Distance)};
 
-        const fvec<D> acc1 = term - gradient / Data.Densities[p_Index1].x;
-        const fvec<D> acc2 = term - gradient / Data.Densities[p_Index2].x;
+        const fvec2 pressures1 = getPressureFromDensity(Data.Densities[p_Index1]);
+        const fvec2 pressures2 = getPressureFromDensity(Data.Densities[p_Index2]);
 
-        return std::make_pair(acc1, acc2);
+        const fvec2 d1 = Data.Densities[p_Index1];
+        const fvec2 d2 = Data.Densities[p_Index2];
+
+        const fvec2 densities = d1 + d2;
+        const fvec2 coeffs = (pressures1 + pressures2) * kernels / densities;
+
+        const fvec<D> gradient = (Settings.ParticleMass * (coeffs.x + coeffs.y)) * dir;
+
+        // Viscosity
+        const fvec<D> diff = Data.State.Velocities[p_Index2] - Data.State.Velocities[p_Index1];
+        const f32 kernel = getViscosityInfluence(p_Distance);
+
+        const f32 u = glm::length(diff);
+
+        const fvec<D> vterm = ((Settings.ViscLinearTerm + Settings.ViscQuadraticTerm * u) * kernel) * diff;
+
+        // Elasticity
+        const f32 factor = Settings.ElasticityStrength * (1.f - Settings.ElasticityLength / Settings.SmoothingRadius) *
+                           (Settings.ElasticityLength - p_Distance);
+        const fvec<D> eterm = factor * dir;
+        const fvec<D> acc = eterm + vterm - gradient;
+
+        return std::make_pair(acc / d1.x, acc / d2.x);
     };
 
-    const auto fn = [this, computeAccelerations](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance,
-                                                 const u32 p_ThreadIndex) {
+    const auto fn = [this, &computeAccelerations](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance,
+                                                  const u32 p_ThreadIndex) {
         const auto [acc1, acc2] = computeAccelerations(p_Index1, p_Index2, p_Distance);
         m_ThreadAccelerations[p_ThreadIndex][p_Index1] += acc1;
         m_ThreadAccelerations[p_ThreadIndex][p_Index2] -= acc2;

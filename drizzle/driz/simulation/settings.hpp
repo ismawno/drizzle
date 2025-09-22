@@ -31,6 +31,9 @@ struct SimulationSettings
     f32 ViscQuadraticTerm = 0.0f;
     KernelType ViscosityKType = KernelType::Poly6;
 
+    f32 ElasticityStrength = 1.f;
+    f32 ElasticityLength = 0.1f;
+
     f32 MouseRadius = 6.f;
     f32 MouseForce = -30.f;
 

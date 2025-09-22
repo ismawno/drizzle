@@ -238,6 +238,12 @@ template <Dimension D> void IVisualization<D>::RenderSettings(SimulationSettings
 
     ImGui::Spacing();
 
+    ImGui::Text("Elasticity settings");
+    ImGui::DragFloat("Strength", &p_Settings.ElasticityStrength, 0.01f * speed, 0.f, FLT_MAX);
+    ImGui::DragFloat("Length", &p_Settings.ElasticityLength, 0.01f * speed, 0.f, FLT_MAX);
+
+    ImGui::Spacing();
+
     ImGui::Text("Environment settings");
     ImGui::DragFloat("Gravity", &p_Settings.Gravity, speed);
     ImGui::DragFloat("Encase Friction", &p_Settings.EncaseFriction, speed);

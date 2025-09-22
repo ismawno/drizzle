@@ -49,9 +49,6 @@ template <Dimension D> class Solver
 
     f32 getViscosityInfluence(f32 p_Distance) const;
 
-    fvec<D> computePairwisePressureGradient(u32 p_Index1, u32 p_Index2, f32 p_Distance) const;
-    fvec<D> computePairwiseViscosityTerm(u32 p_Index1, u32 p_Index2, f32 p_Distance) const;
-
     TKit::Array<SimArray<fvec<D>>, DRIZ_MAX_THREADS> m_ThreadAccelerations;
     TKit::Array<SimArray<Density>, DRIZ_MAX_THREADS> m_ThreadDensities;
 };
