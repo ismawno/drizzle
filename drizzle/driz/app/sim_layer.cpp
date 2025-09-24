@@ -125,7 +125,7 @@ template <Dimension D> void SimLayer<D>::step(const bool p_Dummy)
 {
     m_Solver.BeginStep(m_Timestep);
     m_Solver.UpdateLookup();
-    m_Solver.ComputeDensities();
+    m_Solver.ComputeDensities(m_Timestep);
     m_Solver.AddPressureAndViscosity();
     if constexpr (D == D2)
     {

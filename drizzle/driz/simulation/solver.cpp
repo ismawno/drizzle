@@ -76,15 +76,30 @@ template <Dimension D>
 Solver<D>::Solver(const SimulationSettings &p_Settings, const SimulationState<D> &p_State) : Settings(p_Settings)
 {
     Data.State = p_State;
-    Data.Accelerations.Resize(p_State.Positions.GetSize(), fvec<D>{0.f});
-    Data.Densities.Resize(p_State.Positions.GetSize(), fvec2{Settings.ParticleMass});
-    Data.StagedPositions.Resize(p_State.Positions.GetSize());
+    resizeState(p_State.Positions.GetSize());
+}
+template <Dimension D> void Solver<D>::resizeState(const u32 p_Size)
+{
+    Data.Accelerations.Resize(p_Size, fvec<D>{0.f});
+    Data.StagedPositions.Resize(p_Size);
+
+    Data.Densities.Resize(p_Size, fvec2{Settings.ParticleMass});
+
+    Data.RestDistances.Resize(p_Size, Settings.SmoothingRadius);
+    Data.NeighborDistances.Resize(p_Size, 0.f);
+    Data.NeighborCounts.Resize(p_Size, 0);
+
     for (auto &densities : m_Densities)
-        densities.Resize(p_State.Positions.GetSize(), fvec2{0.f});
+        densities.Resize(p_Size, fvec2{0.f});
     for (auto &accelerations : m_Accelerations)
-        accelerations.Resize(p_State.Positions.GetSize(), fvec<D>{0.f});
+        accelerations.Resize(p_Size, fvec<D>{0.f});
+    for (auto &ndistances : m_NeighborDistances)
+        ndistances.Resize(p_Size, 0.f);
+    for (auto &ncounts : m_NeighborCounts)
+        ncounts.Resize(p_Size, 0);
+
     if constexpr (D == D3)
-        Data.UnderMouseInfluence.Resize(p_State.Positions.GetSize(), u8{0});
+        Data.UnderMouseInfluence.Resize(p_Size, u8{0});
 }
 
 template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime)
@@ -143,7 +158,12 @@ template <Dimension D> void Solver<D>::mergeDensityArrays()
             for (u32 j = p_Start; j < p_End; ++j)
             {
                 Data.Densities[j] += m_Densities[i][j];
+                Data.NeighborDistances[j] += m_NeighborDistances[i][j];
+                Data.NeighborCounts[j] += m_NeighborCounts[i][j];
+
                 m_Densities[i][j] = fvec2{0.f};
+                m_NeighborDistances[i][j] = 0.f;
+                m_NeighborCounts[i][j] = 0;
             }
     });
 }
@@ -160,7 +180,7 @@ template <Dimension D> void Solver<D>::mergeAccelerationArrays()
     });
 }
 
-template <Dimension D> void Solver<D>::ComputeDensities()
+template <Dimension D> void Solver<D>::ComputeDensities(const f32 p_DeltaTime)
 {
     TKIT_PROFILE_NSCOPE("Driz::Solver::ComputeDensities");
 
@@ -169,9 +189,37 @@ template <Dimension D> void Solver<D>::ComputeDensities()
 
         m_Densities[p_ThreadIndex][p_Index1] += densities;
         m_Densities[p_ThreadIndex][p_Index2] += densities;
+
+        m_NeighborDistances[p_ThreadIndex][p_Index1] += p_Distance;
+        m_NeighborDistances[p_ThreadIndex][p_Index2] += p_Distance;
+
+        ++m_NeighborCounts[p_ThreadIndex][p_Index1];
+        ++m_NeighborCounts[p_ThreadIndex][p_Index2];
     };
     Lookup.ForEachPair(fn, Settings.Partitions);
     mergeDensityArrays();
+
+    const f32 maxStep = Settings.SmoothingRadius * Settings.PlasticMaxStep;
+    for (u32 i = 0; i < Data.State.Positions.GetSize(); ++i)
+    {
+        const u32 count = Data.NeighborCounts[i];
+        if (count == 0)
+            continue;
+
+        const f32 dist = Data.NeighborDistances[i] / static_cast<f32>(count);
+        const f32 rest = Data.RestDistances[i];
+
+        const f32 yield = Settings.PlasticYield * rest;
+        const f32 diff = dist - rest;
+        const f32 adiff = glm::abs(diff);
+        if (adiff <= yield)
+            continue;
+
+        const f32 excess = (diff >= 0.f) ? (adiff - yield) : (yield - adiff);
+        const f32 drest = glm::clamp(Settings.PlasticAlpha * excess * p_DeltaTime, -maxStep, maxStep);
+
+        Data.RestDistances[i] = rest + drest;
+    }
 }
 template <Dimension D> void Solver<D>::AddPressureAndViscosity()
 {
@@ -200,9 +248,10 @@ template <Dimension D> void Solver<D>::AddPressureAndViscosity()
 
         const fvec<D> vterm = ((Settings.ViscLinearTerm + Settings.ViscQuadraticTerm * u) * kernel) * diff;
 
-        // Elasticity
-        const f32 factor = Settings.ElasticityStrength * (1.f - Settings.ElasticityLength / Settings.SmoothingRadius) *
-                           (Settings.ElasticityLength - p_Distance);
+        // Elasticity and plasticity
+        const f32 rest = 0.5f * (Data.RestDistances[p_Index1] + Data.RestDistances[p_Index2]);
+        const f32 factor = Settings.ElasticityStrength * (1.f - rest / Settings.SmoothingRadius) * (rest - p_Distance);
+
         const fvec<D> eterm = factor * dir;
         const fvec<D> acc = eterm + vterm - gradient;
 
@@ -244,14 +293,8 @@ template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position)
 {
     Data.State.Positions.Append(p_Position);
     Data.State.Velocities.Append(fvec<D>{0.f});
-    Data.Accelerations.Append(fvec<D>{0.f});
-    Data.Densities.Append(fvec2{Settings.ParticleMass});
-    for (auto &densities : m_Densities)
-        densities.Append(fvec2{0.f});
-    for (auto &accelerations : m_Accelerations)
-        accelerations.Append(fvec<D>{0.f});
-    if constexpr (D == D3)
-        Data.UnderMouseInfluence.Append(u8{0});
+
+    resizeState(Data.State.Positions.GetSize());
 }
 
 template <Dimension D> void Solver<D>::encase(const u32 p_Index)

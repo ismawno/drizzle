@@ -32,7 +32,10 @@ struct SimulationSettings
     KernelType ViscosityKType = KernelType::Poly6;
 
     f32 ElasticityStrength = 1.f;
-    f32 ElasticityLength = 0.1f;
+
+    f32 PlasticAlpha = 2.0f;
+    f32 PlasticYield = 0.05f;
+    f32 PlasticMaxStep = 0.05f;
 
     f32 MouseRadius = 6.f;
     f32 MouseForce = -30.f;
@@ -67,6 +70,10 @@ template <Dimension D> struct ISimulationData
     SimArray<fvec<D>> StagedPositions;
 
     SimArray<Density> Densities; // Density and Near Density
+
+    SimArray<f32> RestDistances;
+    SimArray<f32> NeighborDistances;
+    SimArray<u32> NeighborCounts;
 };
 template <Dimension D> struct SimulationData;
 

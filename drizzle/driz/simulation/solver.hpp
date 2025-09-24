@@ -16,7 +16,7 @@ template <Dimension D> class Solver
 
     void AddMouseForce(const fvec<D> &p_MousePos);
     void AddPressureAndViscosity();
-    void ComputeDensities();
+    void ComputeDensities(f32 p_DeltaTime);
     void ApplyComputedForces(f32 p_DeltaTime);
 
     u32 GetParticleCount() const;
@@ -49,7 +49,11 @@ template <Dimension D> class Solver
 
     f32 getViscosityInfluence(f32 p_Distance) const;
 
+    void resizeState(u32 p_Size);
+
     TKit::Array<SimArray<fvec<D>>, DRIZ_MAX_THREADS> m_Accelerations;
     TKit::Array<SimArray<Density>, DRIZ_MAX_THREADS> m_Densities;
+    TKit::Array<SimArray<f32>, DRIZ_MAX_THREADS> m_NeighborDistances;
+    TKit::Array<SimArray<u32>, DRIZ_MAX_THREADS> m_NeighborCounts;
 };
 } // namespace Driz

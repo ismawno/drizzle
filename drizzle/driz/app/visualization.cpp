@@ -238,9 +238,11 @@ template <Dimension D> void IVisualization<D>::RenderSettings(SimulationSettings
 
     ImGui::Spacing();
 
-    ImGui::Text("Elasticity settings");
-    ImGui::DragFloat("Strength", &p_Settings.ElasticityStrength, 0.01f * speed, 0.f, FLT_MAX);
-    ImGui::DragFloat("Length", &p_Settings.ElasticityLength, 0.01f * speed, 0.f, FLT_MAX);
+    ImGui::Text("Elasticity and plasticity settings");
+    ImGui::DragFloat("Elastic strength", &p_Settings.ElasticityStrength, 0.1f * speed, 0.f, FLT_MAX);
+    ImGui::DragFloat("Plastic alpha", &p_Settings.PlasticAlpha, 0.01f * speed, 0.f, FLT_MAX);
+    ImGui::DragFloat("Plastic yield", &p_Settings.PlasticYield, 0.01f * speed, 0.f, FLT_MAX);
+    ImGui::DragFloat("Plastic max step", &p_Settings.PlasticMaxStep, 0.01f * speed, 0.f, FLT_MAX);
 
     ImGui::Spacing();
 
