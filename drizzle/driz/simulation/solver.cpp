@@ -79,9 +79,9 @@ Solver<D>::Solver(const SimulationSettings &p_Settings, const SimulationState<D>
     Data.Accelerations.Resize(p_State.Positions.GetSize(), fvec<D>{0.f});
     Data.Densities.Resize(p_State.Positions.GetSize(), fvec2{Settings.ParticleMass});
     Data.StagedPositions.Resize(p_State.Positions.GetSize());
-    for (auto &densities : m_ThreadDensities)
+    for (auto &densities : m_Densities)
         densities.Resize(p_State.Positions.GetSize(), fvec2{0.f});
-    for (auto &accelerations : m_ThreadAccelerations)
+    for (auto &accelerations : m_Accelerations)
         accelerations.Resize(p_State.Positions.GetSize(), fvec<D>{0.f});
     if constexpr (D == D3)
         Data.UnderMouseInfluence.Resize(p_State.Positions.GetSize(), u8{0});
@@ -142,8 +142,8 @@ template <Dimension D> void Solver<D>::mergeDensityArrays()
         for (u32 i = 0; i < DRIZ_MAX_THREADS; ++i)
             for (u32 j = p_Start; j < p_End; ++j)
             {
-                Data.Densities[j] += m_ThreadDensities[i][j];
-                m_ThreadDensities[i][j] = fvec2{0.f};
+                Data.Densities[j] += m_Densities[i][j];
+                m_Densities[i][j] = fvec2{0.f};
             }
     });
 }
@@ -154,8 +154,8 @@ template <Dimension D> void Solver<D>::mergeAccelerationArrays()
         for (u32 i = 0; i < DRIZ_MAX_THREADS; ++i)
             for (u32 j = p_Start; j < p_End; ++j)
             {
-                Data.Accelerations[j] += m_ThreadAccelerations[i][j];
-                m_ThreadAccelerations[i][j] = fvec<D>{0.f};
+                Data.Accelerations[j] += m_Accelerations[i][j];
+                m_Accelerations[i][j] = fvec<D>{0.f};
             }
     });
 }
@@ -167,8 +167,8 @@ template <Dimension D> void Solver<D>::ComputeDensities()
     const auto fn = [this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance, const u32 p_ThreadIndex) {
         const fvec2 densities = Settings.ParticleMass * fvec2{getInfluence(p_Distance), getNearInfluence(p_Distance)};
 
-        m_ThreadDensities[p_ThreadIndex][p_Index1] += densities;
-        m_ThreadDensities[p_ThreadIndex][p_Index2] += densities;
+        m_Densities[p_ThreadIndex][p_Index1] += densities;
+        m_Densities[p_ThreadIndex][p_Index2] += densities;
     };
     Lookup.ForEachPair(fn, Settings.Partitions);
     mergeDensityArrays();
@@ -212,8 +212,8 @@ template <Dimension D> void Solver<D>::AddPressureAndViscosity()
     const auto fn = [this, &computeAccelerations](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance,
                                                   const u32 p_ThreadIndex) {
         const auto [acc1, acc2] = computeAccelerations(p_Index1, p_Index2, p_Distance);
-        m_ThreadAccelerations[p_ThreadIndex][p_Index1] += acc1;
-        m_ThreadAccelerations[p_ThreadIndex][p_Index2] -= acc2;
+        m_Accelerations[p_ThreadIndex][p_Index1] += acc1;
+        m_Accelerations[p_ThreadIndex][p_Index2] -= acc2;
     };
 
     Lookup.ForEachPair(fn, Settings.Partitions);
@@ -246,9 +246,9 @@ template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position)
     Data.State.Velocities.Append(fvec<D>{0.f});
     Data.Accelerations.Append(fvec<D>{0.f});
     Data.Densities.Append(fvec2{Settings.ParticleMass});
-    for (auto &densities : m_ThreadDensities)
+    for (auto &densities : m_Densities)
         densities.Append(fvec2{0.f});
-    for (auto &accelerations : m_ThreadAccelerations)
+    for (auto &accelerations : m_Accelerations)
         accelerations.Append(fvec<D>{0.f});
     if constexpr (D == D3)
         Data.UnderMouseInfluence.Append(u8{0});
