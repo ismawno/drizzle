@@ -29,14 +29,7 @@ template <Dimension D> class LookupMethod
     void UpdateBruteForceLookup(f32 p_Radius);
     void UpdateGridLookup(f32 p_Radius);
 
-    static ivec<D> GetCellPosition(const fvec<D> &p_Position, f32 p_Radius);
-    static u32 GetCellKey(const ivec<D> &p_CellPosition, u32 p_ParticleCount);
-
-    ivec<D> GetCellPosition(const fvec<D> &p_Position) const;
-    u32 GetCellKey(const ivec<D> &p_CellPosition) const;
-
     u32 DrawCells(Onyx::RenderContext<D> *p_Context) const;
-    u32 GetCellCount() const;
 
     template <typename F> void ForEachPair(F &&p_Function, const u32 p_Partitions) const
     {
@@ -64,7 +57,7 @@ template <Dimension D> class LookupMethod
                                   for (u32 j = i + 1; j < cell.End; ++j)
                                       processPair(index1, Grid.ParticleIndices[j], std::forward<F>(p_Function));
 
-                                  const ivec<D> center = GetCellPosition(positions[index1]);
+                                  const ivec<D> center = getCellPosition(positions[index1]);
                                   const u32 cellKey1 = cell.Key;
 
                                   TKit::Array<u32, s_OffsetCount> visited;
@@ -79,7 +72,7 @@ template <Dimension D> class LookupMethod
 
                                   for (const ivec<D> &offset : offsets)
                                   {
-                                      const u32 cellKey2 = GetCellKey(center + offset);
+                                      const u32 cellKey2 = getCellKey(center + offset);
                                       const u32 cellIndex = Grid.CellKeyToCellIndex[cellKey2];
                                       if (cellKey2 > cellKey1 && cellIndex != UINT32_MAX && checkVisited(cellKey2))
                                       {
@@ -97,6 +90,9 @@ template <Dimension D> class LookupMethod
     f32 Radius;
 
   private:
+    ivec<D> getCellPosition(const fvec<D> &p_Position) const;
+    u32 getCellKey(const ivec<D> &p_CellPosition) const;
+
     static constexpr u32 s_OffsetCount = D * D * D + 2 - D;
     using OffsetArray = TKit::Array<ivec<D>, s_OffsetCount>;
 

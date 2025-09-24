@@ -82,8 +82,8 @@ template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius
     const auto &positions = *m_Positions;
     for (u32 i = 0; i < particles; ++i)
     {
-        const ivec<D> cellPosition = GetCellPosition(positions[i]);
-        const u32 key = GetCellKey(cellPosition);
+        const ivec<D> cellPosition = getCellPosition(positions[i]);
+        const u32 key = getCellKey(cellPosition);
         keys[i] = IndexPair{i, key};
         Grid.CellKeyToCellIndex[i] = UINT32_MAX;
     }
@@ -139,7 +139,7 @@ template <Dimension D> u32 LookupMethod<D>::DrawCells(Onyx::RenderContext<D> *p_
         for (u32 i = cell.Start; i < cell.End; ++i)
         {
             const u32 index = Grid.ParticleIndices[i];
-            const ivec<D> cellPosition = GetCellPosition(positions[index]);
+            const ivec<D> cellPosition = getCellPosition(positions[index]);
             if (isUnique(uniquePositions.begin(), uniquePositions.begin() + uniqueSize, cellPosition))
                 uniquePositions[uniqueSize++] = cellPosition;
         }
@@ -164,25 +164,16 @@ template <Dimension D> u32 LookupMethod<D>::DrawCells(Onyx::RenderContext<D> *p_
     return cellClashes;
 }
 
-template <Dimension D> ivec<D> LookupMethod<D>::GetCellPosition(const fvec<D> &p_Position, const f32 p_Radius)
+template <Dimension D> ivec<D> LookupMethod<D>::getCellPosition(const fvec<D> &p_Position) const
 {
     ivec<D> cellPosition{0};
     for (u32 i = 0; i < D; ++i)
-        cellPosition[i] = static_cast<i32>(p_Position[i] / p_Radius) - (p_Position[i] < 0.f);
+        cellPosition[i] = static_cast<i32>(p_Position[i] / Radius) - (p_Position[i] < 0.f);
     return cellPosition;
 }
-template <Dimension D> u32 LookupMethod<D>::GetCellKey(const ivec<D> &p_CellPosition, const u32 p_ParticleCount)
+template <Dimension D> u32 LookupMethod<D>::getCellKey(const ivec<D> &p_CellPosition) const
 {
-    return TKit::Hash(p_CellPosition) % p_ParticleCount;
-}
-
-template <Dimension D> ivec<D> LookupMethod<D>::GetCellPosition(const fvec<D> &p_Position) const
-{
-    return GetCellPosition(p_Position, Radius);
-}
-template <Dimension D> u32 LookupMethod<D>::GetCellKey(const ivec<D> &p_CellPosition) const
-{
-    return GetCellKey(p_CellPosition, m_Positions->GetSize());
+    return TKit::Hash(p_CellPosition) % m_Positions->GetSize();
 }
 
 template <Dimension D> LookupMethod<D>::OffsetArray LookupMethod<D>::getGridOffsets() const
@@ -197,11 +188,6 @@ template <Dimension D> LookupMethod<D>::OffsetArray LookupMethod<D>::getGridOffs
                 ivec<D>{0, 1, 0},    ivec<D>{0, 1, 1},   ivec<D>{1, -1, -1}, ivec<D>{1, -1, 0},  ivec<D>{1, -1, 1},
                 ivec<D>{1, 0, -1},   ivec<D>{1, 0, 0},   ivec<D>{1, 0, 1},   ivec<D>{1, 1, -1},  ivec<D>{1, 1, 0},
                 ivec<D>{1, 1, 1}};
-}
-
-template <Dimension D> u32 LookupMethod<D>::GetCellCount() const
-{
-    return Grid.Cells.GetSize();
 }
 
 template class LookupMethod<D2>;
