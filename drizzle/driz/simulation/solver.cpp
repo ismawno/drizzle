@@ -150,10 +150,10 @@ template <Dimension D> void Solver<D>::AddMouseForce(const fvec<D> &p_MousePos)
     }
 }
 
-template <Dimension D> void Solver<D>::mergeDensityArrays()
+template <Dimension D> void Solver<D>::mergeDensityAndDistanceArrays()
 {
     Core::ForEach(0, Data.State.Positions.GetSize(), Settings.Partitions, [this](const u32 p_Start, const u32 p_End) {
-        TKIT_PROFILE_NSCOPE("Driz::Solver::MergeDensityArrays");
+        TKIT_PROFILE_NSCOPE("Driz::Solver::mergeDensityAndDistanceArrays");
         for (u32 i = 0; i < DRIZ_MAX_THREADS; ++i)
             for (u32 j = p_Start; j < p_End; ++j)
             {
@@ -180,9 +180,9 @@ template <Dimension D> void Solver<D>::mergeAccelerationArrays()
     });
 }
 
-template <Dimension D> void Solver<D>::ComputeDensities(const f32 p_DeltaTime)
+template <Dimension D> void Solver<D>::ComputeDensitiesAndDistances(const f32 p_DeltaTime)
 {
-    TKIT_PROFILE_NSCOPE("Driz::Solver::ComputeDensities");
+    TKIT_PROFILE_NSCOPE("Driz::Solver::ComputeDensitiesAndDistances");
 
     const auto fn = [this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance, const u32 p_ThreadIndex) {
         const fvec2 densities = Settings.ParticleMass * fvec2{getInfluence(p_Distance), getNearInfluence(p_Distance)};
@@ -197,7 +197,7 @@ template <Dimension D> void Solver<D>::ComputeDensities(const f32 p_DeltaTime)
         ++m_NeighborCounts[p_ThreadIndex][p_Index2];
     };
     Lookup.ForEachPair(fn, Settings.Partitions);
-    mergeDensityArrays();
+    mergeDensityAndDistanceArrays();
 
     const f32 maxStep = Settings.SmoothingRadius * Settings.PlasticMaxStep;
     for (u32 i = 0; i < Data.State.Positions.GetSize(); ++i)

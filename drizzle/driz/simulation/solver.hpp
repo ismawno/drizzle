@@ -16,7 +16,7 @@ template <Dimension D> class Solver
 
     void AddMouseForce(const fvec<D> &p_MousePos);
     void AddPressureAndViscosity();
-    void ComputeDensities(f32 p_DeltaTime);
+    void ComputeDensitiesAndDistances(f32 p_DeltaTime);
     void ApplyComputedForces(f32 p_DeltaTime);
 
     u32 GetParticleCount() const;
@@ -38,7 +38,7 @@ template <Dimension D> class Solver
 
     void encase(u32 p_Index);
 
-    void mergeDensityArrays();
+    void mergeDensityAndDistanceArrays();
     void mergeAccelerationArrays();
 
     f32 getInfluence(f32 p_Distance) const;
