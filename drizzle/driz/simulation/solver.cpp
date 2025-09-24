@@ -1,6 +1,5 @@
 #include "driz/simulation/solver.hpp"
 #include "driz/app/visualization.hpp"
-#include "onyx/app/input.hpp"
 #include "tkit/profiling/macros.hpp"
 
 namespace Driz
@@ -104,18 +103,21 @@ template <Dimension D> void Solver<D>::resizeState(const u32 p_Size)
 
 template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime)
 {
-    TKIT_PROFILE_NSCOPE("Driz::Solver::BeginStep");
-    Data.StagedPositions.Resize(Data.State.Positions.GetSize());
-
+    Data.StagedPositions.Resize(GetParticleCount());
     std::swap(Data.State.Positions, Data.StagedPositions);
-    for (u32 i = 0; i < Data.State.Positions.GetSize(); ++i)
-    {
-        Data.State.Positions[i] = Data.StagedPositions[i] + Data.State.Velocities[i] * p_DeltaTime;
-        Data.Densities[i] = fvec2{Settings.ParticleMass};
-        Data.Accelerations[i] = fvec<D>{0.f};
-        if constexpr (D == D3)
-            Data.UnderMouseInfluence[i] = 0;
-    }
+
+    const auto fn = [this, p_DeltaTime](const u32 p_Start, const u32 p_End) {
+        TKIT_PROFILE_NSCOPE("Driz::Solver::BeginStep");
+        for (u32 i = p_Start; i < p_End; ++i)
+        {
+            Data.State.Positions[i] = Data.StagedPositions[i] + Data.State.Velocities[i] * p_DeltaTime;
+            Data.Densities[i] = fvec2{Settings.ParticleMass};
+            Data.Accelerations[i] = fvec<D>{0.f};
+            if constexpr (D == D3)
+                Data.UnderMouseInfluence[i] = 0;
+        }
+    };
+    Core::ForEach(0, GetParticleCount(), Settings.Partitions, fn);
 }
 template <Dimension D> void Solver<D>::EndStep()
 {
@@ -123,19 +125,21 @@ template <Dimension D> void Solver<D>::EndStep()
 }
 template <Dimension D> void Solver<D>::ApplyComputedForces(const f32 p_DeltaTime)
 {
-    TKIT_PROFILE_NSCOPE("Driz::Solver::ApplyComputedForces");
-
-    for (u32 i = 0; i < Data.State.Positions.GetSize(); ++i)
-    {
-        Data.State.Velocities[i].y += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
-        Data.State.Velocities[i] += Data.Accelerations[i] * p_DeltaTime;
-        Data.StagedPositions[i] += Data.State.Velocities[i] * p_DeltaTime;
-        encase(i);
-    }
+    const auto fn = [this, p_DeltaTime](const u32 p_Start, const u32 p_End) {
+        TKIT_PROFILE_NSCOPE("Driz::Solver::ApplyComputedForces");
+        for (u32 i = p_Start; i < p_End; ++i)
+        {
+            Data.State.Velocities[i].y += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
+            Data.State.Velocities[i] += Data.Accelerations[i] * p_DeltaTime;
+            Data.StagedPositions[i] += Data.State.Velocities[i] * p_DeltaTime;
+            encase(i);
+        }
+    };
+    Core::ForEach(0, GetParticleCount(), Settings.Partitions, fn);
 }
 template <Dimension D> void Solver<D>::AddMouseForce(const fvec<D> &p_MousePos)
 {
-    for (u32 i = 0; i < Data.State.Positions.GetSize(); ++i)
+    for (u32 i = 0; i < GetParticleCount(); ++i)
     {
         const fvec<D> diff = Data.State.Positions[i] - p_MousePos;
         const f32 distance2 = glm::length2(diff);
@@ -152,7 +156,7 @@ template <Dimension D> void Solver<D>::AddMouseForce(const fvec<D> &p_MousePos)
 
 template <Dimension D> void Solver<D>::mergeDensityAndDistanceArrays()
 {
-    Core::ForEach(0, Data.State.Positions.GetSize(), Settings.Partitions, [this](const u32 p_Start, const u32 p_End) {
+    Core::ForEach(0, GetParticleCount(), Settings.Partitions, [this](const u32 p_Start, const u32 p_End) {
         TKIT_PROFILE_NSCOPE("Driz::Solver::mergeDensityAndDistanceArrays");
         for (u32 i = 0; i < DRIZ_MAX_THREADS; ++i)
             for (u32 j = p_Start; j < p_End; ++j)
@@ -169,7 +173,7 @@ template <Dimension D> void Solver<D>::mergeDensityAndDistanceArrays()
 }
 template <Dimension D> void Solver<D>::mergeAccelerationArrays()
 {
-    Core::ForEach(0, Data.State.Positions.GetSize(), Settings.Partitions, [this](const u32 p_Start, const u32 p_End) {
+    Core::ForEach(0, GetParticleCount(), Settings.Partitions, [this](const u32 p_Start, const u32 p_End) {
         TKIT_PROFILE_NSCOPE("Driz::Solver::MergeAccelerationArrays");
         for (u32 i = 0; i < DRIZ_MAX_THREADS; ++i)
             for (u32 j = p_Start; j < p_End; ++j)
@@ -184,7 +188,7 @@ template <Dimension D> void Solver<D>::ComputeDensitiesAndDistances(const f32 p_
 {
     TKIT_PROFILE_NSCOPE("Driz::Solver::ComputeDensitiesAndDistances");
 
-    const auto fn = [this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance, const u32 p_ThreadIndex) {
+    const auto fn1 = [this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance, const u32 p_ThreadIndex) {
         const fvec2 densities = Settings.ParticleMass * fvec2{getInfluence(p_Distance), getNearInfluence(p_Distance)};
 
         m_Densities[p_ThreadIndex][p_Index1] += densities;
@@ -196,30 +200,33 @@ template <Dimension D> void Solver<D>::ComputeDensitiesAndDistances(const f32 p_
         ++m_NeighborCounts[p_ThreadIndex][p_Index1];
         ++m_NeighborCounts[p_ThreadIndex][p_Index2];
     };
-    Lookup.ForEachPair(fn, Settings.Partitions);
+    Lookup.ForEachPair(fn1, Settings.Partitions);
     mergeDensityAndDistanceArrays();
 
-    const f32 maxStep = Settings.SmoothingRadius * Settings.PlasticMaxStep;
-    for (u32 i = 0; i < Data.State.Positions.GetSize(); ++i)
-    {
-        const u32 count = Data.NeighborCounts[i];
-        if (count == 0)
-            continue;
+    const auto fn2 = [this, p_DeltaTime](const u32 p_Start, const u32 p_End) {
+        const f32 maxStep = Settings.SmoothingRadius * Settings.PlasticMaxStep;
+        for (u32 i = p_Start; i < p_End; ++i)
+        {
+            const u32 count = Data.NeighborCounts[i];
+            if (count == 0)
+                continue;
 
-        const f32 dist = Data.NeighborDistances[i] / static_cast<f32>(count);
-        const f32 rest = Data.RestDistances[i];
+            const f32 dist = Data.NeighborDistances[i] / static_cast<f32>(count);
+            const f32 rest = Data.RestDistances[i];
 
-        const f32 yield = Settings.PlasticYield * rest;
-        const f32 diff = dist - rest;
-        const f32 adiff = glm::abs(diff);
-        if (adiff <= yield)
-            continue;
+            const f32 yield = Settings.PlasticYield * rest;
+            const f32 diff = dist - rest;
+            const f32 adiff = glm::abs(diff);
+            if (adiff <= yield)
+                continue;
 
-        const f32 excess = (diff >= 0.f) ? (adiff - yield) : (yield - adiff);
-        const f32 drest = glm::clamp(Settings.PlasticAlpha * excess * p_DeltaTime, -maxStep, maxStep);
+            const f32 excess = (diff >= 0.f) ? (adiff - yield) : (yield - adiff);
+            const f32 drest = glm::clamp(Settings.PlasticAlpha * excess * p_DeltaTime, -maxStep, maxStep);
 
-        Data.RestDistances[i] = rest + drest;
-    }
+            Data.RestDistances[i] = rest + drest;
+        }
+    };
+    Core::ForEach(0, GetParticleCount(), Settings.Partitions, fn2);
 }
 template <Dimension D> void Solver<D>::AddPressureAndViscosity()
 {
@@ -294,7 +301,7 @@ template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position)
     Data.State.Positions.Append(p_Position);
     Data.State.Velocities.Append(fvec<D>{0.f});
 
-    resizeState(Data.State.Positions.GetSize());
+    resizeState(GetParticleCount());
 }
 
 template <Dimension D> void Solver<D>::encase(const u32 p_Index)
