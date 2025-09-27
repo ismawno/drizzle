@@ -23,9 +23,13 @@ def load_build_ini() -> ConfigParser:
     cfg = ConfigParser()
 
     root = Path(__file__).parent
-    path = root / "build.ini"
+    path = root / "user-build.ini"
     if not path.exists():
-        Convoy.exit_error(f"No configuration file found at <underline>{root}</underline>.")
+        Convoy.warning(f"No user configuration file found at <underline>{path}</underline>.")
+        path = root / "build.ini"
+
+    if not path.exists():
+        Convoy.exit_error(f"No configuration file found at <underline>{path}</underline>.")
 
     with open(path) as f:
         cfg.read_file(f)
@@ -61,7 +65,7 @@ def parse_arguments(
     cmake_vname_map: dict[str, tuple[str, str | bool]], /
 ) -> tuple[tuple[Namespace, list[str]], dict[str, tuple[str, str | bool]]]:
     desc = """
-    This script takes in a 'build.ini' configuration file created from 'cmake_scanner.py' and
+    This script takes in a 'user-build.ini' or, if missing, a 'build.ini' configuration file created from 'cmake_scanner.py' and
     runs CMake with the options specified in the configuration file, avoiding CMake cache problems.
 
     All values specified at command line will override the values in the 'build.ini' file and always
