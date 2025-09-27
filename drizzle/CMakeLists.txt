@@ -41,6 +41,6 @@ target_include_directories(drizzle PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                            ${argparse_SOURCE_DIR}/include)
 target_link_libraries(drizzle PRIVATE onyx)
 target_compile_definitions(drizzle PRIVATE DRIZ_ROOT_PATH="${DRIZZLE_ROOT_PATH}"
-                                           DRIZ_VERSION=\"v0.2.0\")
+                                           DRIZ_VERSION=\"v0.2.1\")
 
 tkit_default_configure(drizzle)
