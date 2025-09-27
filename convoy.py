@@ -164,7 +164,7 @@ class _MetaConvoy(type):
 
     @property
     def version(self) -> str:
-        return "v0.2.2"
+        return "v0.3.1"
 
     @property
     def is_windows(self) -> bool:
