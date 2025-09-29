@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
   onyx
   GIT_REPOSITORY https://github.com/ismawno/onyx.git
-  GIT_TAG v0.6.0
+  GIT_TAG v0.6.x
   GIT_SHALLOW TRUE
   GIT_PROGRESS TRUE)
 FetchContent_MakeAvailable(onyx)
@@ -41,6 +41,6 @@ target_include_directories(drizzle PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                            ${argparse_SOURCE_DIR}/include)
 target_link_libraries(drizzle PRIVATE onyx)
 target_compile_definitions(drizzle PRIVATE DRIZ_ROOT_PATH="${DRIZZLE_ROOT_PATH}"
-                                           DRIZ_VERSION=\"v0.2.1\")
+                                           DRIZ_VERSION=\"v0.2.x\")
 
 tkit_default_configure(drizzle)
