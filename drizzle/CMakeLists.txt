@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
   onyx
   GIT_REPOSITORY https://github.com/ismawno/onyx.git
-  GIT_TAG v0.1.2)
+  GIT_TAG v0.1.x)
 FetchContent_MakeAvailable(onyx)
 
 FetchContent_Declare(
