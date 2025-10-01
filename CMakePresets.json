@@ -1,0 +1,109 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 24,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "TOOLKIT_BUILD_TESTS": "OFF",
+        "TOOLKIT_BUILD_PERFORMANCE": "OFF",
+        "TOOLKIT_ENABLE_SYMBOLS": "OFF",
+        "TOOLKIT_SANITIZERS": "NONE",
+        "TOOLKIT_OPTIMIZATIONS": "NONE",
+        "TOOLKIT_ENABLE_LTO": "OFF",
+
+        "TOOLKIT_ENABLE_INFO_LOGS": "OFF",
+        "TOOLKIT_ENABLE_WARNING_LOGS": "OFF",
+        "TOOLKIT_ENABLE_ASSERTS": "OFF",
+        "TOOLKIT_ENABLE_ARENA_ALLOCATOR": "ON",
+        "TOOLKIT_ENABLE_BLOCK_ALLOCATOR": "ON",
+        "TOOLKIT_ENABLE_STACK_ALLOCATOR": "OFF",
+        "TOOLKIT_ENABLE_TIER_ALLOCATOR": "OFF",
+        "TOOLKIT_ENABLE_MULTIPROCESSING": "ON",
+        "TOOLKIT_ENABLE_PROFILING": "ON",
+
+        "TOOLKIT_ENABLE_REFLECTION": "ON",
+        "TOOLKIT_ENABLE_YAML_SERIALIZATION": "ON",
+
+        "TOOLKIT_ENABLE_INSTRUMENTATION": "OFF",
+        "TOOLKIT_ENABLE_VULKAN_INSTRUMENTATION": "OFF",
+        "TOOLKIT_ENABLE_SAMPLING": "OFF",
+        "TOOLKIT_ENABLE_CALLSTACK": "OFF",
+        "TOOLKIT_SAMPLING_RATE": "10000",
+
+        "VULKIT_ENABLE_INSTANCE": "ON",
+        "VULKIT_ENABLE_PHYSICAL_DEVICE": "ON",
+        "VULKIT_ENABLE_LOGICAL_DEVICE": "ON",
+
+        "VULKIT_ENABLE_ALLOCATOR": "ON",
+        "VULKIT_ENABLE_BUFFER": "ON",
+        "VULKIT_ENABLE_DESCRIPTORS": "ON",
+        "VULKIT_ENABLE_SHADERS": "ON",
+        "VULKIT_ENABLE_PIPELINE_LAYOUT": "ON",
+        "VULKIT_ENABLE_PIPELINE_JOB": "ON",
+        "VULKIT_ENABLE_GRAPHICS_PIPELINE": "ON",
+        "VULKIT_ENABLE_COMPUTE_PIPELINE": "ON",
+        "VULKIT_ENABLE_COMMAND_POOL": "ON",
+        "VULKIT_ENABLE_IMAGES": "ON",
+        "VULKIT_ENABLE_RENDER_PASS": "OFF",
+        "VULKIT_ENABLE_SWAP_CHAIN": "ON",
+
+        "ONYX_BUILD_DEMOS": "OFF",
+        "ONYX_ENABLE_IMGUI": "ON",
+        "ONYX_ENABLE_IMPLOT": "OFF"
+      }
+    },
+    {
+      "name": "debug",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "TOOLKIT_ENABLE_SYMBOLS": "ON",
+        "TOOLKIT_OPTIMIZATIONS": "NONE",
+        "TOOLKIT_ENABLE_LTO": "OFF",
+
+        "TOOLKIT_ENABLE_INFO_LOGS": "ON",
+        "TOOLKIT_ENABLE_WARNING_LOGS": "ON",
+        "TOOLKIT_ENABLE_ASSERTS": "ON"
+      }
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "TOOLKIT_ENABLE_SYMBOLS": "OFF",
+        "TOOLKIT_OPTIMIZATIONS": "HIGH",
+        "TOOLKIT_ENABLE_LTO": "ON",
+
+        "TOOLKIT_ENABLE_INFO_LOGS": "OFF",
+        "TOOLKIT_ENABLE_WARNING_LOGS": "OFF",
+        "TOOLKIT_ENABLE_ASSERTS": "OFF"
+      }
+    }
+  ],
+
+  "buildPresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "jobs": 8
+    },
+    {
+      "name": "debug",
+      "inherits": "base",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "configurePreset": "release"
+    }
+  ]
+}
