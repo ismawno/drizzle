@@ -11,7 +11,8 @@ template <Dimension D> void IVisualization<D>::AdjustRenderContext(Onyx::RenderC
     if constexpr (D == D3)
     {
         p_Context->TranslateZAxis(-20.f);
-        p_Context->DirectionalLight(fvec3{0.f, 1.f, 1.f}, 0.4f);
+        p_Context->AmbientColor(fvec4{1.f, 1.f, 1.f, 0.3f});
+        p_Context->DirectionalLight(fvec3{0.f, 1.f, 1.f}, 0.3f);
     }
 }
 
