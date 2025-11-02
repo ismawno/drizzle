@@ -65,7 +65,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "TOOLKIT_ENABLE_SYMBOLS": "ON",
-        "TOOLKIT_OPTIMIZATIONS": "NONE",
+        "TOOLKIT_OPTIMIZATIONS": "FORTIFY",
         "TOOLKIT_ENABLE_LTO": "OFF",
 
         "TOOLKIT_ENABLE_INFO_LOGS": "ON",
