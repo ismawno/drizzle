@@ -61,10 +61,10 @@ const ParseResult *ParseArgs(int argc, char **argv)
             arg.scan<'u', u32>();
 
         if constexpr (std::is_enum_v<Type>)
-            arg.help(TKIT_FORMAT("'SimulationSettings' enum field of type '{}'. You may specify it with a string.",
-                                 p_Field.TypeString));
+            arg.help(TKit::Format("'SimulationSettings' enum field of type '{}'. You may specify it with a string.",
+                                  p_Field.TypeString));
         else
-            arg.help(TKIT_FORMAT("'SimulationSettings' field of type '{}'.", p_Field.TypeString));
+            arg.help(TKit::Format("'SimulationSettings' field of type '{}'.", p_Field.TypeString));
     });
 
     parser.parse_args(argc, argv);
