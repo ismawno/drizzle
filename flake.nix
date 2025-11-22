@@ -2,7 +2,7 @@
   description = "Dev shell for drizzle";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
   outputs =
@@ -16,32 +16,39 @@
         name = "drizzle";
 
         buildInputs = with pkgs; [
-          cmake
-          clang-tools
           clang
+          clang-tools
           lld
-          llvmPackages_19.llvm
-          linuxPackages.perf
+          libcxx
+          llvm
+
+          cmake
           fmt
-          hwloc
           pkg-config
-          wayland
-          wayland-protocols
-          wayland-scanner
-          fontconfig
-          expat
-          glm
-          glfw
-          libxkbcommon
-          libffi
+          hwloc
+          perf
+          gnumake
           python313
-          vulkan-headers
+
           vulkan-loader
+          vulkan-headers
           vulkan-tools
           vulkan-memory-allocator
           vulkan-validation-layers
+
           spirv-tools
           shaderc
+
+          glm
+          glfw
+          wayland
+          wayland-protocols
+          wayland-scanner
+          libffi
+          libxkbcommon
+
+          fontconfig
+          expat
         ];
         shellHook = ''
           export SHELL=${pkgs.zsh}/bin/zsh
@@ -51,6 +58,7 @@
 
           export CC=clang
           export CXX=clang++
+          export CLANGD_FLAGS="$CLANGD_FLAGS --query-driver=/nix/store/*-clang-wrapper-*/bin/clang++"
         '';
       };
     };
