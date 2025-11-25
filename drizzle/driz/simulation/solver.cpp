@@ -79,19 +79,19 @@ Solver<D>::Solver(const SimulationSettings &p_Settings, const SimulationState<D>
 }
 template <Dimension D> void Solver<D>::resizeState(const u32 p_Size)
 {
-    Data.Accelerations.Resize(p_Size, fvec<D>{0.f});
+    Data.Accelerations.Resize(p_Size, f32v<D>{0.f});
     Data.StagedPositions.Resize(p_Size);
 
-    Data.Densities.Resize(p_Size, fvec2{Settings.ParticleMass});
+    Data.Densities.Resize(p_Size, f32v2{Settings.ParticleMass});
 
     Data.RestDistances.Resize(p_Size, Settings.SmoothingRadius);
     Data.NeighborDistances.Resize(p_Size, 0.f);
     Data.NeighborCounts.Resize(p_Size, 0);
 
     for (auto &densities : m_Densities)
-        densities.Resize(p_Size, fvec2{0.f});
+        densities.Resize(p_Size, f32v2{0.f});
     for (auto &accelerations : m_Accelerations)
-        accelerations.Resize(p_Size, fvec<D>{0.f});
+        accelerations.Resize(p_Size, f32v<D>{0.f});
     for (auto &ndistances : m_NeighborDistances)
         ndistances.Resize(p_Size, 0.f);
     for (auto &ncounts : m_NeighborCounts)
@@ -111,8 +111,8 @@ template <Dimension D> void Solver<D>::BeginStep(const f32 p_DeltaTime)
         for (u32 i = p_Start; i < p_End; ++i)
         {
             Data.State.Positions[i] = Data.StagedPositions[i] + Data.State.Velocities[i] * p_DeltaTime;
-            Data.Densities[i] = fvec2{Settings.ParticleMass};
-            Data.Accelerations[i] = fvec<D>{0.f};
+            Data.Densities[i] = f32v2{Settings.ParticleMass};
+            Data.Accelerations[i] = f32v<D>{0.f};
             if constexpr (D == D3)
                 Data.UnderMouseInfluence[i] = 0;
         }
@@ -129,7 +129,7 @@ template <Dimension D> void Solver<D>::ApplyComputedForces(const f32 p_DeltaTime
         TKIT_PROFILE_NSCOPE("Driz::Solver::ApplyComputedForces");
         for (u32 i = p_Start; i < p_End; ++i)
         {
-            Data.State.Velocities[i].y += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
+            Data.State.Velocities[i][1] += Settings.Gravity * p_DeltaTime / Settings.ParticleMass;
             Data.State.Velocities[i] += Data.Accelerations[i] * p_DeltaTime;
             Data.StagedPositions[i] += Data.State.Velocities[i] * p_DeltaTime;
             encase(i);
@@ -137,15 +137,15 @@ template <Dimension D> void Solver<D>::ApplyComputedForces(const f32 p_DeltaTime
     };
     Core::ForEach(0, GetParticleCount(), Settings.Partitions, fn);
 }
-template <Dimension D> void Solver<D>::AddMouseForce(const fvec<D> &p_MousePos)
+template <Dimension D> void Solver<D>::AddMouseForce(const f32v<D> &p_MousePos)
 {
     for (u32 i = 0; i < GetParticleCount(); ++i)
     {
-        const fvec<D> diff = Data.State.Positions[i] - p_MousePos;
-        const f32 distance2 = glm::length2(diff);
+        const f32v<D> diff = Data.State.Positions[i] - p_MousePos;
+        const f32 distance2 = Math::NormSquared(diff);
         if (distance2 < Settings.MouseRadius * Settings.MouseRadius)
         {
-            const f32 distance = glm::sqrt(distance2);
+            const f32 distance = Math::SquareRoot(distance2);
             const f32 factor = 1.f - distance / Settings.MouseRadius;
             Data.Accelerations[i] += (factor * Settings.MouseForce / distance) * diff;
             if constexpr (D == D3)
@@ -165,7 +165,7 @@ template <Dimension D> void Solver<D>::mergeDensityAndDistanceArrays()
                 Data.NeighborDistances[j] += m_NeighborDistances[i][j];
                 Data.NeighborCounts[j] += m_NeighborCounts[i][j];
 
-                m_Densities[i][j] = fvec2{0.f};
+                m_Densities[i][j] = f32v2{0.f};
                 m_NeighborDistances[i][j] = 0.f;
                 m_NeighborCounts[i][j] = 0;
             }
@@ -179,7 +179,7 @@ template <Dimension D> void Solver<D>::mergeAccelerationArrays()
             for (u32 j = p_Start; j < p_End; ++j)
             {
                 Data.Accelerations[j] += m_Accelerations[i][j];
-                m_Accelerations[i][j] = fvec<D>{0.f};
+                m_Accelerations[i][j] = f32v<D>{0.f};
             }
     });
 }
@@ -189,7 +189,7 @@ template <Dimension D> void Solver<D>::ComputeDensitiesAndDistances(const f32 p_
     TKIT_PROFILE_NSCOPE("Driz::Solver::ComputeDensitiesAndDistances");
 
     const auto fn1 = [this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance, const u32 p_ThreadIndex) {
-        const fvec2 densities = Settings.ParticleMass * fvec2{getInfluence(p_Distance), getNearInfluence(p_Distance)};
+        const f32v2 densities = Settings.ParticleMass * f32v2{getInfluence(p_Distance), getNearInfluence(p_Distance)};
 
         m_Densities[p_ThreadIndex][p_Index1] += densities;
         m_Densities[p_ThreadIndex][p_Index2] += densities;
@@ -216,12 +216,12 @@ template <Dimension D> void Solver<D>::ComputeDensitiesAndDistances(const f32 p_
 
             const f32 yield = Settings.PlasticYield * rest;
             const f32 diff = dist - rest;
-            const f32 adiff = glm::abs(diff);
+            const f32 adiff = Math::Absolute(diff);
             if (adiff <= yield)
                 continue;
 
             const f32 excess = (diff >= 0.f) ? (adiff - yield) : (yield - adiff);
-            const f32 drest = glm::clamp(Settings.PlasticAlpha * excess * p_DeltaTime, -maxStep, maxStep);
+            const f32 drest = Math::Clamp(Settings.PlasticAlpha * excess * p_DeltaTime, -maxStep, maxStep);
 
             Data.RestDistances[i] = rest + drest;
         }
@@ -233,36 +233,36 @@ template <Dimension D> void Solver<D>::AddPressureAndViscosity()
     TKIT_PROFILE_NSCOPE("Driz::Solver::AddPressureAndViscosity");
     const auto computeAccelerations = [this](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance) {
         // Gradient
-        const fvec<D> dir = (Data.State.Positions[p_Index1] - Data.State.Positions[p_Index2]) / p_Distance;
-        const fvec2 kernels = {getInfluenceSlope(p_Distance), getNearInfluenceSlope(p_Distance)};
+        const f32v<D> dir = (Data.State.Positions[p_Index1] - Data.State.Positions[p_Index2]) / p_Distance;
+        const f32v2 kernels{getInfluenceSlope(p_Distance), getNearInfluenceSlope(p_Distance)};
 
-        const fvec2 pressures1 = getPressureFromDensity(Data.Densities[p_Index1]);
-        const fvec2 pressures2 = getPressureFromDensity(Data.Densities[p_Index2]);
+        const f32v2 pressures1 = getPressureFromDensity(Data.Densities[p_Index1]);
+        const f32v2 pressures2 = getPressureFromDensity(Data.Densities[p_Index2]);
 
-        const fvec2 d1 = Data.Densities[p_Index1];
-        const fvec2 d2 = Data.Densities[p_Index2];
+        const f32v2 d1 = Data.Densities[p_Index1];
+        const f32v2 d2 = Data.Densities[p_Index2];
 
-        const fvec2 densities = d1 + d2;
-        const fvec2 coeffs = (pressures1 + pressures2) * kernels / densities;
+        const f32v2 densities = d1 + d2;
+        const f32v2 coeffs = (pressures1 + pressures2) * kernels / densities;
 
-        const fvec<D> gradient = (Settings.ParticleMass * (coeffs.x + coeffs.y)) * dir;
+        const f32v<D> gradient = (Settings.ParticleMass * (coeffs[0] + coeffs[1])) * dir;
 
         // Viscosity
-        const fvec<D> diff = Data.State.Velocities[p_Index2] - Data.State.Velocities[p_Index1];
+        const f32v<D> diff = Data.State.Velocities[p_Index2] - Data.State.Velocities[p_Index1];
         const f32 kernel = getViscosityInfluence(p_Distance);
 
-        const f32 u = glm::length(diff);
+        const f32 u = Math::Norm(diff);
 
-        const fvec<D> vterm = ((Settings.ViscLinearTerm + Settings.ViscQuadraticTerm * u) * kernel) * diff;
+        const f32v<D> vterm = ((Settings.ViscLinearTerm + Settings.ViscQuadraticTerm * u) * kernel) * diff;
 
         // Elasticity and plasticity
         const f32 rest = 0.5f * (Data.RestDistances[p_Index1] + Data.RestDistances[p_Index2]);
         const f32 factor = Settings.ElasticityStrength * (1.f - rest / Settings.SmoothingRadius) * (rest - p_Distance);
 
-        const fvec<D> eterm = factor * dir;
-        const fvec<D> acc = eterm + vterm - gradient;
+        const f32v<D> eterm = factor * dir;
+        const f32v<D> acc = eterm + vterm - gradient;
 
-        return std::make_pair(acc / d1.x, acc / d2.x);
+        return std::make_pair(acc / d1[0], acc / d2[0]);
     };
 
     const auto fn = [this, &computeAccelerations](const u32 p_Index1, const u32 p_Index2, const f32 p_Distance,
@@ -276,10 +276,10 @@ template <Dimension D> void Solver<D>::AddPressureAndViscosity()
     mergeAccelerationArrays();
 }
 
-template <Dimension D> fvec2 Solver<D>::getPressureFromDensity(const Density &p_Density) const
+template <Dimension D> f32v2 Solver<D>::getPressureFromDensity(const Density &p_Density) const
 {
-    const f32 p1 = Settings.PressureStiffness * (p_Density.x - Settings.TargetDensity);
-    const f32 p2 = Settings.NearPressureStiffness * p_Density.y;
+    const f32 p1 = Settings.PressureStiffness * (p_Density[0] - Settings.TargetDensity);
+    const f32 p2 = Settings.NearPressureStiffness * p_Density[1];
     return {p1, p2};
 }
 
@@ -296,10 +296,10 @@ template <Dimension D> void Solver<D>::UpdateAllLookups()
     Lookup.UpdateGridLookup(Settings.SmoothingRadius);
 }
 
-template <Dimension D> void Solver<D>::AddParticle(const fvec<D> &p_Position)
+template <Dimension D> void Solver<D>::AddParticle(const f32v<D> &p_Position)
 {
     Data.State.Positions.Append(p_Position);
-    Data.State.Velocities.Append(fvec<D>{0.f});
+    Data.State.Velocities.Append(f32v<D>{0.f});
 
     resizeState(GetParticleCount());
 }

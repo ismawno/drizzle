@@ -1,7 +1,7 @@
 #pragma once
 
 #include "driz/simulation/kernel.hpp"
-#include "driz/core/glm.hpp"
+#include "driz/core/math.hpp"
 #include "driz/core/core.hpp"
 #include "onyx/property/color.hpp"
 #include "tkit/container/array.hpp"
@@ -54,20 +54,20 @@ template <Dimension D> struct SimulationState
     TKIT_REFLECT_DECLARE(SimulationState)
     TKIT_YAML_SERIALIZE_DECLARE(SimulationState)
 
-    SimArray<fvec<D>> Positions;
-    SimArray<fvec<D>> Velocities;
+    SimArray<f32v<D>> Positions;
+    SimArray<f32v<D>> Velocities;
 
-    fvec<D> Min{-30.f + 25.f * (D - 2)};
-    fvec<D> Max{30.f - 25.f * (D - 2)};
+    f32v<D> Min{-30.f + 25.f * (D - 2)};
+    f32v<D> Max{30.f - 25.f * (D - 2)};
 };
 
-using Density = fvec2;
+using Density = f32v2;
 
 template <Dimension D> struct ISimulationData
 {
     SimulationState<D> State;
-    SimArray<fvec<D>> Accelerations;
-    SimArray<fvec<D>> StagedPositions;
+    SimArray<f32v<D>> Accelerations;
+    SimArray<f32v<D>> StagedPositions;
 
     SimArray<Density> Densities; // Density and Near Density
 

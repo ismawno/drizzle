@@ -1,6 +1,6 @@
 #pragma once
 
-#include "driz/core/glm.hpp"
+#include "driz/core/math.hpp"
 #include "onyx/rendering/render_context.hpp"
 #include "onyx/serialization/color.hpp"
 #include "onyx/app/user_layer.hpp"
@@ -21,10 +21,10 @@ template <Dimension D> struct IVisualization
     static void DrawParticles(Onyx::RenderContext<D> *p_Context, const SimulationSettings &p_Settings,
                               const SimulationState<D> &p_State);
 
-    static void DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const fvec<D> &p_Min, const fvec<D> &p_Max,
+    static void DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const f32v<D> &p_Min, const f32v<D> &p_Max,
                                 const Onyx::Color &p_Color);
 
-    static void DrawCell(Onyx::RenderContext<D> *p_Context, const ivec<D> &p_Position, f32 p_Size,
+    static void DrawCell(Onyx::RenderContext<D> *p_Context, const i32v<D> &p_Position, f32 p_Size,
                          const Onyx::Color &p_Color, f32 p_Thickness = 0.1f);
 
     static void RenderSettings(SimulationSettings &p_Settings);

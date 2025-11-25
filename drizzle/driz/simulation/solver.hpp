@@ -14,7 +14,7 @@ template <Dimension D> class Solver
     void BeginStep(f32 p_DeltaTime);
     void EndStep();
 
-    void AddMouseForce(const fvec<D> &p_MousePos);
+    void AddMouseForce(const f32v<D> &p_MousePos);
     void AddPressureAndViscosity();
     void ComputeDensitiesAndDistances(f32 p_DeltaTime);
     void ApplyComputedForces(f32 p_DeltaTime);
@@ -24,7 +24,7 @@ template <Dimension D> class Solver
     void UpdateLookup();
     void UpdateAllLookups();
 
-    void AddParticle(const fvec<D> &p_Position);
+    void AddParticle(const f32v<D> &p_Position);
 
     void DrawBoundingBox(Onyx::RenderContext<D> *p_Context) const;
     void DrawParticles(Onyx::RenderContext<D> *p_Context) const;
@@ -34,7 +34,7 @@ template <Dimension D> class Solver
     SimulationSettings Settings;
 
   private:
-    fvec2 getPressureFromDensity(const Density &p_Density) const;
+    f32v2 getPressureFromDensity(const Density &p_Density) const;
 
     void encase(u32 p_Index);
 
@@ -51,7 +51,7 @@ template <Dimension D> class Solver
 
     void resizeState(u32 p_Size);
 
-    TKit::Array<SimArray<fvec<D>>, DRIZ_MAX_THREADS> m_Accelerations;
+    TKit::Array<SimArray<f32v<D>>, DRIZ_MAX_THREADS> m_Accelerations;
     TKit::Array<SimArray<Density>, DRIZ_MAX_THREADS> m_Densities;
     TKit::Array<SimArray<f32>, DRIZ_MAX_THREADS> m_NeighborDistances;
     TKit::Array<SimArray<u32>, DRIZ_MAX_THREADS> m_NeighborCounts;

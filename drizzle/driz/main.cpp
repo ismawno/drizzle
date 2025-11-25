@@ -34,12 +34,10 @@ int main(int argc, char **argv)
 
         if (result->HasRunTime)
         {
-            app.Startup();
             TKit::Clock frameClock{};
             TKit::Clock runTimeClock{};
             while (runTimeClock.GetElapsed().AsSeconds() < result->RunTime && app.NextFrame(frameClock))
                 ;
-            app.Shutdown();
         }
         else
             app.Run();

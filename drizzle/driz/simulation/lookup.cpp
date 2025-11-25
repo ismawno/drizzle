@@ -5,7 +5,7 @@
 
 namespace Driz
 {
-template <Dimension D> void LookupMethod<D>::SetPositions(const SimArray<fvec<D>> *p_Positions)
+template <Dimension D> void LookupMethod<D>::SetPositions(const SimArray<f32v<D>> *p_Positions)
 {
     m_Positions = p_Positions;
 }
@@ -82,7 +82,7 @@ template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius
     const auto &positions = *m_Positions;
     for (u32 i = 0; i < particles; ++i)
     {
-        const ivec<D> cellPosition = getCellPosition(positions[i]);
+        const i32v<D> cellPosition = getCellPosition(positions[i]);
         const u32 key = getCellKey(cellPosition);
         keys[i] = IndexPair{i, key};
         Grid.CellKeyToCellIndex[i] = UINT32_MAX;
@@ -122,7 +122,7 @@ template <Dimension D> void LookupMethod<D>::UpdateGridLookup(const f32 p_Radius
 template <Dimension D> u32 LookupMethod<D>::DrawCells(Onyx::RenderContext<D> *p_Context) const
 {
     TKIT_PROFILE_NSCOPE("Driz::LookupMethod::DrawCells");
-    const auto isUnique = [](const auto it1, const auto it2, const ivec<D> &p_Position) {
+    const auto isUnique = [](const auto it1, const auto it2, const i32v<D> &p_Position) {
         for (auto it = it1; it != it2; ++it)
             if (*it == p_Position)
                 return false;
@@ -134,12 +134,12 @@ template <Dimension D> u32 LookupMethod<D>::DrawCells(Onyx::RenderContext<D> *p_
     u32 cellClashes = 0;
     for (const GridCell &cell : Grid.Cells)
     {
-        TKit::Array<ivec<D>, 16> uniquePositions;
+        TKit::Array<i32v<D>, 16> uniquePositions;
         u32 uniqueSize = 0;
         for (u32 i = cell.Start; i < cell.End; ++i)
         {
             const u32 index = Grid.ParticleIndices[i];
-            const ivec<D> cellPosition = getCellPosition(positions[index]);
+            const i32v<D> cellPosition = getCellPosition(positions[index]);
             if (isUnique(uniquePositions.begin(), uniquePositions.begin() + uniqueSize, cellPosition))
                 uniquePositions[uniqueSize++] = cellPosition;
         }
@@ -151,8 +151,8 @@ template <Dimension D> u32 LookupMethod<D>::DrawCells(Onyx::RenderContext<D> *p_
         for (u32 i = 1; i < uniqueSize; ++i)
         {
             Visualization<D>::DrawCell(p_Context, uniquePositions[i], Radius, color, 0.1f);
-            const fvec<D> pos1 = fvec<D>{uniquePositions[i - 1]} + 0.5f * Radius;
-            const fvec<D> pos2 = fvec<D>{uniquePositions[i]} + 0.5f * Radius;
+            const f32v<D> pos1 = f32v<D>{uniquePositions[i - 1]} + 0.5f * Radius;
+            const f32v<D> pos2 = f32v<D>{uniquePositions[i]} + 0.5f * Radius;
 
             p_Context->Fill(Onyx::Color::YELLOW);
             if constexpr (D == D2)
@@ -164,14 +164,14 @@ template <Dimension D> u32 LookupMethod<D>::DrawCells(Onyx::RenderContext<D> *p_
     return cellClashes;
 }
 
-template <Dimension D> ivec<D> LookupMethod<D>::getCellPosition(const fvec<D> &p_Position) const
+template <Dimension D> i32v<D> LookupMethod<D>::getCellPosition(const f32v<D> &p_Position) const
 {
-    ivec<D> cellPosition{0};
+    i32v<D> cellPosition{0};
     for (u32 i = 0; i < D; ++i)
         cellPosition[i] = static_cast<i32>(p_Position[i] / Radius) - (p_Position[i] < 0.f);
     return cellPosition;
 }
-template <Dimension D> u32 LookupMethod<D>::getCellKey(const ivec<D> &p_CellPosition) const
+template <Dimension D> u32 LookupMethod<D>::getCellKey(const i32v<D> &p_CellPosition) const
 {
     return TKit::Hash(p_CellPosition) % m_Positions->GetSize();
 }
@@ -179,15 +179,15 @@ template <Dimension D> u32 LookupMethod<D>::getCellKey(const ivec<D> &p_CellPosi
 template <Dimension D> LookupMethod<D>::OffsetArray LookupMethod<D>::getGridOffsets() const
 {
     if constexpr (D == D2)
-        return {ivec<D>{-1, -1}, ivec<D>{-1, 0}, ivec<D>{-1, 1}, ivec<D>{0, -1},
-                ivec<D>{0, 1},   ivec<D>{1, -1}, ivec<D>{1, 0},  ivec<D>{1, 1}};
+        return {i32v<D>{-1, -1}, i32v<D>{-1, 0}, i32v<D>{-1, 1}, i32v<D>{0, -1},
+                i32v<D>{0, 1},   i32v<D>{1, -1}, i32v<D>{1, 0},  i32v<D>{1, 1}};
     else
-        return {ivec<D>{-1, -1, -1}, ivec<D>{-1, -1, 0}, ivec<D>{-1, -1, 1}, ivec<D>{-1, 0, -1}, ivec<D>{-1, 0, 0},
-                ivec<D>{-1, 0, 1},   ivec<D>{-1, 1, -1}, ivec<D>{-1, 1, 0},  ivec<D>{-1, 1, 1},  ivec<D>{0, -1, -1},
-                ivec<D>{0, -1, 0},   ivec<D>{0, -1, 1},  ivec<D>{0, 0, -1},  ivec<D>{0, 0, 1},   ivec<D>{0, 1, -1},
-                ivec<D>{0, 1, 0},    ivec<D>{0, 1, 1},   ivec<D>{1, -1, -1}, ivec<D>{1, -1, 0},  ivec<D>{1, -1, 1},
-                ivec<D>{1, 0, -1},   ivec<D>{1, 0, 0},   ivec<D>{1, 0, 1},   ivec<D>{1, 1, -1},  ivec<D>{1, 1, 0},
-                ivec<D>{1, 1, 1}};
+        return {i32v<D>{-1, -1, -1}, i32v<D>{-1, -1, 0}, i32v<D>{-1, -1, 1}, i32v<D>{-1, 0, -1}, i32v<D>{-1, 0, 0},
+                i32v<D>{-1, 0, 1},   i32v<D>{-1, 1, -1}, i32v<D>{-1, 1, 0},  i32v<D>{-1, 1, 1},  i32v<D>{0, -1, -1},
+                i32v<D>{0, -1, 0},   i32v<D>{0, -1, 1},  i32v<D>{0, 0, -1},  i32v<D>{0, 0, 1},   i32v<D>{0, 1, -1},
+                i32v<D>{0, 1, 0},    i32v<D>{0, 1, 1},   i32v<D>{1, -1, -1}, i32v<D>{1, -1, 0},  i32v<D>{1, -1, 1},
+                i32v<D>{1, 0, -1},   i32v<D>{1, 0, 0},   i32v<D>{1, 0, 1},   i32v<D>{1, 1, -1},  i32v<D>{1, 1, 0},
+                i32v<D>{1, 1, 1}};
 }
 
 template class LookupMethod<D2>;

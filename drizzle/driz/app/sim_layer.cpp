@@ -2,7 +2,7 @@
 #include "driz/app/visualization.hpp"
 #include "driz/app/intro_layer.hpp"
 #include "tkit/profiling/macros.hpp"
-#include "tkit/serialization/yaml/glm.hpp"
+#include "tkit/serialization/yaml/tensor.hpp"
 #include <imgui.h>
 
 namespace Driz
@@ -26,16 +26,16 @@ SimLayer<D>::SimLayer(Onyx::Application *p_Application, const SimulationSettings
 static f32 rayCast(const Onyx::Camera<D3> *p_Camera, const Onyx::RenderContext<D3> *p_Context,
                    const SimulationState<D3> &p_State, const f32 p_Radius)
 {
-    const fvec3 origin = p_Camera->GetWorldMousePosition(&p_Context->GetCurrentAxes(), 0.f);
-    const fvec3 direction = p_Camera->GetMouseRayCastDirection();
+    const f32v3 origin = p_Camera->GetWorldMousePosition(&p_Context->GetCurrentAxes(), 0.f);
+    const f32v3 direction = p_Camera->GetMouseRayCastDirection();
 
     f32 rayDistance = FLT_MAX;
     f32 maxParticleDistance = 0.f;
-    for (const fvec3 &p : p_State.Positions)
+    for (const f32v3 &p : p_State.Positions)
     {
-        const fvec3 op = p - origin;
-        const f32 b = glm::dot(op, direction);
-        const f32 particleDistance = glm::length2(op);
+        const f32v3 op = p - origin;
+        const f32 b = Math::Dot(op, direction);
+        const f32 particleDistance = Math::NormSquared(op);
         if (particleDistance > maxParticleDistance)
             maxParticleDistance = particleDistance;
 
@@ -43,12 +43,12 @@ static f32 rayCast(const Onyx::Camera<D3> *p_Camera, const Onyx::RenderContext<D
         const f32 disc = b * b - c;
         if (disc < 0.f)
             continue;
-        const f32 dist = b - glm::sqrt(disc);
+        const f32 dist = b - Math::SquareRoot(disc);
         if (dist < rayDistance)
             rayDistance = dist;
     }
 
-    return rayDistance != FLT_MAX ? rayDistance : glm::sqrt(maxParticleDistance);
+    return rayDistance != FLT_MAX ? rayDistance : Math::SquareRoot(maxParticleDistance);
 }
 
 template <Dimension D> void SimLayer<D>::OnUpdate()
@@ -96,7 +96,7 @@ template <Dimension D> void SimLayer<D>::OnEvent(const Onyx::Event &p_Event)
     if constexpr (D == D2)
         if (p_Event.Type == Onyx::Event::Scrolled && !ImGui::GetIO().WantCaptureMouse)
         {
-            f32 step = 0.005f * p_Event.ScrollOffset.y;
+            f32 step = 0.005f * p_Event.ScrollOffset[1];
             if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::LeftShift))
                 step *= 10.f;
 
@@ -132,23 +132,23 @@ template <Dimension D> void SimLayer<D>::step(const bool p_Dummy)
         if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft) &&
             !ImGui::GetIO().WantCaptureMouse)
         {
-            const fvec2 mpos = m_Camera->GetWorldMousePosition(&m_Context->GetCurrentAxes());
+            const f32v2 mpos = m_Camera->GetWorldMousePosition(&m_Context->GetCurrentAxes());
             m_Solver.AddMouseForce(mpos);
         }
     }
     else
     {
-        const fvec3 origin = m_Camera->GetWorldMousePosition(&m_Context->GetCurrentAxes(), 0.f);
-        const fvec3 direction = m_Camera->GetMouseRayCastDirection();
+        const f32v3 origin = m_Camera->GetWorldMousePosition(&m_Context->GetCurrentAxes(), 0.f);
+        const f32v3 direction = m_Camera->GetMouseRayCastDirection();
         if (Onyx::Input::IsMouseButtonPressed(m_Window, Onyx::Input::Mouse::ButtonLeft))
             m_Solver.AddMouseForce(origin + s_RayDistance * direction);
         else
         {
             s_RayDistance = rayCast(m_Camera, m_Context, m_Solver.Data.State, m_Solver.Settings.ParticleRadius);
-            const fvec3 pos = origin + s_RayDistance * direction;
+            const f32v3 pos = origin + s_RayDistance * direction;
             for (u32 i = 0; i < m_Solver.Data.State.Positions.GetSize(); ++i)
             {
-                const f32 distance2 = glm::distance2(m_Solver.Data.State.Positions[i], pos);
+                const f32 distance2 = Math::DistanceSquared(m_Solver.Data.State.Positions[i], pos);
                 if (distance2 < m_Solver.Settings.MouseRadius * m_Solver.Settings.MouseRadius)
                     m_Solver.Data.UnderMouseInfluence[i] = 2;
             }
@@ -228,14 +228,14 @@ template <Dimension D> void SimLayer<D>::renderVisualizationSettings()
 
     if (ImGui::TreeNode("Bounding box"))
     {
-        if (ImGui::DragFloat("Width", &m_Solver.Data.State.Max.x, 0.05f))
-            m_Solver.Data.State.Min.x = -m_Solver.Data.State.Max.x;
-        if (ImGui::DragFloat("Height", &m_Solver.Data.State.Max.y, 0.05f))
-            m_Solver.Data.State.Min.y = -m_Solver.Data.State.Max.y;
+        if (ImGui::DragFloat("Width", &m_Solver.Data.State.Max[0], 0.05f))
+            m_Solver.Data.State.Min[0] = -m_Solver.Data.State.Max[0];
+        if (ImGui::DragFloat("Height", &m_Solver.Data.State.Max[1], 0.05f))
+            m_Solver.Data.State.Min[1] = -m_Solver.Data.State.Max[1];
         if constexpr (D == D3)
         {
-            if (ImGui::DragFloat("Depth", &m_Solver.Data.State.Max.z, 0.05f))
-                m_Solver.Data.State.Min.z = -m_Solver.Data.State.Max.z;
+            if (ImGui::DragFloat("Depth", &m_Solver.Data.State.Max[2], 0.05f))
+                m_Solver.Data.State.Min[2] = -m_Solver.Data.State.Max[2];
         }
 
         ImGui::TreePop();

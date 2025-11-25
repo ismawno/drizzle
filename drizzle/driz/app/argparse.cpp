@@ -5,7 +5,7 @@
 #include "tkit/reflection/driz/simulation/settings.hpp"
 #include "tkit/reflection/driz/simulation/kernel.hpp"
 #include "tkit/serialization/yaml/container.hpp"
-#include "tkit/serialization/yaml/glm.hpp"
+#include "tkit/serialization/yaml/tensor.hpp"
 #include "tkit/serialization/yaml/driz/simulation/settings.hpp"
 
 #include <argparse/argparse.hpp>

@@ -22,7 +22,7 @@ class IntroLayer final : public Onyx::UserLayer
 
     template <Dimension D>
     void onUpdate(Onyx::Camera<D> *p_Camera, Onyx::RenderContext<D> *p_Context, const SimulationState<D> &p_State);
-    template <Dimension D> void updateStateAsLattice(SimulationState<D> &p_State, const uvec<D> &p_Dimensions);
+    template <Dimension D> void updateStateAsLattice(SimulationState<D> &p_State, const u32v<D> &p_Dimensions);
     template <Dimension D> void renderBoundingBox(SimulationState<D> &p_State);
 
     void renderIntroSettings();
@@ -30,11 +30,11 @@ class IntroLayer final : public Onyx::UserLayer
     Onyx::Application *m_Application;
     i32 m_Dim = 0;
 #ifndef TKIT_DEBUG
-    uvec2 m_Dimensions2{64, 64};
-    uvec3 m_Dimensions3{16, 16, 16};
+    u32v2 m_Dimensions2{64, 64};
+    u32v3 m_Dimensions3{16, 16, 16};
 #else
-    uvec2 m_Dimensions2{16, 16};
-    uvec3 m_Dimensions3{8, 8, 8};
+    u32v2 m_Dimensions2{16, 16};
+    u32v3 m_Dimensions3{8, 8, 8};
 #endif
     Onyx::Window *m_Window;
 

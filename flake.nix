@@ -39,7 +39,6 @@
           spirv-tools
           shaderc
 
-          glm
           glfw
           wayland
           wayland-protocols

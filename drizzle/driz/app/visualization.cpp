@@ -11,8 +11,8 @@ template <Dimension D> void IVisualization<D>::AdjustRenderContext(Onyx::RenderC
     if constexpr (D == D3)
     {
         p_Context->TranslateZAxis(-20.f);
-        p_Context->AmbientColor(fvec4{1.f, 1.f, 1.f, 0.3f});
-        p_Context->DirectionalLight(fvec3{0.f, 1.f, 1.f}, 0.3f);
+        p_Context->AmbientColor(f32v4{1.f, 1.f, 1.f, 0.3f});
+        p_Context->DirectionalLight(f32v3{0.f, 1.f, 1.f}, 0.3f);
     }
 }
 
@@ -29,10 +29,10 @@ void IVisualization<D>::DrawParticles(Onyx::RenderContext<D> *p_Context, const S
                       const Onyx::Gradient gradient{p_Settings.Gradient};
                       for (u32 i = p_Start; i < p_End; ++i)
                       {
-                          const fvec<D> &pos = p_State.Positions[i];
-                          const fvec<D> &vel = p_State.Velocities[i];
+                          const f32v<D> &pos = p_State.Positions[i];
+                          const f32v<D> &vel = p_State.Velocities[i];
 
-                          const f32 speed = glm::min(p_Settings.FastSpeed, glm::length(vel));
+                          const f32 speed = Math::Min(p_Settings.FastSpeed, Math::Norm(vel));
                           const Onyx::Color color = gradient.Evaluate(speed / p_Settings.FastSpeed);
 
                           p_Context->Push();
@@ -50,7 +50,7 @@ void IVisualization<D>::DrawParticles(Onyx::RenderContext<D> *p_Context, const S
 }
 
 template <Dimension D>
-void IVisualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const fvec<D> &p_Min, const fvec<D> &p_Max,
+void IVisualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const f32v<D> &p_Min, const f32v<D> &p_Max,
                                         const Onyx::Color &p_Color)
 {
     p_Context->Push();
@@ -61,8 +61,8 @@ void IVisualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const
         p_Context->Outline(p_Color);
         p_Context->OutlineWidth(0.5f);
 
-        const fvec2 center = 0.5f * (p_Min + p_Max);
-        const fvec2 GetSize = p_Max - p_Min;
+        const f32v2 center = 0.5f * (p_Min + p_Max);
+        const f32v2 GetSize = p_Max - p_Min;
 
         p_Context->Translate(center);
         p_Context->Square(GetSize);
@@ -70,11 +70,11 @@ void IVisualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const
     else
     {
         p_Context->Fill(p_Color);
-        const fvec3 dims = p_Max - p_Min;
-        const fvec3 right = fvec3{dims.x, 0, 0};
-        const fvec3 up = fvec3{0, dims.y, 0};
-        const fvec3 front = fvec3{0, 0, dims.z};
-        const fvec3 wopa = fvec3{dims.x, dims.y, 0};
+        const f32v3 dims = p_Max - p_Min;
+        const f32v3 right = f32v3{dims[0], 0, 0};
+        const f32v3 up = f32v3{0, dims[1], 0};
+        const f32v3 front = f32v3{0, 0, dims[2]};
+        const f32v3 wopa = f32v3{dims[0], dims[1], 0};
 
         const Onyx::LineOptions options{.Thickness = 0.2f, .Resolution = Core::Resolution};
         p_Context->Line(p_Min, p_Min + right, options);
@@ -93,27 +93,21 @@ void IVisualization<D>::DrawBoundingBox(Onyx::RenderContext<D> *p_Context, const
         p_Context->Line(p_Min + right, p_Min + right + front, options);
         p_Context->Line(p_Min + up, p_Min + up + front, options);
         p_Context->Line(p_Min + wopa, p_Min + wopa + front, options);
-
-        // p_Context->ScaleX(dims.x);
-        // p_Context->ScaleY(dims.z);
-        // p_Context->RotateX(glm::half_pi<f32>());
-        // p_Context->TranslateY(-0.5f * dims.y);
-        // p_Context->Square();
     }
 
     p_Context->Pop();
 }
 
 template <Dimension D>
-void IVisualization<D>::DrawCell(Onyx::RenderContext<D> *p_Context, const ivec<D> &p_Position, const f32 p_Size,
+void IVisualization<D>::DrawCell(Onyx::RenderContext<D> *p_Context, const i32v<D> &p_Position, const f32 p_Size,
                                  const Onyx::Color &p_Color, const f32 p_Thickness)
 {
     p_Context->Fill(p_Color);
     if constexpr (D == D2)
     {
-        const ivec2 right = ivec2{p_Size, 0};
-        const ivec2 up = ivec2{0, p_Size};
-        const ivec2 wopa = ivec2{p_Size, p_Size};
+        const i32v2 right = i32v2{p_Size, 0};
+        const i32v2 up = i32v2{0, p_Size};
+        const i32v2 wopa = i32v2{p_Size, p_Size};
 
         p_Context->Line(p_Position, p_Position + right, p_Thickness);
         p_Context->Line(p_Position, p_Position + up, p_Thickness);
@@ -123,10 +117,10 @@ void IVisualization<D>::DrawCell(Onyx::RenderContext<D> *p_Context, const ivec<D
     }
     else
     {
-        const ivec3 right = ivec3{p_Size, 0, 0};
-        const ivec3 up = ivec3{0, p_Size, 0};
-        const ivec3 front = ivec3{0, 0, p_Size};
-        const ivec3 wopa = ivec3{p_Size, p_Size, 0};
+        const i32v3 right = i32v3{p_Size, 0, 0};
+        const i32v3 up = i32v3{0, p_Size, 0};
+        const i32v3 front = i32v3{0, 0, p_Size};
+        const i32v3 wopa = i32v3{p_Size, p_Size, 0};
 
         const Onyx::LineOptions options{.Thickness = p_Thickness, .Resolution = Core::Resolution};
         p_Context->Line(p_Position, p_Position + right, options);
@@ -265,7 +259,7 @@ template <Dimension D> void IVisualization<D>::RenderSettings(SimulationSettings
 void Visualization<D2>::DrawMouseInfluence(const Onyx::Camera<D2> *p_Camera, Onyx::RenderContext<D2> *p_Context,
                                            const f32 p_Size, const Onyx::Color &p_Color)
 {
-    const fvec2 mpos = p_Camera->GetWorldMousePosition(&p_Context->GetCurrentAxes());
+    const f32v2 mpos = p_Camera->GetWorldMousePosition(&p_Context->GetCurrentAxes());
     p_Context->Push();
     p_Context->Fill(p_Color);
     p_Context->Translate(mpos);
@@ -286,10 +280,10 @@ void Visualization<D3>::DrawParticles(Onyx::RenderContext<D3> *p_Context, const 
                       const Onyx::Gradient gradient{p_Settings.Gradient};
                       for (u32 i = p_Start; i < p_End; ++i)
                       {
-                          const fvec3 &pos = p_Data.State.Positions[i];
-                          const fvec3 &vel = p_Data.State.Velocities[i];
+                          const f32v3 &pos = p_Data.State.Positions[i];
+                          const f32v3 &vel = p_Data.State.Velocities[i];
 
-                          const f32 speed = glm::min(p_Settings.FastSpeed, glm::length(vel));
+                          const f32 speed = Math::Min(p_Settings.FastSpeed, Math::Norm(vel));
                           const Onyx::Color color = gradient.Evaluate(speed / p_Settings.FastSpeed);
 
                           p_Context->Push();

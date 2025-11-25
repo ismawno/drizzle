@@ -1,5 +1,5 @@
 #include "driz/simulation/kernel.hpp"
-#include "driz/core/glm.hpp"
+#include "driz/core/math.hpp"
 
 namespace Driz
 {
@@ -7,57 +7,57 @@ template <Dimension D> static f32 spiky2Sigma(const f32 p_Radius)
 {
     const f32 bigR = p_Radius * p_Radius;
     if constexpr (D == D2)
-        return 6.f / (glm::pi<f32>() * bigR);
+        return 6.f / (Math::Pi<f32>() * bigR);
     else
-        return 15.f / (2.f * glm::pi<f32>() * bigR * p_Radius);
+        return 15.f / (2.f * Math::Pi<f32>() * bigR * p_Radius);
 }
 template <Dimension D> static f32 spiky3Sigma(const f32 p_Radius)
 {
     const f32 bigR = p_Radius * p_Radius;
     if constexpr (D == D2)
-        return 10.f / (glm::pi<f32>() * bigR);
+        return 10.f / (Math::Pi<f32>() * bigR);
     else
-        return 15.f / (glm::pi<f32>() * bigR * p_Radius);
+        return 15.f / (Math::Pi<f32>() * bigR * p_Radius);
 }
 template <Dimension D> static f32 spiky5Sigma(const f32 p_Radius)
 {
     const f32 bigR = p_Radius * p_Radius;
     if constexpr (D == D2)
-        return 21.f / (glm::pi<f32>() * bigR);
+        return 21.f / (Math::Pi<f32>() * bigR);
     else
-        return 42.f / (glm::pi<f32>() * bigR * p_Radius);
+        return 42.f / (Math::Pi<f32>() * bigR * p_Radius);
 }
 template <Dimension D> static f32 poly6Sigma(const f32 p_Radius)
 {
     const f32 bigR = p_Radius * p_Radius;
     if constexpr (D == D2)
-        return 4.f / (glm::pi<f32>() * bigR);
+        return 4.f / (Math::Pi<f32>() * bigR);
     else
-        return 315.f / (64.f * glm::pi<f32>() * bigR * p_Radius);
+        return 315.f / (64.f * Math::Pi<f32>() * bigR * p_Radius);
 }
 template <Dimension D> static f32 cubicSigma(const f32 p_Radius)
 {
     const f32 bigR = p_Radius * p_Radius;
     if constexpr (D == D2)
-        return 10.f / (7.f * glm::pi<f32>() * bigR);
+        return 10.f / (7.f * Math::Pi<f32>() * bigR);
     else
-        return 1.f / (glm::pi<f32>() * bigR * p_Radius);
+        return 1.f / (Math::Pi<f32>() * bigR * p_Radius);
 }
 template <Dimension D> static f32 wendlandC2Sigma(const f32 p_Radius)
 {
     const f32 bigR = p_Radius * p_Radius;
     if constexpr (D == D2)
-        return 7.f / (4.f * glm::pi<f32>() * bigR);
+        return 7.f / (4.f * Math::Pi<f32>() * bigR);
     else
-        return 21.f / (16.f * glm::pi<f32>() * bigR * p_Radius);
+        return 21.f / (16.f * Math::Pi<f32>() * bigR * p_Radius);
 }
 template <Dimension D> static f32 wendlandC4Sigma(const f32 p_Radius)
 {
     const f32 bigR = p_Radius * p_Radius;
     if constexpr (D == D2)
-        return 9.f / (4.f * glm::pi<f32>() * bigR);
+        return 9.f / (4.f * Math::Pi<f32>() * bigR);
     else
-        return 495.f / (256.f * glm::pi<f32>() * bigR * p_Radius);
+        return 495.f / (256.f * Math::Pi<f32>() * bigR * p_Radius);
 }
 
 template <Dimension D> f32 Kernel<D>::Spiky2(const f32 p_Radius, const f32 p_Distance)

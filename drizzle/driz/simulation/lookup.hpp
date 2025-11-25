@@ -1,6 +1,6 @@
 #pragma once
 
-#include "driz/core/glm.hpp"
+#include "driz/core/math.hpp"
 #include "driz/core/core.hpp"
 #include "onyx/rendering/render_context.hpp"
 #include "tkit/profiling/macros.hpp"
@@ -24,7 +24,7 @@ struct GridData
 template <Dimension D> class LookupMethod
 {
   public:
-    void SetPositions(const SimArray<fvec<D>> *p_Positions);
+    void SetPositions(const SimArray<f32v<D>> *p_Positions);
 
     void UpdateBruteForceLookup(f32 p_Radius);
     void UpdateGridLookup(f32 p_Radius);
@@ -34,70 +34,70 @@ template <Dimension D> class LookupMethod
     template <typename F> void ForEachPair(F &&p_Function, const u32 p_Partitions) const
     {
         const OffsetArray offsets = getGridOffsets();
-        Core::ForEach(0, Grid.Cells.GetSize(), p_Partitions,
-                      [this, &offsets, &p_Function](const u32 p_Start, const u32 p_End) {
-                          TKIT_PROFILE_NSCOPE("Driz::Solver::ForEachPair");
-                          const u32 tindex = Core::GetThreadIndex();
-                          for (u32 i = p_Start; i < p_End; ++i)
-                          {
-                              const f32 r2 = Radius * Radius;
-                              const auto &positions = *m_Positions;
+        Core::ForEach(
+            0, Grid.Cells.GetSize(), p_Partitions, [this, &offsets, &p_Function](const u32 p_Start, const u32 p_End) {
+                TKIT_PROFILE_NSCOPE("Driz::Solver::ForEachPair");
+                const u32 tindex = Core::GetThreadIndex();
+                for (u32 i = p_Start; i < p_End; ++i)
+                {
+                    const f32 r2 = Radius * Radius;
+                    const auto &positions = *m_Positions;
 
-                              const auto processPair = [r2, tindex, &positions](const u32 p_Index1, const u32 p_Index2,
-                                                                                F &&p_Function) {
-                                  const f32 distance = glm::distance2(positions[p_Index1], positions[p_Index2]);
-                                  if (distance < r2)
-                                      std::forward<F>(p_Function)(p_Index1, p_Index2, glm::sqrt(distance), tindex);
-                              };
+                    const auto processPair = [r2, tindex, &positions](const u32 p_Index1, const u32 p_Index2,
+                                                                      F &&p_Function) {
+                        const f32 distance = Math::DistanceSquared(positions[p_Index1], positions[p_Index2]);
+                        if (distance < r2)
+                            std::forward<F>(p_Function)(p_Index1, p_Index2, Math::SquareRoot(distance), tindex);
+                    };
 
-                              const GridCell &cell = Grid.Cells[i];
-                              for (u32 i = cell.Start; i < cell.End; ++i)
-                              {
-                                  const u32 index1 = Grid.ParticleIndices[i];
-                                  for (u32 j = i + 1; j < cell.End; ++j)
-                                      processPair(index1, Grid.ParticleIndices[j], std::forward<F>(p_Function));
+                    const GridCell &cell = Grid.Cells[i];
+                    for (u32 i = cell.Start; i < cell.End; ++i)
+                    {
+                        const u32 index1 = Grid.ParticleIndices[i];
+                        for (u32 j = i + 1; j < cell.End; ++j)
+                            processPair(index1, Grid.ParticleIndices[j], std::forward<F>(p_Function));
 
-                                  const ivec<D> center = getCellPosition(positions[index1]);
-                                  const u32 cellKey1 = cell.Key;
+                        const i32v<D> center = getCellPosition(positions[index1]);
+                        const u32 cellKey1 = cell.Key;
 
-                                  TKit::Array<u32, s_OffsetCount> visited;
-                                  u32 visitedSize = 0;
-                                  const auto checkVisited = [&visited, &visitedSize](const u32 p_CellKey) {
-                                      for (u32 i = 0; i < visitedSize; ++i)
-                                          if (visited[i] == p_CellKey)
-                                              return false;
-                                      visited[visitedSize++] = p_CellKey;
-                                      return true;
-                                  };
+                        TKit::Array<u32, s_OffsetCount> visited;
+                        u32 visitedSize = 0;
+                        const auto checkVisited = [&visited, &visitedSize](const u32 p_CellKey) {
+                            for (u32 i = 0; i < visitedSize; ++i)
+                                if (visited[i] == p_CellKey)
+                                    return false;
+                            visited[visitedSize++] = p_CellKey;
+                            return true;
+                        };
 
-                                  for (const ivec<D> &offset : offsets)
-                                  {
-                                      const u32 cellKey2 = getCellKey(center + offset);
-                                      const u32 cellIndex = Grid.CellKeyToCellIndex[cellKey2];
-                                      if (cellKey2 > cellKey1 && cellIndex != UINT32_MAX && checkVisited(cellKey2))
-                                      {
-                                          const GridCell &cell2 = Grid.Cells[cellIndex];
-                                          for (u32 j = cell2.Start; j < cell2.End; ++j)
-                                              processPair(index1, Grid.ParticleIndices[j], std::forward<F>(p_Function));
-                                      }
-                                  }
-                              }
-                          }
-                      });
+                        for (const i32v<D> &offset : offsets)
+                        {
+                            const u32 cellKey2 = getCellKey(center + offset);
+                            const u32 cellIndex = Grid.CellKeyToCellIndex[cellKey2];
+                            if (cellKey2 > cellKey1 && cellIndex != UINT32_MAX && checkVisited(cellKey2))
+                            {
+                                const GridCell &cell2 = Grid.Cells[cellIndex];
+                                for (u32 j = cell2.Start; j < cell2.End; ++j)
+                                    processPair(index1, Grid.ParticleIndices[j], std::forward<F>(p_Function));
+                            }
+                        }
+                    }
+                }
+            });
     }
 
     GridData Grid;
     f32 Radius;
 
   private:
-    ivec<D> getCellPosition(const fvec<D> &p_Position) const;
-    u32 getCellKey(const ivec<D> &p_CellPosition) const;
+    i32v<D> getCellPosition(const f32v<D> &p_Position) const;
+    u32 getCellKey(const i32v<D> &p_CellPosition) const;
 
     static constexpr u32 s_OffsetCount = D * D * D + 2 - D;
-    using OffsetArray = TKit::Array<ivec<D>, s_OffsetCount>;
+    using OffsetArray = TKit::Array<i32v<D>, s_OffsetCount>;
 
     OffsetArray getGridOffsets() const;
 
-    const SimArray<fvec<D>> *m_Positions = nullptr;
+    const SimArray<f32v<D>> *m_Positions = nullptr;
 };
 } // namespace Driz

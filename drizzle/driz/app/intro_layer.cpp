@@ -1,7 +1,7 @@
 #include "driz/app/intro_layer.hpp"
 #include "driz/app/sim_layer.hpp"
 #include "driz/app/visualization.hpp"
-#include "tkit/serialization/yaml/glm.hpp"
+#include "tkit/serialization/yaml/tensor.hpp"
 #include <imgui.h>
 
 namespace Driz
@@ -95,7 +95,7 @@ void IntroLayer::OnEvent(const Onyx::Event &p_Event)
 {
     if (m_Dim == 0 && p_Event.Type == Onyx::Event::Scrolled && !ImGui::GetIO().WantCaptureMouse)
     {
-        f32 step = 0.005f * p_Event.ScrollOffset.y;
+        f32 step = 0.005f * p_Event.ScrollOffset[1];
         if (Onyx::Input::IsKeyPressed(m_Window, Onyx::Input::Key::LeftShift))
             step *= 10.f;
         m_Camera2->ControlScrollWithUserInput(step);
@@ -160,7 +160,8 @@ void IntroLayer::renderIntroSettings()
         if (m_Dim == 0)
         {
             ImGui::Text("Current amount: %u", m_State2.Positions.GetSize());
-            if (ImGui::DragInt2("Particles", reinterpret_cast<i32 *>(glm::value_ptr(m_Dimensions2)), 1.f, 1, INT32_MAX))
+            if (ImGui::DragInt2("Particles", reinterpret_cast<i32 *>(Math::AsPointer(m_Dimensions2)), 1.f, 1,
+                                INT32_MAX))
                 updateStateAsLattice<D2>(m_State2, m_Dimensions2);
             ExportWidget("Export simulation state", Core::GetStatePath<D2>(), m_State2);
             ImportWidget("Import simulation state", Core::GetStatePath<D2>(), m_State2);
@@ -169,7 +170,8 @@ void IntroLayer::renderIntroSettings()
         {
             ResolutionEditor("Shape resolution", Core::Resolution, Flag_DisplayHelp);
             ImGui::Text("Current amount: %u", m_State3.Positions.GetSize());
-            if (ImGui::DragInt3("Particles", reinterpret_cast<i32 *>(glm::value_ptr(m_Dimensions3)), 1.f, 1, INT32_MAX))
+            if (ImGui::DragInt3("Particles", reinterpret_cast<i32 *>(Math::AsPointer(m_Dimensions3)), 1.f, 1,
+                                INT32_MAX))
                 updateStateAsLattice<D3>(m_State3, m_Dimensions3);
             ExportWidget("Export simulation state", Core::GetStatePath<D3>(), m_State3);
             ImportWidget("Import simulation state", Core::GetStatePath<D3>(), m_State3);
@@ -197,30 +199,30 @@ void IntroLayer::renderIntroSettings()
     ImGui::End();
 }
 
-template <Dimension D> void IntroLayer::updateStateAsLattice(SimulationState<D> &p_State, const uvec<D> &p_Dimensions)
+template <Dimension D> void IntroLayer::updateStateAsLattice(SimulationState<D> &p_State, const u32v<D> &p_Dimensions)
 {
     m_NeedsRedraw = true;
     p_State.Positions.Clear();
     p_State.Velocities.Clear();
     const f32 separation = 0.4f * m_Settings.SmoothingRadius;
-    const fvec<D> midPoint = 0.5f * separation * fvec<D>{p_Dimensions - 1u};
-    for (u32 i = 0; i < p_Dimensions.x; ++i)
+    const f32v<D> midPoint = 0.5f * separation * f32v<D>{p_Dimensions - 1u};
+    for (u32 i = 0; i < p_Dimensions[0]; ++i)
     {
         const f32 x = static_cast<f32>(i) * separation;
-        for (u32 j = 0; j < p_Dimensions.y; ++j)
+        for (u32 j = 0; j < p_Dimensions[1]; ++j)
         {
             const f32 y = static_cast<f32>(j) * separation;
             if constexpr (D == D2)
             {
-                p_State.Positions.Append(fvec2{x, y} - midPoint);
-                p_State.Velocities.Append(fvec2{0.f});
+                p_State.Positions.Append(f32v2{x, y} - midPoint);
+                p_State.Velocities.Append(f32v2{0.f});
             }
             else
-                for (u32 k = 0; k < p_Dimensions.z; ++k)
+                for (u32 k = 0; k < p_Dimensions[2]; ++k)
                 {
                     const f32 z = static_cast<f32>(k) * separation;
-                    p_State.Positions.Append(fvec3{x, y, z} - midPoint);
-                    p_State.Velocities.Append(fvec3{0.f});
+                    p_State.Positions.Append(f32v3{x, y, z} - midPoint);
+                    p_State.Velocities.Append(f32v3{0.f});
                 }
         }
     }
@@ -230,21 +232,21 @@ template <Dimension D> void IntroLayer::renderBoundingBox(SimulationState<D> &p_
 {
     if (ImGui::TreeNode("Bounding box"))
     {
-        if (ImGui::DragFloat("Width", &p_State.Max.x, 0.05f))
+        if (ImGui::DragFloat("Width", &p_State.Max[0], 0.05f))
         {
-            p_State.Min.x = -p_State.Max.x;
+            p_State.Min[0] = -p_State.Max[0];
             m_NeedsRedraw = true;
         }
-        if (ImGui::DragFloat("Height", &p_State.Max.y, 0.05f))
+        if (ImGui::DragFloat("Height", &p_State.Max[1], 0.05f))
         {
-            p_State.Min.y = -p_State.Max.y;
+            p_State.Min[1] = -p_State.Max[1];
             m_NeedsRedraw = true;
         }
         if constexpr (D == D3)
         {
-            if (ImGui::DragFloat("Depth", &p_State.Max.z, 0.05f))
+            if (ImGui::DragFloat("Depth", &p_State.Max[2], 0.05f))
             {
-                p_State.Min.z = -p_State.Max.z;
+                p_State.Min[2] = -p_State.Max[2];
                 m_NeedsRedraw = true;
             }
         }
