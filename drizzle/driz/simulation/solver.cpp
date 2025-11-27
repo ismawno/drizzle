@@ -280,7 +280,7 @@ template <Dimension D> f32v2 Solver<D>::getPressureFromDensity(const Density &p_
 {
     const f32 p1 = Settings.PressureStiffness * (p_Density[0] - Settings.TargetDensity);
     const f32 p2 = Settings.NearPressureStiffness * p_Density[1];
-    return {p1, p2};
+    return f32v2{p1, p2};
 }
 
 template <Dimension D> void Solver<D>::UpdateLookup()

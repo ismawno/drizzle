@@ -24,6 +24,7 @@ int main(int argc, char **argv)
         specs.Name = "Drizzle " DRIZ_VERSION;
         specs.PresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
         Onyx::Application app{specs};
+        app.InitializeImGui();
 
         if (result->Intro)
             SetIntroLayer(app, result);
