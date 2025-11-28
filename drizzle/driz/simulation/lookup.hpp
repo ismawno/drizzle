@@ -51,11 +51,11 @@ template <Dimension D> class LookupMethod
                     };
 
                     const GridCell &cell = Grid.Cells[i];
-                    for (u32 i = cell.Start; i < cell.End; ++i)
+                    for (u32 j = cell.Start; j < cell.End; ++j)
                     {
-                        const u32 index1 = Grid.ParticleIndices[i];
-                        for (u32 j = i + 1; j < cell.End; ++j)
-                            processPair(index1, Grid.ParticleIndices[j], std::forward<F>(p_Function));
+                        const u32 index1 = Grid.ParticleIndices[j];
+                        for (u32 k = j + 1; k < cell.End; ++k)
+                            processPair(index1, Grid.ParticleIndices[k], std::forward<F>(p_Function));
 
                         const i32v<D> center = getCellPosition(positions[index1]);
                         const u32 cellKey1 = cell.Key;
@@ -63,8 +63,8 @@ template <Dimension D> class LookupMethod
                         TKit::Array<u32, s_OffsetCount> visited;
                         u32 visitedSize = 0;
                         const auto checkVisited = [&visited, &visitedSize](const u32 p_CellKey) {
-                            for (u32 i = 0; i < visitedSize; ++i)
-                                if (visited[i] == p_CellKey)
+                            for (u32 j = 0; j < visitedSize; ++j)
+                                if (visited[j] == p_CellKey)
                                     return false;
                             visited[visitedSize++] = p_CellKey;
                             return true;
