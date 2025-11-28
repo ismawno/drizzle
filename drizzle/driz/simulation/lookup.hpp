@@ -63,8 +63,8 @@ template <Dimension D> class LookupMethod
                         TKit::Array<u32, s_OffsetCount> visited;
                         u32 visitedSize = 0;
                         const auto checkVisited = [&visited, &visitedSize](const u32 p_CellKey) {
-                            for (u32 j = 0; j < visitedSize; ++j)
-                                if (visited[j] == p_CellKey)
+                            for (u32 k = 0; k < visitedSize; ++k)
+                                if (visited[k] == p_CellKey)
                                     return false;
                             visited[visitedSize++] = p_CellKey;
                             return true;
