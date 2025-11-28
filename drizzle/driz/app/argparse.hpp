@@ -17,5 +17,5 @@ struct ParseResult
     bool HasRunTime;
 };
 
-const ParseResult *ParseArgs(int argc, char **argv);
+ParseResult ParseArgs(int argc, char **argv);
 } // namespace Driz

@@ -26,7 +26,7 @@ static std::string cliName(const char *p_Name)
     return result;
 }
 
-const ParseResult *ParseArgs(int argc, char **argv)
+ParseResult ParseArgs(int argc, char **argv)
 {
     argparse::ArgumentParser parser{"drizzle", DRIZ_VERSION, argparse::default_arguments::all};
     parser.add_description(
@@ -68,19 +68,19 @@ const ParseResult *ParseArgs(int argc, char **argv)
     });
 
     parser.parse_args(argc, argv);
-    ParseResult *result = new ParseResult{};
+    ParseResult result{};
 
     SimulationSettings settings{};
-    result->Intro = !parser.get<bool>("--no-intro");
+    result.Intro = !parser.get<bool>("--no-intro");
     const bool noDim = !parser.get<bool>("--2-dim") && !parser.get<bool>("--3-dim");
-    if (!result->Intro && noDim)
+    if (!result.Intro && noDim)
     {
         std::cerr << "A dimension must be specified when skipping the intro layer.\n";
         std::exit(EXIT_FAILURE);
     }
 
     const bool is2D = parser.get<bool>("--2-dim") || !parser.get<bool>("--3-dim");
-    result->Dim = is2D ? D2 : D3;
+    result.Dim = is2D ? D2 : D3;
 
     if (const auto path = parser.present("--settings"))
         settings = TKit::Yaml::Deserialize<SimulationSettings>(*path);
@@ -88,23 +88,23 @@ const ParseResult *ParseArgs(int argc, char **argv)
     if (const auto path = parser.present("--state"))
     {
         if (is2D)
-            result->State2 = TKit::Yaml::Deserialize<SimulationState<D2>>(*path);
+            result.State2 = TKit::Yaml::Deserialize<SimulationState<D2>>(*path);
         else
-            result->State3 = TKit::Yaml::Deserialize<SimulationState<D3>>(*path);
+            result.State3 = TKit::Yaml::Deserialize<SimulationState<D3>>(*path);
     }
-    else if (!result->Intro)
+    else if (!result.Intro)
     {
-        result->State2.emplace();
-        result->State3.emplace();
+        result.State2.emplace();
+        result.State3.emplace();
     }
 
     if (const auto runTime = parser.present<f32>("--run-time"))
     {
-        result->RunTime = *runTime;
-        result->HasRunTime = true;
+        result.RunTime = *runTime;
+        result.HasRunTime = true;
     }
     else
-        result->HasRunTime = false;
+        result.HasRunTime = false;
 
     TKit::Reflect<SimulationSettings>::ForEachCommandLineMemberField([&parser, &settings](const auto &p_Field) {
         using Type = TKIT_REFLECT_FIELD_TYPE(p_Field);
@@ -120,7 +120,7 @@ const ParseResult *ParseArgs(int argc, char **argv)
         }
     });
 
-    result->Settings = settings;
+    result.Settings = settings;
     return result;
 }
 } // namespace Driz
