@@ -77,8 +77,8 @@ template <Dimension D> class LookupMethod
                             if (cellKey2 > cellKey1 && cellIndex != UINT32_MAX && checkVisited(cellKey2))
                             {
                                 const GridCell &cell2 = Grid.Cells[cellIndex];
-                                for (u32 j = cell2.Start; j < cell2.End; ++j)
-                                    processPair(index1, Grid.ParticleIndices[j], std::forward<F>(p_Function));
+                                for (u32 k = cell2.Start; k < cell2.End; ++k)
+                                    processPair(index1, Grid.ParticleIndices[k], std::forward<F>(p_Function));
                             }
                         }
                     }
