@@ -18,7 +18,7 @@ include(FetchContent)
 FetchContent_Declare(
   onyx
   GIT_REPOSITORY https://github.com/ismawno/onyx.git
-  GIT_TAG main
+  GIT_TAG v0.7.x
   GIT_SHALLOW TRUE
   GIT_PROGRESS TRUE)
 FetchContent_MakeAvailable(onyx)
@@ -26,7 +26,7 @@ FetchContent_MakeAvailable(onyx)
 FetchContent_Declare(
   argparse
   GIT_REPOSITORY https://github.com/ismawno/argparse.git
-  GIT_TAG v3.2.x
+  GIT_TAG v3.2.0
   GIT_SHALLOW TRUE
   GIT_PROGRESS TRUE)
 FetchContent_MakeAvailable(argparse)
@@ -40,6 +40,6 @@ target_include_directories(drizzle PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                            ${argparse_SOURCE_DIR}/include)
 target_link_libraries(drizzle PRIVATE onyx)
 target_compile_definitions(drizzle PRIVATE DRIZ_ROOT_PATH="${DRIZZLE_ROOT_PATH}"
-                                           DRIZ_VERSION=\"v0.1.2\")
+                                           DRIZ_VERSION=\"v0.4.0\")
 
 tkit_default_configure(drizzle)
